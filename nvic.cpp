@@ -239,3 +239,33 @@ bool IRQEN;
 //shared instances need this treatment.
 const CPSI_i IRQEN;
 #endif
+
+///* ##########################   NVIC functions  #################################### */
+///** \ingroup  CMSIS_Core_FunctionInterface
+//    \defgroup CMSIS_Core_NVICFunctions CMSIS Core NVIC Functions
+//  @{
+// */
+
+///** \brief  Set Priority Grouping
+
+//  This function sets the priority grouping field using the required unlock sequence.
+//  The parameter PriorityGroup is assigned to the field SCB->AIRCR [10:8] PRIGROUP field.
+//  Only values from 0..7 are used.
+//  In case of a conflict between priority grouping and available
+//  priority bits (__NVIC_PRIO_BITS) the smallest possible priority group is set.
+
+//    \param [in]      PriorityGroup  Priority grouping field
+// */
+// static __INLINE void NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
+// {
+//  uint32_t reg_value;
+//  uint32_t PriorityGroupTmp = (PriorityGroup & 0x07);                         /* only values 0..7 are used          */
+
+//  reg_value  =  SCB->AIRCR;                                                   /* read old register configuration    */
+//  reg_value &= ~(SCB_AIRCR_VECTKEY_Msk | SCB_AIRCR_PRIGROUP_Msk);             /* clear bits to change               */
+//  reg_value  =  (reg_value                       |
+//                (0x5FA << SCB_AIRCR_VECTKEY_Pos) |
+//                (PriorityGroupTmp << 8));                                     /* Insert write key and priorty group */
+//  SCB->AIRCR =  reg_value;
+// }
+/*@} end of CMSIS_Core_NVICFunctions */

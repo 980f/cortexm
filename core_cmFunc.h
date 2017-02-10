@@ -8,7 +8,7 @@
 
 #include "core_cmInstr.h"
 
-/** couldn't makethis happen with a template so:
+/** couldn't make this happen with a template so:
 define a class per M register
 declare a const one when you need access, multiple instances are fine.
 read and write like an unsigned.

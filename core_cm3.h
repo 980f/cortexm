@@ -26,38 +26,22 @@ namespace CM3 {
  */
 
 /*  CMSIS CM3 definitions */
-#define __CM3_CMSIS_VERSION_MAIN  (0x02)                                                       /*!< [31:16] CMSIS HAL main version */
-#define __CM3_CMSIS_VERSION_SUB   (0x00)                                                       /*!< [15:0]  CMSIS HAL sub version  */
+#define __CM3_CMSIS_VERSION_MAIN  (2)                                                       /*!< [31:16] CMSIS HAL main version */
+#define __CM3_CMSIS_VERSION_SUB   (0)                                                       /*!< [15:0]  CMSIS HAL sub version  */
 #define __CM3_CMSIS_VERSION       ((__CM3_CMSIS_VERSION_MAIN << 16) | __CM3_CMSIS_VERSION_SUB) /*!< CMSIS HAL version number       */
 
+#ifndef __CORTEX_M
 #define __CORTEX_M                (3)                                                       /*!< Cortex core                    */
-
-#define __ASM            __asm                                      /*!< asm keyword for GNU Compiler          */
-#define __INLINE         inline /*!< inline keyword for GNU Compiler       */
+#endif
 
 #include <stdint.h>                      /*!< standard types definitions                      */
 #include "core_cmInstr.h"                /*!< Core Instruction Access                         */
 #include "core_cmFunc.h"                 /*!< Core Function Access                            */
 
-
-
 #ifndef __CMSIS_GENERIC
 
 #ifndef CORE_CM3_H_DEPENDANT
 #define CORE_CM3_H_DEPENDANT
-
-///* IO definitions (access restrictions to peripheral registers) */
-// #ifdef __cplusplus
-//  #define     __I     volatile   /*!< defines 'read only' permissions                 */
-// #else
-//  #define     __I     volatile const /*!< defines 'read only' permissions                 */
-// #endif
-// #define     __O     volatile     /*!< defines 'write only' permissions                */
-// #define     __IO    volatile     /*!< defines 'read / write' permissions              */
-
-/*@} end of group CMSIS_core_definitions */
-
-
 
 /*******************************************************************************
  *                 Register Abstraction
@@ -65,9 +49,7 @@ namespace CM3 {
 /** \defgroup CMSIS_core_register CMSIS Core Register
  *  Core Register contain:
  *  - Core Register
- *  - Core NVIC Register
  *  - Core SCB Register
- *  - Core SysTick Register
  *  - Core Debug Register
  *  - Core MPU Register
  */
@@ -76,20 +58,19 @@ namespace CM3 {
 /** \brief  Union type to access the Application Program Status Register (APSR). */
 union APSR {
   struct {
-#if (__CORTEX_M != 4)
-    unsigned _reserved0 : 27;              /*!< bit:  0..26  Reserved                           */
-#else
+#if (__CORTEX_M == 4)
     unsigned _reserved0 : 16;              /*!< bit:  0..15  Reserved                           */
     unsigned GE : 4;                       /*!< bit: 16..19  Greater than or Equal flags        */
     unsigned _reserved1 : 7;               /*!< bit: 20..26  Reserved                           */
+#else
+    unsigned _reserved0 : 27;              /*!< bit:  0..26  Reserved                           */
 #endif
     unsigned Q : 1;                        /*!< bit:     27  Saturation condition flag          */
     unsigned V : 1;                        /*!< bit:     28  Overflow condition code flag       */
     unsigned C : 1;                        /*!< bit:     29  Carry condition code flag          */
     unsigned Z : 1;                        /*!< bit:     30  Zero condition code flag           */
     unsigned N : 1;                        /*!< bit:     31  Negative condition code flag       */
-  }
-  b;                                   /*!< Structure used for bit  access                  */
+  } b;                                   /*!< Structure used for bit  access                  */
   uint32_t w;                            /*!< Type      used for word access                  */
 };
 
@@ -110,12 +91,12 @@ union IPSR {
 union xPSR{
   struct {
     unsigned ISR : 9;                      /*!< bit:  0.. 8  Exception number                   */
-#if (__CORTEX_M != 0x04)
-    unsigned _reserved0 : 15;              /*!< bit:  9..23  Reserved                           */
-#else
-    unsigned _reserved0 : 7;               /*!< bit:  9..15  Reserved                           */
+#if (__CORTEX_M == 4)
+    unsigned  : 7;               /*!< bit:  9..15  Reserved                           */
     unsigned GE : 4;                       /*!< bit: 16..19  Greater than or Equal flags        */
-    unsigned _reserved1 : 4;               /*!< bit: 20..23  Reserved                           */
+    unsigned  : 4;               /*!< bit: 20..23  Reserved                           */
+#else
+    unsigned : 15;              /*!< bit:  9..23  Reserved                           */
 #endif
     unsigned T : 1;                        /*!< bit:     24  Thumb bit        (read 0)          */
     unsigned IT : 2;                       /*!< bit: 25..26  saved IT state   (read 0)          */
@@ -136,7 +117,7 @@ union CONTROL{
     unsigned nPRIV : 1;                    /*!< bit:      0  Execution privilege in Thread mode */
     unsigned SPSEL : 1;                    /*!< bit:      1  Stack to be used                   */
     unsigned FPCA : 1;                     /*!< bit:      2  FP extension active flag           */
-    unsigned _reserved0 : 29;              /*!< bit:  3..31  Reserved                           */
+    unsigned : 29;              /*!< bit:  3..31  Reserved                           */
   } b;                                   /*!< Structure used for bit  access                  */
   uint32_t w;                            /*!< Type      used for word access                  */
 };
@@ -145,30 +126,6 @@ union CONTROL{
 
 
 ///** \ingroup  CMSIS_core_register
-// *   \defgroup CMSIS_NVIC CMSIS NVIC
-// *  Type definitions for the Cortex-M NVIC Registers
-// *  @{
-// */
-
-///** \brief  Structure type to access the Nested Vectored Interrupt Controller (NVIC).
-// */
-// typedef struct {
-//  SFR  ISER[8];                 /*!< Offset: 0x000 (R/W)  Interrupt Set Enable Register           */
-//  uint32_t RESERVED0[24];
-//  SFR  ICER[8];                 /*!< Offset: 0x080 (R/W)  Interrupt Clear Enable Register         */
-//  uint32_t RSERVED1[24];
-//  SFR  ISPR[8];                 /*!< Offset: 0x100 (R/W)  Interrupt Set Pending Register          */
-//  uint32_t RESERVED2[24];
-//  SFR  ICPR[8];                 /*!< Offset: 0x180 (R/W)  Interrupt Clear Pending Register        */
-//  uint32_t RESERVED3[24];
-//  SFR  IABR[8];                 /*!< Offset: 0x200 (R/W)  Interrupt Active bit Register           */
-//  uint32_t RESERVED4[56];
-//  __IO uint8_t IP[240];                /*!< Offset: 0x300 (R/W)  Interrupt Priority Register (8Bit wide) */
-//  uint32_t RESERVED5[644];
-//  __O uint32_t STIR;                   /*!< Offset: 0xE00 ( /W)  Software Trigger Interrupt Register     */
-// }  NVIC_Type;
-
-///*@} end of group CMSIS_NVIC */
 
 
 /** \ingroup  CMSIS_core_register
@@ -201,245 +158,115 @@ struct SCB {
   const SFR ISAR[5];               /*!< Offset: 0x060 (R/ )  ISA Feature Register                                  */
 };
 
+/*the following are used to assembler and tear apart values that are to be read or written in a single access.
+ * they are an alternative to structs with bitfields as those are not portable across compilers.
+ * For example:
+ * uint32_t cpuinfo= SCB.CPUID;
+ * unsigned implementer= SCB_CPUID_IMPLEMENTER()(cpuinfo);
+*/
 /* SCB CPUID Register Definitions */
-#define SCB_CPUID_IMPLEMENTER_Pos          24                                             /*!< SCB CPUID: IMPLEMENTER Position */
-#define SCB_CPUID_IMPLEMENTER_Msk          (0xFFUL << SCB_CPUID_IMPLEMENTER_Pos)          /*!< SCB CPUID: IMPLEMENTER Mask */
-
-#define SCB_CPUID_VARIANT_Pos              20                                             /*!< SCB CPUID: VARIANT Position */
-#define SCB_CPUID_VARIANT_Msk              (0xFUL << SCB_CPUID_VARIANT_Pos)               /*!< SCB CPUID: VARIANT Mask */
-
-#define SCB_CPUID_PARTNO_Pos                4                                             /*!< SCB CPUID: PARTNO Position */
-#define SCB_CPUID_PARTNO_Msk               (0xFFFUL << SCB_CPUID_PARTNO_Pos)              /*!< SCB CPUID: PARTNO Mask */
-
-#define SCB_CPUID_REVISION_Pos              0                                             /*!< SCB CPUID: REVISION Position */
-#define SCB_CPUID_REVISION_Msk             (0xFUL << SCB_CPUID_REVISION_Pos)              /*!< SCB CPUID: REVISION Mask */
+typedef BitFielder<24,8> SCB_CPUID_IMPLEMENTER ; /*!< SCB CPUID: IMPLEMENTER */
+typedef BitFielder<20,4> SCB_CPUID_VARIANT;      /*!< SCB CPUID: VARIANT */
+typedef BitFielder<4,12> SCB_CPUID_PARTNO;       /*!< SCB CPUID: PARTNO */
+typedef BitFielder<0,4>  SCB_CPUID_REVISION;     /*!< SCB CPUID: REVISION*/
 
 /* SCB Interrupt Control State Register Definitions */
-#define SCB_ICSR_NMIPENDSET_Pos            31                                             /*!< SCB ICSR: NMIPENDSET Position */
-#define SCB_ICSR_NMIPENDSET_Msk            (1UL << SCB_ICSR_NMIPENDSET_Pos)               /*!< SCB ICSR: NMIPENDSET Mask */
-
-#define SCB_ICSR_PENDSVSET_Pos             28                                             /*!< SCB ICSR: PENDSVSET Position */
-#define SCB_ICSR_PENDSVSET_Msk             (1UL << SCB_ICSR_PENDSVSET_Pos)                /*!< SCB ICSR: PENDSVSET Mask */
-
-#define SCB_ICSR_PENDSVCLR_Pos             27                                             /*!< SCB ICSR: PENDSVCLR Position */
-#define SCB_ICSR_PENDSVCLR_Msk             (1UL << SCB_ICSR_PENDSVCLR_Pos)                /*!< SCB ICSR: PENDSVCLR Mask */
-
-#define SCB_ICSR_PENDSTSET_Pos             26                                             /*!< SCB ICSR: PENDSTSET Position */
-#define SCB_ICSR_PENDSTSET_Msk             (1UL << SCB_ICSR_PENDSTSET_Pos)                /*!< SCB ICSR: PENDSTSET Mask */
-
-#define SCB_ICSR_PENDSTCLR_Pos             25                                             /*!< SCB ICSR: PENDSTCLR Position */
-#define SCB_ICSR_PENDSTCLR_Msk             (1UL << SCB_ICSR_PENDSTCLR_Pos)                /*!< SCB ICSR: PENDSTCLR Mask */
-
-#define SCB_ICSR_ISRPREEMPT_Pos            23                                             /*!< SCB ICSR: ISRPREEMPT Position */
-#define SCB_ICSR_ISRPREEMPT_Msk            (1UL << SCB_ICSR_ISRPREEMPT_Pos)               /*!< SCB ICSR: ISRPREEMPT Mask */
-
-#define SCB_ICSR_ISRPENDING_Pos            22                                             /*!< SCB ICSR: ISRPENDING Position */
-#define SCB_ICSR_ISRPENDING_Msk            (1UL << SCB_ICSR_ISRPENDING_Pos)               /*!< SCB ICSR: ISRPENDING Mask */
-
-#define SCB_ICSR_VECTPENDING_Pos           12                                             /*!< SCB ICSR: VECTPENDING Position */
-#define SCB_ICSR_VECTPENDING_Msk           (0x1FFUL << SCB_ICSR_VECTPENDING_Pos)          /*!< SCB ICSR: VECTPENDING Mask */
-
-#define SCB_ICSR_RETTOBASE_Pos             11                                             /*!< SCB ICSR: RETTOBASE Position */
-#define SCB_ICSR_RETTOBASE_Msk             (1UL << SCB_ICSR_RETTOBASE_Pos)                /*!< SCB ICSR: RETTOBASE Mask */
-
-#define SCB_ICSR_VECTACTIVE_Pos             0                                             /*!< SCB ICSR: VECTACTIVE Position */
-#define SCB_ICSR_VECTACTIVE_Msk            (0x1FFUL << SCB_ICSR_VECTACTIVE_Pos)           /*!< SCB ICSR: VECTACTIVE Mask */
+typedef BitPicker<31> SCB_ICSR_NMIPENDSET;  /*!< SCB ICSR: NMIPENDSET */
+typedef BitPicker<28> SCB_ICSR_PENDSVSET;   /*!< SCB ICSR: PENDSVSET Mask */
+typedef BitPicker<27> SCB_ICSR_PENDSVCLR;   /*!< SCB ICSR: PENDSVCLR Mask */
+typedef BitPicker<26> SCB_ICSR_PENDSTSET;   /*!< SCB ICSR: PENDSTSET Mask */
+typedef BitPicker<25> SCB_ICSR_PENDSTCLR;   /*!< SCB ICSR: PENDSTCLR Mask */
+typedef BitPicker<23> SCB_ICSR_ISRPREEMPT;  /*!< SCB ICSR: ISRPREEMPT Mask */
+typedef BitPicker<22> SCB_ICSR_ISRPENDING;  /*!< SCB ICSR: ISRPENDING Mask */
+typedef BitFielder<12,9> SCB_ICSR_VECTPENDING; /*!< SCB ICSR: VECTPENDING Mask */
+typedef BitPicker<11> SCB_ICSR_RETTOBASE;   /*!< SCB ICSR: RETTOBASE Mask */
+typedef BitFielder<0,9>  SCB_ICSR_VECTACTIVE;  /*!< SCB ICSR: VECTACTIVE Mask */
 
 /* SCB Interrupt Control State Register Definitions */
-#define SCB_VTOR_TBLBASE_Pos               29                                             /*!< SCB VTOR: TBLBASE Position */
-#define SCB_VTOR_TBLBASE_Msk               (1UL << SCB_VTOR_TBLBASE_Pos)                  /*!< SCB VTOR: TBLBASE Mask */
-
-#define SCB_VTOR_TBLOFF_Pos                 7                                             /*!< SCB VTOR: TBLOFF Position */
-#define SCB_VTOR_TBLOFF_Msk                (0x3FFFFFUL << SCB_VTOR_TBLOFF_Pos)            /*!< SCB VTOR: TBLOFF Mask */
+typedef BitPicker<29> SCB_VTOR_TBLBASE;     /*!< SCB VTOR: TBLBASE Mask */
+typedef BitFielder<7,23> SCB_VTOR_TBLOFF;      /*!< SCB VTOR: TBLOFF Mask */
 
 /* SCB Application Interrupt and Reset Control Register Definitions */
-#define SCB_AIRCR_VECTKEY_Pos              16                                             /*!< SCB AIRCR: VECTKEY Position */
-#define SCB_AIRCR_VECTKEY_Msk              (0xFFFFUL << SCB_AIRCR_VECTKEY_Pos)            /*!< SCB AIRCR: VECTKEY Mask */
+typedef BitFielder<16,16> SCB_AIRCR_VECTKEY;
+typedef BitFielder<16,16> SCB_AIRCR_VECTKEYSTAT;
 
-#define SCB_AIRCR_VECTKEYSTAT_Pos          16                                             /*!< SCB AIRCR: VECTKEYSTAT Position */
-#define SCB_AIRCR_VECTKEYSTAT_Msk          (0xFFFFUL << SCB_AIRCR_VECTKEYSTAT_Pos)        /*!< SCB AIRCR: VECTKEYSTAT Mask */
+//typedef BitPicker<#define SCB_AIRCR_ENDIANESS_Pos            15                                             /*!< SCB AIRCR: ENDIANESS Position */
+//#define SCB_AIRCR_ENDIANESS_Msk            (1UL << SCB_AIRCR_ENDIANESS_Pos)               /*!< SCB AIRCR: ENDIANESS Mask */
 
-#define SCB_AIRCR_ENDIANESS_Pos            15                                             /*!< SCB AIRCR: ENDIANESS Position */
-#define SCB_AIRCR_ENDIANESS_Msk            (1UL << SCB_AIRCR_ENDIANESS_Pos)               /*!< SCB AIRCR: ENDIANESS Mask */
+//typedef BitFielder<8,3> SCB_AIRCR_PRIGROUP;
+//typedef BitPicker<#define SCB_AIRCR_SYSRESETREQ_Pos           2                                             /*!< SCB AIRCR: SYSRESETREQ Position */
+//#define SCB_AIRCR_SYSRESETREQ_Msk          (1UL << SCB_AIRCR_SYSRESETREQ_Pos)             /*!< SCB AIRCR: SYSRESETREQ Mask */
 
-#define SCB_AIRCR_PRIGROUP_Pos              8                                             /*!< SCB AIRCR: PRIGROUP Position */
-#define SCB_AIRCR_PRIGROUP_Msk             (7UL << SCB_AIRCR_PRIGROUP_Pos)                /*!< SCB AIRCR: PRIGROUP Mask */
+//typedef BitPicker<#define SCB_AIRCR_VECTCLRACTIVE_Pos         1                                             /*!< SCB AIRCR: VECTCLRACTIVE Position */
+//#define SCB_AIRCR_VECTCLRACTIVE_Msk        (1UL << SCB_AIRCR_VECTCLRACTIVE_Pos)           /*!< SCB AIRCR: VECTCLRACTIVE Mask */
 
-#define SCB_AIRCR_SYSRESETREQ_Pos           2                                             /*!< SCB AIRCR: SYSRESETREQ Position */
-#define SCB_AIRCR_SYSRESETREQ_Msk          (1UL << SCB_AIRCR_SYSRESETREQ_Pos)             /*!< SCB AIRCR: SYSRESETREQ Mask */
+//typedef BitPicker<#define SCB_AIRCR_VECTRESET_Pos             0                                             /*!< SCB AIRCR: VECTRESET Position */
+//#define SCB_AIRCR_VECTRESET_Msk            (1UL << SCB_AIRCR_VECTRESET_Pos)               /*!< SCB AIRCR: VECTRESET Mask */
 
-#define SCB_AIRCR_VECTCLRACTIVE_Pos         1                                             /*!< SCB AIRCR: VECTCLRACTIVE Position */
-#define SCB_AIRCR_VECTCLRACTIVE_Msk        (1UL << SCB_AIRCR_VECTCLRACTIVE_Pos)           /*!< SCB AIRCR: VECTCLRACTIVE Mask */
+///* SCB System Control Register Definitions */
+//typedef BitPicker<#define SCB_SCR_SEVONPEND_Pos               4                                             /*!< SCB SCR: SEVONPEND Position */
+//#define SCB_SCR_SEVONPEND_Msk              (1UL << SCB_SCR_SEVONPEND_Pos)                 /*!< SCB SCR: SEVONPEND Mask */
 
-#define SCB_AIRCR_VECTRESET_Pos             0                                             /*!< SCB AIRCR: VECTRESET Position */
-#define SCB_AIRCR_VECTRESET_Msk            (1UL << SCB_AIRCR_VECTRESET_Pos)               /*!< SCB AIRCR: VECTRESET Mask */
+//typedef BitPicker<#define SCB_SCR_SLEEPDEEP_Pos               2                                             /*!< SCB SCR: SLEEPDEEP Position */
+//#define SCB_SCR_SLEEPDEEP_Msk              (1UL << SCB_SCR_SLEEPDEEP_Pos)                 /*!< SCB SCR: SLEEPDEEP Mask */
 
-/* SCB System Control Register Definitions */
-#define SCB_SCR_SEVONPEND_Pos               4                                             /*!< SCB SCR: SEVONPEND Position */
-#define SCB_SCR_SEVONPEND_Msk              (1UL << SCB_SCR_SEVONPEND_Pos)                 /*!< SCB SCR: SEVONPEND Mask */
+//typedef BitPicker<#define SCB_SCR_SLEEPONEXIT_Pos             1                                             /*!< SCB SCR: SLEEPONEXIT Position */
+//#define SCB_SCR_SLEEPONEXIT_Msk            (1UL << SCB_SCR_SLEEPONEXIT_Pos)               /*!< SCB SCR: SLEEPONEXIT Mask */
 
-#define SCB_SCR_SLEEPDEEP_Pos               2                                             /*!< SCB SCR: SLEEPDEEP Position */
-#define SCB_SCR_SLEEPDEEP_Msk              (1UL << SCB_SCR_SLEEPDEEP_Pos)                 /*!< SCB SCR: SLEEPDEEP Mask */
+///* SCB Configuration Control Register Definitions */
+//typedef BitPicker<#define SCB_CCR_STKALIGN_Pos                9                                             /*!< SCB CCR: STKALIGN Position */
+//#define SCB_CCR_STKALIGN_Msk               (1UL << SCB_CCR_STKALIGN_Pos)                  /*!< SCB CCR: STKALIGN Mask */
 
-#define SCB_SCR_SLEEPONEXIT_Pos             1                                             /*!< SCB SCR: SLEEPONEXIT Position */
-#define SCB_SCR_SLEEPONEXIT_Msk            (1UL << SCB_SCR_SLEEPONEXIT_Pos)               /*!< SCB SCR: SLEEPONEXIT Mask */
+//typedef BitPicker<#define SCB_CCR_BFHFNMIGN_Pos               8                                             /*!< SCB CCR: BFHFNMIGN Position */
+//#define SCB_CCR_BFHFNMIGN_Msk              (1UL << SCB_CCR_BFHFNMIGN_Pos)                 /*!< SCB CCR: BFHFNMIGN Mask */
 
-/* SCB Configuration Control Register Definitions */
-#define SCB_CCR_STKALIGN_Pos                9                                             /*!< SCB CCR: STKALIGN Position */
-#define SCB_CCR_STKALIGN_Msk               (1UL << SCB_CCR_STKALIGN_Pos)                  /*!< SCB CCR: STKALIGN Mask */
+//typedef BitPicker<#define SCB_CCR_DIV_0_TRP_Pos               4                                             /*!< SCB CCR: DIV_0_TRP Position */
+//#define SCB_CCR_DIV_0_TRP_Msk              (1UL << SCB_CCR_DIV_0_TRP_Pos)                 /*!< SCB CCR: DIV_0_TRP Mask */
 
-#define SCB_CCR_BFHFNMIGN_Pos               8                                             /*!< SCB CCR: BFHFNMIGN Position */
-#define SCB_CCR_BFHFNMIGN_Msk              (1UL << SCB_CCR_BFHFNMIGN_Pos)                 /*!< SCB CCR: BFHFNMIGN Mask */
+//typedef BitPicker<#define SCB_CCR_UNALIGN_TRP_Pos             3                                             /*!< SCB CCR: UNALIGN_TRP Position */
+//#define SCB_CCR_UNALIGN_TRP_Msk            (1UL << SCB_CCR_UNALIGN_TRP_Pos)               /*!< SCB CCR: UNALIGN_TRP Mask */
 
-#define SCB_CCR_DIV_0_TRP_Pos               4                                             /*!< SCB CCR: DIV_0_TRP Position */
-#define SCB_CCR_DIV_0_TRP_Msk              (1UL << SCB_CCR_DIV_0_TRP_Pos)                 /*!< SCB CCR: DIV_0_TRP Mask */
+//typedef BitPicker<#define SCB_CCR_USERSETMPEND_Pos            1                                             /*!< SCB CCR: USERSETMPEND Position */
+//#define SCB_CCR_USERSETMPEND_Msk           (1UL << SCB_CCR_USERSETMPEND_Pos)              /*!< SCB CCR: USERSETMPEND Mask */
 
-#define SCB_CCR_UNALIGN_TRP_Pos             3                                             /*!< SCB CCR: UNALIGN_TRP Position */
-#define SCB_CCR_UNALIGN_TRP_Msk            (1UL << SCB_CCR_UNALIGN_TRP_Pos)               /*!< SCB CCR: UNALIGN_TRP Mask */
+//typedef BitPicker<#define SCB_CCR_NONBASETHRDENA_Pos          0                                             /*!< SCB CCR: NONBASETHRDENA Position */
+//#define SCB_CCR_NONBASETHRDENA_Msk         (1UL << SCB_CCR_NONBASETHRDENA_Pos)            /*!< SCB CCR: NONBASETHRDENA Mask */
 
-#define SCB_CCR_USERSETMPEND_Pos            1                                             /*!< SCB CCR: USERSETMPEND Position */
-#define SCB_CCR_USERSETMPEND_Msk           (1UL << SCB_CCR_USERSETMPEND_Pos)              /*!< SCB CCR: USERSETMPEND Mask */
+///* SCB System Handler Control and State Register Definitions */
+typedef BitPicker<18> SCB_SHCSR_USGFAULTENA;
+typedef BitPicker<17> SCB_SHCSR_BUSFAULTENA;
+typedef BitPicker<16> SCB_SHCSR_MEMFAULTENA;
 
-#define SCB_CCR_NONBASETHRDENA_Pos          0                                             /*!< SCB CCR: NONBASETHRDENA Position */
-#define SCB_CCR_NONBASETHRDENA_Msk         (1UL << SCB_CCR_NONBASETHRDENA_Pos)            /*!< SCB CCR: NONBASETHRDENA Mask */
+typedef BitPicker<15> SCB_SHCSR_SVCALLPENDED;
+typedef BitPicker<14> SCB_SHCSR_BUSFAULTPENDED;
+typedef BitPicker<13> SCB_SHCSR_MEMFAULTPENDED;
+typedef BitPicker<12> SCB_SHCSR_USGFAULTPENDED;
+typedef BitPicker<11> SCB_SHCSR_SYSTICKACT;
+typedef BitPicker<10> SCB_SHCSR_PENDSVACT;
+typedef BitPicker<8> SCB_SHCSR_MONITORACT;
+typedef BitPicker<7> SCB_SHCSR_SVCALLACT;
 
-/* SCB System Handler Control and State Register Definitions */
-#define SCB_SHCSR_USGFAULTENA_Pos          18                                             /*!< SCB SHCSR: USGFAULTENA Position */
-#define SCB_SHCSR_USGFAULTENA_Msk          (1UL << SCB_SHCSR_USGFAULTENA_Pos)             /*!< SCB SHCSR: USGFAULTENA Mask */
-
-#define SCB_SHCSR_BUSFAULTENA_Pos          17                                             /*!< SCB SHCSR: BUSFAULTENA Position */
-#define SCB_SHCSR_BUSFAULTENA_Msk          (1UL << SCB_SHCSR_BUSFAULTENA_Pos)             /*!< SCB SHCSR: BUSFAULTENA Mask */
-
-#define SCB_SHCSR_MEMFAULTENA_Pos          16                                             /*!< SCB SHCSR: MEMFAULTENA Position */
-#define SCB_SHCSR_MEMFAULTENA_Msk          (1UL << SCB_SHCSR_MEMFAULTENA_Pos)             /*!< SCB SHCSR: MEMFAULTENA Mask */
-
-#define SCB_SHCSR_SVCALLPENDED_Pos         15                                             /*!< SCB SHCSR: SVCALLPENDED Position */
-#define SCB_SHCSR_SVCALLPENDED_Msk         (1UL << SCB_SHCSR_SVCALLPENDED_Pos)            /*!< SCB SHCSR: SVCALLPENDED Mask */
-
-#define SCB_SHCSR_BUSFAULTPENDED_Pos       14                                             /*!< SCB SHCSR: BUSFAULTPENDED Position */
-#define SCB_SHCSR_BUSFAULTPENDED_Msk       (1UL << SCB_SHCSR_BUSFAULTPENDED_Pos)          /*!< SCB SHCSR: BUSFAULTPENDED Mask */
-
-#define SCB_SHCSR_MEMFAULTPENDED_Pos       13                                             /*!< SCB SHCSR: MEMFAULTPENDED Position */
-#define SCB_SHCSR_MEMFAULTPENDED_Msk       (1UL << SCB_SHCSR_MEMFAULTPENDED_Pos)          /*!< SCB SHCSR: MEMFAULTPENDED Mask */
-
-#define SCB_SHCSR_USGFAULTPENDED_Pos       12                                             /*!< SCB SHCSR: USGFAULTPENDED Position */
-#define SCB_SHCSR_USGFAULTPENDED_Msk       (1UL << SCB_SHCSR_USGFAULTPENDED_Pos)          /*!< SCB SHCSR: USGFAULTPENDED Mask */
-
-#define SCB_SHCSR_SYSTICKACT_Pos           11                                             /*!< SCB SHCSR: SYSTICKACT Position */
-#define SCB_SHCSR_SYSTICKACT_Msk           (1UL << SCB_SHCSR_SYSTICKACT_Pos)              /*!< SCB SHCSR: SYSTICKACT Mask */
-
-#define SCB_SHCSR_PENDSVACT_Pos            10                                             /*!< SCB SHCSR: PENDSVACT Position */
-#define SCB_SHCSR_PENDSVACT_Msk            (1UL << SCB_SHCSR_PENDSVACT_Pos)               /*!< SCB SHCSR: PENDSVACT Mask */
-
-#define SCB_SHCSR_MONITORACT_Pos            8                                             /*!< SCB SHCSR: MONITORACT Position */
-#define SCB_SHCSR_MONITORACT_Msk           (1UL << SCB_SHCSR_MONITORACT_Pos)              /*!< SCB SHCSR: MONITORACT Mask */
-
-#define SCB_SHCSR_SVCALLACT_Pos             7                                             /*!< SCB SHCSR: SVCALLACT Position */
-#define SCB_SHCSR_SVCALLACT_Msk            (1UL << SCB_SHCSR_SVCALLACT_Pos)               /*!< SCB SHCSR: SVCALLACT Mask */
-
-#define SCB_SHCSR_USGFAULTACT_Pos           3                                             /*!< SCB SHCSR: USGFAULTACT Position */
-#define SCB_SHCSR_USGFAULTACT_Msk          (1UL << SCB_SHCSR_USGFAULTACT_Pos)             /*!< SCB SHCSR: USGFAULTACT Mask */
-
-#define SCB_SHCSR_BUSFAULTACT_Pos           1                                             /*!< SCB SHCSR: BUSFAULTACT Position */
-#define SCB_SHCSR_BUSFAULTACT_Msk          (1UL << SCB_SHCSR_BUSFAULTACT_Pos)             /*!< SCB SHCSR: BUSFAULTACT Mask */
-
-#define SCB_SHCSR_MEMFAULTACT_Pos           0                                             /*!< SCB SHCSR: MEMFAULTACT Position */
-#define SCB_SHCSR_MEMFAULTACT_Msk          (1UL << SCB_SHCSR_MEMFAULTACT_Pos)             /*!< SCB SHCSR: MEMFAULTACT Mask */
+typedef BitPicker<3> SCB_SHCSR_USGFAULTACT;
+typedef BitPicker<1> SCB_SHCSR_BUSFAULTACT;
+typedef BitPicker<0> SCB_SHCSR_MEMFAULTACT;
 
 /* SCB Configurable Fault Status Registers Definitions */
-#define SCB_CFSR_USGFAULTSR_Pos            16                                             /*!< SCB CFSR: Usage Fault Status Register Position */
-#define SCB_CFSR_USGFAULTSR_Msk            (0xFFFFUL << SCB_CFSR_USGFAULTSR_Pos)          /*!< SCB CFSR: Usage Fault Status Register Mask */
-
-#define SCB_CFSR_BUSFAULTSR_Pos             8                                             /*!< SCB CFSR: Bus Fault Status Register Position */
-#define SCB_CFSR_BUSFAULTSR_Msk            (0xFFUL << SCB_CFSR_BUSFAULTSR_Pos)            /*!< SCB CFSR: Bus Fault Status Register Mask */
-
-#define SCB_CFSR_MEMFAULTSR_Pos             0                                             /*!< SCB CFSR: Memory Manage Fault Status Register Position */
-#define SCB_CFSR_MEMFAULTSR_Msk            (0xFFUL << SCB_CFSR_MEMFAULTSR_Pos)            /*!< SCB CFSR: Memory Manage Fault Status Register Mask */
-
+typedef BitFielder<16,16> SCB_CFSR_USGFAULTSR;
+typedef BitFielder<8,8>   SCB_CFSR_BUSFAULTSR;
+typedef BitFielder<0,8> SCB_CFSR_MEMFAULTSR;
 /* SCB Hard Fault Status Registers Definitions */
-#define SCB_HFSR_DEBUGEVT_Pos              31                                             /*!< SCB HFSR: DEBUGEVT Position */
-#define SCB_HFSR_DEBUGEVT_Msk              (1UL << SCB_HFSR_DEBUGEVT_Pos)                 /*!< SCB HFSR: DEBUGEVT Mask */
-
-#define SCB_HFSR_FORCED_Pos                30                                             /*!< SCB HFSR: FORCED Position */
-#define SCB_HFSR_FORCED_Msk                (1UL << SCB_HFSR_FORCED_Pos)                   /*!< SCB HFSR: FORCED Mask */
-
-#define SCB_HFSR_VECTTBL_Pos                1                                             /*!< SCB HFSR: VECTTBL Position */
-#define SCB_HFSR_VECTTBL_Msk               (1UL << SCB_HFSR_VECTTBL_Pos)                  /*!< SCB HFSR: VECTTBL Mask */
-
+typedef BitPicker<31> SCB_HFSR_DEBUGEVT;
+typedef BitPicker<30> SCB_HFSR_FORCED;
+typedef BitPicker<1> SCB_HFSR_VECTTBL;
 /* SCB Debug Fault Status Register Definitions */
-#define SCB_DFSR_EXTERNAL_Pos               4                                             /*!< SCB DFSR: EXTERNAL Position */
-#define SCB_DFSR_EXTERNAL_Msk              (1UL << SCB_DFSR_EXTERNAL_Pos)                 /*!< SCB DFSR: EXTERNAL Mask */
-
-#define SCB_DFSR_VCATCH_Pos                 3                                             /*!< SCB DFSR: VCATCH Position */
-#define SCB_DFSR_VCATCH_Msk                (1UL << SCB_DFSR_VCATCH_Pos)                   /*!< SCB DFSR: VCATCH Mask */
-
-#define SCB_DFSR_DWTTRAP_Pos                2                                             /*!< SCB DFSR: DWTTRAP Position */
-#define SCB_DFSR_DWTTRAP_Msk               (1UL << SCB_DFSR_DWTTRAP_Pos)                  /*!< SCB DFSR: DWTTRAP Mask */
-
-#define SCB_DFSR_BKPT_Pos                   1                                             /*!< SCB DFSR: BKPT Position */
-#define SCB_DFSR_BKPT_Msk                  (1UL << SCB_DFSR_BKPT_Pos)                     /*!< SCB DFSR: BKPT Mask */
-
-#define SCB_DFSR_HALTED_Pos                 0                                             /*!< SCB DFSR: HALTED Position */
-#define SCB_DFSR_HALTED_Msk                (1UL << SCB_DFSR_HALTED_Pos)                   /*!< SCB DFSR: HALTED Mask */
+typedef BitPicker<4> SCB_DFSR_EXTERNAL;
+typedef BitPicker<3> SCB_DFSR_VCATCH;
+typedef BitPicker<2> SCB_DFSR_DWTTRAP;
+typedef BitPicker<1> SCB_DFSR_BKPT;
+typedef BitPicker<0> SCB_DFSR_HALTED;                                            /*!< SCB DFSR: HALTED Position */
 
 /*@} end of group CMSIS_SCB */
 
-
-/** \ingroup  CMSIS_core_register
- *   \defgroup CMSIS_SysTick CMSIS SysTick
- *  Type definitions for the Cortex-M System Timer Registers
- *  @{
- */
-
-/** \brief  Structure type to access the System Timer (SysTick).
- */
-struct SysTick{
-  SFR CTRL;                   /*!< Offset: 0x000 (R/W)  SysTick Control and Status Register */
-  SFR LOAD;                   /*!< Offset: 0x004 (R/W)  SysTick Reload Value Register       */
-  SFR VAL;                    /*!< Offset: 0x008 (R/W)  SysTick Current Value Register      */
-  const SFR CALIB;                 /*!< Offset: 0x00C (R/ )  SysTick Calibration Register        */
-};
-
-/* SysTick Control / Status Register Definitions */
-#define SysTick_CTRL_COUNTFLAG_Pos         16                                             /*!< SysTick CTRL: COUNTFLAG Position */
-#define SysTick_CTRL_COUNTFLAG_Msk         (1UL << SysTick_CTRL_COUNTFLAG_Pos)            /*!< SysTick CTRL: COUNTFLAG Mask */
-
-#define SysTick_CTRL_CLKSOURCE_Pos          2                                             /*!< SysTick CTRL: CLKSOURCE Position */
-#define SysTick_CTRL_CLKSOURCE_Msk         (1UL << SysTick_CTRL_CLKSOURCE_Pos)            /*!< SysTick CTRL: CLKSOURCE Mask */
-
-#define SysTick_CTRL_TICKINT_Pos            1                                             /*!< SysTick CTRL: TICKINT Position */
-#define SysTick_CTRL_TICKINT_Msk           (1UL << SysTick_CTRL_TICKINT_Pos)              /*!< SysTick CTRL: TICKINT Mask */
-
-#define SysTick_CTRL_ENABLE_Pos             0                                             /*!< SysTick CTRL: ENABLE Position */
-#define SysTick_CTRL_ENABLE_Msk            (1UL << SysTick_CTRL_ENABLE_Pos)               /*!< SysTick CTRL: ENABLE Mask */
-
-/* SysTick Reload Register Definitions */
-#define SysTick_LOAD_RELOAD_Pos             0                                             /*!< SysTick LOAD: RELOAD Position */
-#define SysTick_LOAD_RELOAD_Msk            (0xFFFFFFUL << SysTick_LOAD_RELOAD_Pos)        /*!< SysTick LOAD: RELOAD Mask */
-
-/* SysTick Current Register Definitions */
-#define SysTick_VAL_CURRENT_Pos             0                                             /*!< SysTick VAL: CURRENT Position */
-#define SysTick_VAL_CURRENT_Msk            (0xFFFFFFUL << SysTick_VAL_CURRENT_Pos)        /*!< SysTick VAL: CURRENT Mask */
-
-/* SysTick Calibration Register Definitions */
-#define SysTick_CALIB_NOREF_Pos            31                                             /*!< SysTick CALIB: NOREF Position */
-#define SysTick_CALIB_NOREF_Msk            (1UL << SysTick_CALIB_NOREF_Pos)               /*!< SysTick CALIB: NOREF Mask */
-
-#define SysTick_CALIB_SKEW_Pos             30                                             /*!< SysTick CALIB: SKEW Position */
-#define SysTick_CALIB_SKEW_Msk             (1UL << SysTick_CALIB_SKEW_Pos)                /*!< SysTick CALIB: SKEW Mask */
-
-#define SysTick_CALIB_TENMS_Pos             0                                             /*!< SysTick CALIB: TENMS Position */
-#define SysTick_CALIB_TENMS_Msk            (0xFFFFFFUL << SysTick_VAL_CURRENT_Pos)        /*!< SysTick CALIB: TENMS Mask */
-
-/*@} end of group CMSIS_SysTick */
-
-
-
-/** \ingroup  CMSIS_core_register
- *   \defgroup CMSIS_InterruptType CMSIS Interrupt Type
- *  Type definitions for the Cortex-M Interrupt Type Register
- *  @{
- */
 
 /** \brief  Structure type to access the Interrupt Type Register.
  */
@@ -454,8 +281,7 @@ struct InterruptType {
 };
 
 /* Interrupt Controller Type Register Definitions */
-#define IntType_ICTR_INTLINESNUM_Pos  0                                                   /*!< InterruptType ICTR: INTLINESNUM Position */
-#define IntType_ICTR_INTLINESNUM_Msk (0x1FUL << IntType_ICTR_INTLINESNUM_Pos)             /*!< InterruptType ICTR: INTLINESNUM Mask */
+typedef BitFielder<0,5> IntType_ICTR_INTLINESNUM;
 
 /* Auxiliary Control Register Definitions */
 #define IntType_ACTLR_DISFOLD_Pos     2                                                   /*!< InterruptType ACTLR: DISFOLD Position */
@@ -568,8 +394,6 @@ struct MPU {
 #define ITM_BASE            (0xE0000000UL)                            /*!< ITM Base Address                  */
 
 
-#define SysTick_BASE        (SCS_BASE + 0x0010UL)                   /*!< SysTick Base Address              */
-#define NVIC_BASE           (SCS_BASE + 0x0100UL)                   /*!< NVIC Base Address                 */
 // #define SCB_BASE            (SCS_BASE + 0x0D00UL)                   /*!< System Control Block Base Address */
 
 // DeclareCore(InterruptType);        /*!< Interrupt Type Register           */
@@ -583,82 +407,6 @@ struct MPU {
 #endif
 
 /*@} */
-
-
-
-
-
-///* ##########################   NVIC functions  #################################### */
-///** \ingroup  CMSIS_Core_FunctionInterface
-//    \defgroup CMSIS_Core_NVICFunctions CMSIS Core NVIC Functions
-//  @{
-// */
-
-///** \brief  Set Priority Grouping
-
-//  This function sets the priority grouping field using the required unlock sequence.
-//  The parameter PriorityGroup is assigned to the field SCB->AIRCR [10:8] PRIGROUP field.
-//  Only values from 0..7 are used.
-//  In case of a conflict between priority grouping and available
-//  priority bits (__NVIC_PRIO_BITS) the smallest possible priority group is set.
-
-//    \param [in]      PriorityGroup  Priority grouping field
-// */
-// static __INLINE void NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
-// {
-//  uint32_t reg_value;
-//  uint32_t PriorityGroupTmp = (PriorityGroup & 0x07);                         /* only values 0..7 are used          */
-
-//  reg_value  =  SCB->AIRCR;                                                   /* read old register configuration    */
-//  reg_value &= ~(SCB_AIRCR_VECTKEY_Msk | SCB_AIRCR_PRIGROUP_Msk);             /* clear bits to change               */
-//  reg_value  =  (reg_value                       |
-//                (0x5FA << SCB_AIRCR_VECTKEY_Pos) |
-//                (PriorityGroupTmp << 8));                                     /* Insert write key and priorty group */
-//  SCB->AIRCR =  reg_value;
-// }
-
-
-
-
-
-/*@} end of CMSIS_Core_NVICFunctions */
-
-
-
-/* ##################################    SysTick function  ############################################ */
-/** \ingroup  CMSIS_Core_FunctionInterface
- *   \defgroup CMSIS_Core_SysTickFunctions CMSIS Core SysTick Functions
- *  @{
- */
-
-// #if (__Vendor_SysTickConfig == 0)
-//
-///** \brief  System Tick Configuration
-// *
-// *   This function initialises the system tick timer and its interrupt and start the system tick timer.
-// *   Counter is in free running mode to generate periodical interrupts.
-// *
-// *   \param [in]  ticks  Number of ticks between two interrupts
-// *   \return          0  Function succeeded
-// *   \return          1  Function failed
-// */
-// static __INLINE uint32_t SysTick_Config(uint32_t ticks){
-//  if(ticks > SysTick_LOAD_RELOAD_Msk) {
-//    return 1;                                                                                                                  /* Reload value impossible */
-//  }
-//  SysTick->LOAD = (ticks & SysTick_LOAD_RELOAD_Msk) - 1;     /* set reload register */
-//  // todo: resotre this cde: NVIC_SetPriority (SysTick_IRQn, (1<<__NVIC_PRIO_BITS) - 1);  /* set Priority for Cortex-M0 System Interrupts */
-//  SysTick->VAL = 0;                                         /* Load the SysTick Counter Value */
-//  SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk |
-//                  SysTick_CTRL_TICKINT_Msk |
-//                  SysTick_CTRL_ENABLE_Msk;                    /* Enable SysTick IRQ and SysTick Timer */
-//  return 0;                                                  /* Function successful */
-// } // SysTick_Config
-//
-// #endif // if (__Vendor_SysTickConfig == 0)
-//
-///*@} end of CMSIS_Core_SysTickFunctions */
-//
 
 
 #endif /* __CORE_CM3_H_DEPENDANT */

@@ -64,7 +64,7 @@ enum IrqStyle {
 template <unsigned sfraddress, int pos, int width = 1> class SFRfield {
   enum {
     /** mask positioned */
-    mask = ((1 << width) - 1) << pos
+    mask = bitMask(pos,width)
   };
 
   inline SFR &sfr() const {
@@ -103,7 +103,7 @@ public:
  *  This is NOT derived from SFRfield as we can do some optimizations that the compiler might miss (or developer might have disabled)*/
 template <unsigned sfraddress, int pos> class SFRbit : public BoolishRef {
   enum {
-    mask = 1 << pos
+    mask = bitMask(pos)
   };
 
   inline SFR &sfr() const {
