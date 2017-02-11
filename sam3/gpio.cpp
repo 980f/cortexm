@@ -1,5 +1,7 @@
 #include "gpio.h"
-#include "minimath.h"
+
+#ifndef ARDUINO
+//#include "minimath.h"
 
 static Handler pinvectors[1+PD][32];//zero-init by cstartup
 
@@ -36,3 +38,5 @@ GPIOIrqHandler(11,PA)
 GPIOIrqHandler(12,PB)
 GPIOIrqHandler(13,PC)
 GPIOIrqHandler(14,PD)
+
+#endif

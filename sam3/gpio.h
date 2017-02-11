@@ -48,9 +48,11 @@ enum GpioFeature {
   ControlLock, //14: isLocked, writeprotect gizmo., writeprotect faulted (clear on read) (no dox on how to map 16 bit code to which register was attacked)
 };
 
+#ifndef ARDUINO
 Handler &gpioVector(unsigned portnum,unsigned pinnumber);
 /** call all the gpioVector functions whose corresponding bits are set */
 void hike(unsigned portnum,unsigned bits);
+#endif
 
 /** those settings that are shared across a port */
 template <unsigned portnum> class PIOPort {
@@ -70,14 +72,17 @@ public:
   void setGlitchFilterBase(unsigned slowrate)const{
     *atAddress(base+0x8C)=slowrate;
   }
-  /** read interrupt flag register, bit per pin, read resets flags so this must be done at group level */
+
+  /** read interrupt flag register, bit per pin, read resets flags so this must be done at group level.
+    do NOT do this on an Arduino unless you have overridden the PIO interrupt handler  */
   unsigned getInterrupts()const{
     return *atAddress(base+0x4C);
   }
-
+#ifndef ARDUINO  //we don't have the info here needed to call the Arduino interrupt attachment function
   void setHandler(unsigned pinnumber, Handler handler)const{
     gpioVector(portnum,pinnumber)=handler;
   }
+#endif
 
 };
 
@@ -139,7 +144,7 @@ public:
     //todo: set direction to 0, which is the power up setting so not urgent in our typical use of static configuration.
     PortPin<portNum, bitPosition>::setDirection(0);
   }
-
+#ifndef ARDUINO  //@see interruptPin class
   /** enable within the group, still will need to nvic enable the group and scan bits in the grouped status register. */
   void irq(bool enable)const{
     Base::feature(InterruptMask) = enable;
@@ -155,6 +160,7 @@ public:
       irq( style>=AnyEdge );
     }
   }
+#endif
 
 };
 
