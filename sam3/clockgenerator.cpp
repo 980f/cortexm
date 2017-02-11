@@ -51,7 +51,7 @@ enum ClockInterrupt {
   FOS=20   // Clock Failure Detector Fault Output Status
 };
 
-void clockoutPut(unsigned whichOf3, bool enable){
+template<void clockoutPut(unsigned whichOf3, bool enable){
   Feature cen(SysItem(PMC),whichOf3+PCK0);
   cen=enable;
 }

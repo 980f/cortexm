@@ -11,7 +11,7 @@ void clockOutPut(unsigned whichOf3, bool enable);
 //NYI: void fastRC(unsigned Mhz);
 
 /** @param prescale is 3 bits, 111 for /3 else log2(some power of 2)
- * @param source is slow, main, pllA, Upll. if Upll then the uppl/2 bit is set herein, elseit is cleared.
+ * @param source is slow, main, pllA, Upll. if Upll then the uppl/2 bit is set herein, else it is cleared.
 */
 void masterClock(unsigned prescale, unsigned source);
 
