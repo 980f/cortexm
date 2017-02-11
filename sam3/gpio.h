@@ -48,6 +48,11 @@ enum GpioFeature {
   ControlLock, //14: isLocked, writeprotect gizmo., writeprotect faulted (clear on read) (no dox on how to map 16 bit code to which register was attacked)
 };
 
+/** register groups, a private enum */
+constexpr bool GpioInverted(GpioFeature which) {
+  return which==GlitchRate || which== EdgyInterrupt || which==InterruptPolarity;
+}
+
 Handler &gpioVector(unsigned portnum,unsigned pinnumber);
 /** call all the gpioVector functions whose corresponding bits are set */
 void hike(unsigned portnum,unsigned bits);
@@ -66,10 +71,13 @@ public:
   /** @param on when true locks out spurious writes to the control register */
   void configurationLock(bool on)const{
   }
+
   /* set glitch filter options for the bank, @see also */
   void setGlitchFilterBase(unsigned slowrate)const{
+    //Tdiv_slclk = ((DIV+1)*2).Tslow_clock
     *atAddress(base+0x8C)=slowrate;
   }
+
   /** read interrupt flag register, bit per pin, read resets flags so this must be done at group level */
   unsigned getInterrupts()const{
     return *atAddress(base+0x4C);
@@ -84,42 +92,41 @@ public:
 /** to configure a pin for a dedicated function one must merely construct a GpioPin with template args for which pin and constructor arg of control pattern*/
 template <unsigned portNum, unsigned bitPosition> class PortPin: public BoolishRef {
   typedef PortPin<portNum,bitPosition> Base;
+  typedef PIOPort<portNum> Port;
 protected: // for simple gpio you must use an extended class that defines read vs read-write capability.
   enum {
     mask = 1 << bitPosition, // used for port control register access
-    base = portBase(portNum), // base for port control
   };
 
-  const SAM::Feature feature(GpioFeature which,bool inverted=false)const{
-    return SAM::Feature(base+(which<<4),mask,inverted);
+  template <GpioFeature which> using feature=SAM::Feature<Port::base+(which<<4),mask,GpioInverted(which)> ;
+
+  template <GpioFeature which> void setRegister()const{
+    feature<which>arf =1;
   }
 
-  inline void setRegister(GpioFeature which)const{
-    feature(which)=1;
+  template <GpioFeature which> void clearRegister()const{
+    feature<which>arf = 0;
   }
 
-  inline void clearRegister(GpioFeature which)const{
-    feature(which)=0;
-  }
-
-  inline void assignRegister(GpioFeature which,bool level)const{
-    feature(which)=level;
+  template <GpioFeature which>  void set(bool level)const{
+    feature<which>arf=level;
   }
 
   void setDirection(bool asOutput)const{
-    assignRegister(BeOutput,asOutput);
+    set<BeOutput>(asOutput);
   }
 
 protected:
   /** 0==just a pin,  1: selection A, 2==selection B, rtfm.*/
   void setFunction(unsigned noAB){
-    assignRegister(BeSimple,noAB==0);
-    assignRegister(WhichPeripheral,noAB==2);
+    set<BeSimple>(noAB==0);
+    set<WhichPeripheral>(noAB==2);
   }
 
   /** read the pin as if it were a boolean variable. */
   inline operator bool() const {
-    SAM::Feature arf=feature(Data); // need to check assembler, a shift might be better.
+    // need to check assembler, a shift might be better.
+    feature<Data>arf;
     return arf;
   }
 
@@ -142,7 +149,7 @@ public:
 
   /** enable within the group, still will need to nvic enable the group and scan bits in the grouped status register. */
   void irq(bool enable)const{
-    Base::feature(InterruptMask) = enable;
+    Base::set<InterruptMask>(enable);
   }
 
   void setIrqStyle(IrqStyle style, bool andEnable)const{

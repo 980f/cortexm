@@ -51,9 +51,8 @@ enum ClockInterrupt {
   FOS=20   // Clock Failure Detector Fault Output Status
 };
 
-void clockoutPut(unsigned whichOf3, bool enable){
-  Feature cen(SysItem(PMC),whichOf3+PCK0);
-  cen=enable;
+template<unsigned whichOf3> void clockoutPut( bool enable){
+  Feature<SysItem(PMC),whichOf3+PCK0> cen=enable;
 }
 
 
@@ -80,8 +79,9 @@ unsigned clockRate(int which){
   case -1: //systick  
     return clockRate(0)/8;
   case 0:
-    return 12000000;
+    return 84000000;
   }
+  return 0;
 }
 
 

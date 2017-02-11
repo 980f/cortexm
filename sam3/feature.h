@@ -1,45 +1,74 @@
 #ifndef FEATURE_H
 #define FEATURE_H
 
+#include "peripheraltypes.h"
+
+#include "boolish.h"
 /** many internal things have a set of registers for control and status.
-one register is 'set ones corresponding'
-another register is 'clear ones corresponding'
-a 3rd is a read back of the bits, and sometimes allows full write
-a 4th is sometimes also bit oriented, others just loosely related to the others.
-*/
+ *  one register is 'set ones corresponding'
+ *  another register is 'clear ones corresponding'
+ *  a 3rd is a read back of the bits, and sometimes allows full write
+ *  a 4th is sometimes also bit oriented, others just loosely related to the others.
+ */
 namespace SAM {
-class Feature {
-  const unsigned base;
-  const unsigned mask;
-  /** the manual shows a total disregard for consistency in the relationship between the readback and the set/clear addresses */
-  const bool invertedSense;
-public:
-  Feature(unsigned base, unsigned mask,bool invertedSense=false);
-  void operator =(bool enableit) const;
-  operator bool()const;
-  //access to 4th member of group as independent value
-  unsigned & fourth()const;
-  /** set correlated bit in 4th component */
-  void set4th(bool on);
-  /** get correlated bit in 4th component */
-  bool get4th();
+
+/**
+ * @param invertedSense: the designers show a total disregard for consistency in the relationship between the readback and the set/clear addresses */
+
+template<unsigned base,unsigned mask,bool invertedSense=false> struct Feature : public BoolishRef {
+
+  void operator =(bool enableit) const {
+    if(enableit) {
+      *atAddress(base + 4 * invertedSense) = mask;
+    } else {
+      *atAddress(base + 4 * (1 - invertedSense)) = mask;
+    }
+  }
+
+  operator bool() const {
+    return (*atAddress(base+2*4)&mask)!=0;
+  }
+
+  void set4th(bool on){
+    unsigned address=base+3*4;
+    if(on){
+      *atAddress(address)|=mask;
+    } else {
+      *atAddress(address)&=~mask;
+    }
+  }
+
+  bool get4th(){
+    return bit(*atAddress(base+3*4),mask);
+  }
+
+  /**occasionally the 4th member is independent of the bit: */
+  unsigned &fourth() const {
+    return *atAddress(base+3*4);
+  }
+
+};
+
+/** many sets of feature bits have a register which write protects them.
+e.g.: PIO: piobase , lockword E4, key 0x504D43
+*/
+template <unsigned block, unsigned lockword, unsigned key> struct FeatureLock {
+  unsigned chunk(unsigned which)const {
+    return block + which<<4;//groups of 4 registers, 4 bytes each.
+  }
+  ///lock bit:
+  bool operator =(bool lock)const{
+    *atAddress(block+lockword)=key<<8|lock;
+    return lock;
+  }
+
+  operator bool()const{
+    return *atAddress(block+lockword) &1;
+  }
+
 };
 
 
-void protectControlRegisters(bool on);
-
-/** RIAA to ensure we leave controls locked when we aren't focussed on manipulating them.*/
-class ExposeControls {
-public:
-  ExposeControls(){
-    protectControlRegisters(false);
-  }
-  ~ExposeControls(){
-    protectControlRegisters(true);
-  }
-};
-
-
-}
+} // namespace SAM
 
 #endif // FEATURE_H
