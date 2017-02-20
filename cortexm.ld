@@ -87,7 +87,7 @@ __exit_table__ = LOADADDR(.exit);
 
 /* fully const'ed data, note that some things declared const end up in .data despite valiant attempts to compile time compute values. */
   .rodata :{
-    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata.
+    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata. Eventually the 'used' attribute was applied, but we shall keep the KEEP in case something reverts.
        we can't just keep all rodata's because the libraries are chick full of such sections */
     KEEP( *(SORT(.table.*)))
     *(SORT(.rodata.*))

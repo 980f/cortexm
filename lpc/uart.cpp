@@ -1,3 +1,5 @@
+/** the implementation is partially migrated to using inline templated stuff vs. carefully crafter struct stuff.*/
+
 #include "uart.h"
 #include "lpcperipheral.h" // the peripheral is wholly hidden within this module.
 #include "gpio.h" // to gain control of pins
@@ -6,12 +8,11 @@
 #include "bitbanger.h" // for BitField
 #include "nvic.h"  // for isr
 
-
 const Irq<uartIrq> uirq;
 
 using namespace LPC;
 
-namespace LPC {
+namespace LPC {//for our local class, just to doubly make sure the name is unique.
 
 struct UART550 {
   /** actually overlapped registers. For some stupid reason they are maintaining compatibility with code that would have been written for other processors.
@@ -117,7 +118,6 @@ receive(receiver),send(sender){
 void configureModemWire(unsigned which, bool onP3){
   *atAddress(ioConReg(0xb4+(which<<2)))=onP3;
 }
-
 
 unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsigned sysFreq) const {
   if(sysFreq == 0) { // then it is a request to use the active value
@@ -249,10 +249,8 @@ void Uart::irq(bool enabled)const{
 //inner loop of sucking down the read fifo.
 unsigned Uart::tryInput(unsigned LSRValue) const{
   typedef BitWad<7, 0> bits; // look just at the 'OR of 'some corruption' and the 'data available' bits
-  for( ; bits::exactly(LSRValue, 1); LSRValue = theUART550.LSR) {
-    if(receive){
-      (*receive)(theUART550.RBR);
-    }
+  for(/* first read was done by caller, no point in reading it again */ ; bits::exactly(LSRValue, 1); LSRValue = theUART550.LSR) {
+    receive(theUART550.RBR);
   }
   return LSRValue;
 }
@@ -268,14 +266,10 @@ void Uart::isr()const{
   case 0: // modem
     break; // no formal reaction to modem line change.
   case 1:  // thre
-    if(send){
-      if(int nextch = (*send)() < 0) {
-        // todo: stop xmit interrupts if tx ifo empty.
-      } else {
-        theUART550.THR = nextch;
-      }
+    if((int nextch = send()) < 0) {//negative for 'no more data'
+      // todo: stop xmit interrupts if tx ifo empty.
     } else {
-      //todo: stop xmit interrupts if tx fifo empty.
+      theUART550.THR = nextch;
     }
     break;
   case 2: // rda
@@ -283,12 +277,9 @@ void Uart::isr()const{
     break;
   case 3: { // line error
       unsigned LSRValue = tryInput(theUART550.LSR); // copying other people here, e.g. this deals with overrun error
-
       if(BitWad<7, 1, 2, 3, 4>::any(LSRValue)) { // someone else's code. grr, bundles OE with the others which is NOT so good.
-        if(receive){
-          (*receive)(~LSRValue); // inform user code
-        }
-        LSRValue = theUART550.RBR;  // Dummy read on RX to clear cause interrupt
+        receive(~LSRValue); // inform user code
+        LSRValue = theUART550.RBR;  // Dummy read on RX to clear the interrupt latches
         return;
       }
     }
@@ -297,7 +288,6 @@ void Uart::isr()const{
     break;
   case 5: // reserved
     break;
-
   case 6: // char timeout (dribble in fifo)
     tryInput(1);
     break;

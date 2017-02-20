@@ -2,6 +2,7 @@
 
 #include "eztypes.h"
 #include "nvic.h"
+#include "hook.h" //null checked handler functions
 // apb dev 2
 // interrupt id must be #defined, need it to make names.
 #define uartIrq 46
@@ -20,12 +21,12 @@ public:
 private:
     /** called by isr on an input event.
      * negative values of @param are notifications of line errors, -1 for interrupts disabled */
-    typedef bool (*Receiver)(int incoming);
-    Receiver receive;
+    typedef Hooker<bool,int /*incoming*/>::Pointer Receiver;
+    Hooker<bool,int /*incoming*/> receive;
     /** called by isr when transmission becomes possible.
      *  @return either an 8 bit unsigned character, or -1 to disable transmission events*/
-    typedef int (*Sender)();
-    Sender send;
+    typedef Hooker<int>::Pointer Sender;
+    Hooker<int>  send;
 protected:
     /** read at least one char from fifo, stop on error. @param LSRValue is recent read of line status register, @returns final read of line status register */
     unsigned tryInput(unsigned LSRValue)const;
