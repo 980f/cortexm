@@ -178,6 +178,7 @@ extern "C" { // to keep names simple for "alias" processor
 
 
 #define stubFault(index) void FAULT ## index(void) __attribute__((weak, alias("unhandledFault")))
+#define stub(irq) void IRQ ## irq(void) __attribute__((weak, alias("unhandledInterruptHandler")))
 
 //typedef void (*Handler)(void);
 stubFault(0);
@@ -197,7 +198,7 @@ stubFault(13);
 stubFault(14);
 stubFault(15);
 
-Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top, 1 is reset vector, 2 for the rest.
+Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top, 1 is reset vector, 2 for faults, 3 for plain irqs.
   FaultName(2),
   FaultName(3),
   FaultName(4),
@@ -214,12 +215,9 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
   FaultName(15),
 };
 
-#define stub(irq) void IRQ ## irq(void) __attribute__((weak, alias("unhandledInterruptHandler")))
-
 //if the following table doesn't exist use mkIrqs to build it for your processor
-#include "../nvicTable.link" //table in parent directory as it is project specific. 
+#include "nvicTable.link" //table in parent directory as it is project specific. 
 //I've named the above .link as I am prebuilding tables for various processors and using a soft link to pick one.
-
 
 //trying to get good assembler code on this one :)
 void generateHardReset(){

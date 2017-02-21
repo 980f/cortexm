@@ -107,10 +107,12 @@ void Uart::initializeInternals() const{
 
   theUART550.FCR=1;//enable fifo
   theUART550.FCR=7;//clear fifos
+  uirq.enable();//having reset all the controls we won't get any interrupts until more configuration is done.
 }
 
 Uart::Uart(Uart::Receiver receiver, Uart::Sender sender):
-receive(receiver),send(sender){
+receive(~0,receiver),
+send(~0,sender){
   initializeInternals();
 }
 
@@ -140,30 +142,22 @@ unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsig
   return rate((mul * sysFreq) , ((mul + div) * divider * uartClockDivider() * 16));
 } // Uart::setBaud
 
+/**
+115200*16=2^13 3^2 5^2
+12000000= 2^8 3^1 5^6
 
+12m/115' = 2^-5 3^-1 5^4
+
+DL = 4,
+DIVADDVAL = 5, and MULVAL = 8
+*/
 unsigned Uart::setBaud(unsigned hertz, unsigned sysFreq) const {
   if(sysFreq == 0) {
     sysFreq = coreHz();
   }
-  hertz *= 16; // we need 16 times the desired baudrate.
-
-  unsigned pclk;
-  unsigned divider;
-  unsigned overflow;
-  volatile unsigned &clockDiv=uartClockDivider();
-  do {
-    pclk = sysFreq / clockDiv;
-    divider = pclk / hertz;
-    overflow = divider >> 16;
-    clockDiv += overflow;
-  } while(overflow);
-  // maydo: if divider is >64k hit uartClockDivider to bring it into range.
-  unsigned error = pclk % hertz;
-  if(error > hertz / 2) {
-    ++divider;
-  }
+//hard code 115200 for a bit
   // todo: find best pair of 4 bit mul/div to match error/hertz instead of just rounding to nearest.
-  return setBaudPieces(divider, 0, 0, sysFreq);
+  return setBaudPieces(4, 8, 5, sysFreq);
 } // Uart::setBaud
 
 void Uart::setFraming(const char *coded) const {
@@ -208,8 +202,9 @@ void Uart::setFraming(const char *coded) const {
 
 void Uart::beTransmitting(bool enabled)const{
   if(enabled){
-    if(!transmitHoldingRegisterEmptyInterruptEnable){
-      if(int nextch = (*send)() >= 0) {
+    if(!transmitHoldingRegisterEmptyInterruptEnable){//if not enabled then send first byte
+      int nextch = send();
+      if(nextch >= 0) {
         *atAddress(uartRegister(0)) = nextch;
         //enable interrupts
         transmitHoldingRegisterEmptyInterruptEnable=1;
@@ -262,16 +257,17 @@ void Uart::isr()const{
 
   BitField<1, 3> irqID(IIRValue);
 
-  switch(irqID) {
+  switch(unsigned(irqID)) {
   case 0: // modem
     break; // no formal reaction to modem line change.
-  case 1:  // thre
-    if((int nextch = send()) < 0) {//negative for 'no more data'
+  case 1: { // thre
+    int nextch = send();
+    if(nextch < 0) {//negative for 'no more data'
       // todo: stop xmit interrupts if tx ifo empty.
     } else {
       theUART550.THR = nextch;
     }
-    break;
+  } break;
   case 2: // rda
     tryInput(1);
     break;

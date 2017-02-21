@@ -66,6 +66,16 @@ public:
   operator int(){
     return remove();
   }
+
+  /** @returns how many did NOT get pushed */
+  unsigned stuff(const char *block,unsigned length){
+    while(length-->0){
+      if(insert(*block++)<0){
+        return ++length;
+      }
+    }
+    return 0;
+  }
 };
 
 
