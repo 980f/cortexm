@@ -39,7 +39,7 @@ public:
 
     /** @param hertz is used to compute multiple register settings to get the closest to the desired value.
      *  @returns the actual rate.@param sysFreq if left 0 uses the running clock's frequency for calculations else the given value is used.  */
-    unsigned setBaud(unsigned hertz, unsigned sysFreq = 0) const;
+ //   unsigned setBaud(unsigned hertz, unsigned sysFreq = 0) const;
     /** @param coded e.g. "8N1" for typical binary protocol, 8E2 for modbus */
     void setFraming(const char *coded) const;
 

@@ -142,23 +142,14 @@ unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsig
   return rate((mul * sysFreq) , ((mul + div) * divider * uartClockDivider() * 16));
 } // Uart::setBaud
 
-/**
-115200*16=2^13 3^2 5^2
-12000000= 2^8 3^1 5^6
-
-12m/115' = 2^-5 3^-1 5^4
-
-DL = 4,
-DIVADDVAL = 5, and MULVAL = 8
-*/
-unsigned Uart::setBaud(unsigned hertz, unsigned sysFreq) const {
-  if(sysFreq == 0) {
-    sysFreq = coreHz();
-  }
-//hard code 115200 for a bit
-  // todo: find best pair of 4 bit mul/div to match error/hertz instead of just rounding to nearest.
-  return setBaudPieces(4, 8, 5, sysFreq);
-} // Uart::setBaud
+//unsigned Uart::setBaud(unsigned hertz, unsigned sysFreq) const {
+//  if(sysFreq == 0) {
+//    sysFreq = coreHz();
+//  }
+////hard code 115200 for a bit
+//  // todo: find best pair of 4 bit mul/div to match error/hertz instead of just rounding to nearest.
+//  return setBaudPieces(4, 8, 5, sysFreq);
+//} // Uart::setBaud
 
 void Uart::setFraming(const char *coded) const {
   unsigned numbits = *coded++ - '0';
@@ -249,8 +240,6 @@ unsigned Uart::tryInput(unsigned LSRValue) const{
   }
   return LSRValue;
 }
-
-
 
 void Uart::isr()const{
   unsigned IIRValue = theUART550.IIR; // read once, so many of these registers have side effects let us practice on this one.
