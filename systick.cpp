@@ -92,10 +92,11 @@ void startPeriodicTimer(u32 persecond){
   //todo:2 fullspeed is hardcoded to 1 downstream of here, need to take care of that.
   theSysTicker.fullspeed = 1;
   //lpc has a programmable divider 
-  if(!theSysTicker.fullspeed) {//!! stm32 specific (although others copy it)
-    persecond *= 8; // times 8 here instead of /8 in the rate computation.
-  }
-  u32 num=clockRate(-1);
+//the following fragment is stm32's fullspeed===0 logic
+//  if(!theSysTicker.fullspeed) {//!! stm32 specific (although others copy it)
+//    persecond *= 8; // times 8 here instead of /8 in the rate computation.
+//  }
+  u32 num=clockRate(theSysTicker.fullspeed ? 0: -1);
   theSysTicker.start(rate(num, persecond));
 }
 

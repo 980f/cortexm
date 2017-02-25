@@ -86,18 +86,21 @@ void setMainClockSource(ClockSource cksource){
 unsigned clockRate(int which){
   unsigned divreg=0;
   switch (which) {
-  case -1://systick
+  case -1://systick custom clock
     divreg=0x0B0;
     break;
   case 0: //processor clock
-    divreg=0x078;
+    return coreHz();
+    //todo: find some natural integer to index these by, such as irq index.
+  case 1: //hishest speed peripheral clock,   
+    divreg=0x078;//AHB  
     break;
     //leaving the following spread out until debugged, 0x90 + (which*4);
-  case 1: //ssp0
-    divreg=0x094;
-    break;
   case 2: //uart
     divreg=0x098;
+    break;
+  case 3: //ssp0
+    divreg=0x094;
     break;
   case 3://ssp1
     divreg=0x09C;

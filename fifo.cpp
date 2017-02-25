@@ -63,3 +63,13 @@ int Fifo::remove(){
   } while(pulled == -2);
   return pulled;
 }
+
+ /** @returns how many did NOT get pushed */
+unsigned Fifo::stuff(const char *block,unsigned length){
+  while(length-->0){
+    if(insert(*block++)<0){
+      return ++length;
+    }
+  }
+  return 0;
+}
