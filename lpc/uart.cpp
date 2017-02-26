@@ -123,7 +123,7 @@ void configureModemWire(unsigned which, bool onP3){
 
 unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsigned sysFreq) const {
   if(sysFreq == 0) { // then it is a request to use the active value
-    sysFreq = coreHz();
+    sysFreq = clock(UART);
   }
   if(mul == 0 || mul > 15 || div > mul) { // invalid, so set to disabling values:
     mul = 1;
