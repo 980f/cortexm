@@ -1,4 +1,4 @@
-#include "clocks.h"
+#include "clocks1343.h"
 
 #include "lpcperipheral.h"
 
@@ -102,7 +102,7 @@ unsigned clockRate(int which){
   case 3: //ssp0
     divreg=0x094;
     break;
-  case 3://ssp1
+  case 4://ssp1
     divreg=0x09C;
     break;
   }

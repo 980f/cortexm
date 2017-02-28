@@ -1,11 +1,9 @@
 #include "gpio.h"
 #include "lpcperipheral.h" // for clock enable.
-
+#include "clocks1343.h" //todo: configurable naming for other lpc devices.
 
 using namespace LPC;
 
-
-//GPIO::Init();//this must run before any pins can be reliably be statically created.
 
 
 /*
@@ -36,8 +34,8 @@ void GPIO::setDirection(bool output)const{
 //void GPIO::Init(void) __attribute__((section(InitHardware-1)));//should precede any attempt to configure a hardware unit that uses pins.
 /** turn clock on to gpio and iocon blocks. */
 void GPIO::Init(void){
-  enableClock(6); // gpio clock bit on,usually already is.
-  enableClock(16); // iocon has to be turned on somewhere, might as well be here.
+  enableClock(CK::GPIO); // gpio clock bit on,usually already is.
+  enableClock(IOCON); // iocon has to be turned on somewhere, might as well be here.
 }
 
 void GPIO::irq(bool enable)const{

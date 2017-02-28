@@ -3,7 +3,7 @@
 #include "uart.h"
 #include "lpcperipheral.h" // the peripheral is wholly hidden within this module.
 #include "gpio.h" // to gain control of pins
-#include "clocks.h"
+#include "clocks1343.h"
 #include "minimath.h" // checked divide
 #include "bitbanger.h" // for BitField
 #include "nvic.h"  // for isr
@@ -94,14 +94,14 @@ constexpr PinBias pickUart = PinBias(0b11010001); // rtfm, not worth making synt
 
 void Uart::initializeInternals() const{
   uirq.disable();
-  disableClock(12);
+  disableClock(UART);
   // the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
   InputPin<PortNumber(1), BitNumber(6)> rxd(pickUart);
   OutputPin<PortNumber(1), BitNumber(7)> txd(pickUart);
   // the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
 
   /* Enable UART clock */
-  enableClock(12); //
+  enableClock(UART); //
   //system prescaler, before the uart's own 'DLAB' is applied.
   uartClockDivider() = 1U; // a functioning value, that allows for the greatest precision, if in range.
 
