@@ -123,7 +123,7 @@ void configureModemWire(unsigned which, bool onP3){
 
 unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsigned sysFreq) const {
   if(sysFreq == 0) { // then it is a request to use the active value
-    sysFreq = clock(UART);
+    sysFreq = clockRate(CK::UART);
   }
   if(mul == 0 || mul > 15 || div > mul) { // invalid, so set to disabling values:
     mul = 1;
@@ -197,7 +197,6 @@ void Uart::beTransmitting(bool enabled)const{
       int nextch = send();
       if(nextch >= 0) {
         *atAddress(uartRegister(0)) = nextch;
-        //enable interrupts
         transmitHoldingRegisterEmptyInterruptEnable=1;
       }
     }
@@ -235,7 +234,7 @@ void Uart::irq(bool enabled)const{
 //inner loop of sucking down the read fifo.
 unsigned Uart::tryInput(unsigned LSRValue) const{
   typedef BitWad<7, 0> bits; // look just at the 'OR of 'some corruption' and the 'data available' bits
-  for(/* first read was done by caller, no point in reading it again */ ; bits::exactly(LSRValue, 1); LSRValue = theUART550.LSR) {
+  for(/* first read was done by caller, no point in reading it again */ ; bits::exactly(LSRValue, 0b01); LSRValue = theUART550.LSR) {
     receive(theUART550.RBR);
   }
   return LSRValue;
