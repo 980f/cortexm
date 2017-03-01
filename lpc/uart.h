@@ -14,7 +14,8 @@ public:
     void isr(void)const;
 private:
     /** called by isr on an input event.
-     * negative values of @param are notifications of line errors, -1 for interrupts disabled */
+     * negative values of @param are notifications of line errors, return -1 to disable reception.
+     * ls byte of negative value is datum causing error, high byte is ~LSR. */
     typedef Hooker<bool,~0,int /*incoming*/>::Pointer Receiver;
     Hooker<bool,~0,int /*incoming*/> receive;
     /** called by isr when transmission becomes possible.
@@ -22,8 +23,9 @@ private:
     typedef Hooker<int,~0>::Pointer Sender;
     Hooker<int,~0> send;
 protected:
-    /** read at least one char from fifo, stop on error. @param LSRValue is recent read of line status register, @returns final read of line status register */
-    unsigned tryInput(unsigned LSRValue)const;
+    /** read at least one char from fifo, stop on error. @returns whatver receive hook wants to do about the datum */
+    void tryInput()const;
+    void stuffsome()const;
 public:
     //trying for full const'd instance
     Uart(Receiver receiver,Sender sender);
@@ -47,6 +49,7 @@ public:
     void irq(bool enabled)const;
     void initializeInternals()const;
     void setRxLevel(unsigned one48or14)const;
+    void setLoopback(bool on)const;
   };
 } // namespace LPC
 

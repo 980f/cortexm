@@ -38,6 +38,8 @@ const SFRfield<IIR,1,3> InterruptID;
 const SFRfield<IIR,6,2> FifoLevelSetting; //see FCR comments.
 const SFRbit<IIR,8> AutoBaudCompleteInterrupt;
 const SFRbit<IIR,9> AutoBaudTimeoutInterrupt;
+//SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits?
+
 
 /** receive fifo interrupt level is 1,4,8, or 14:
 1: 0001->0
@@ -67,10 +69,14 @@ SFRbit<LCR, 6> sendBreak;
 SFRbit<LCR, 7> dlab;
 
 //modem control register at 0x10
-
-//line status register. We don't pick bits directly out of it as reading the byte clears all values.
+SFRbit<uartRegister(0x10),4> loopback;
+void Uart::setLoopback(bool on)const{
+  loopback=on;
+}
+/** line status register. reading does not modify it, to clear a bit you must react appropriately to it.
+ * We don't declare bits for it as it needs to be buffered to stay in sync with related data, we'll pick bits from the buffered value.
+*/
 const SFR8<uartRegister(0x14)> LSR;
-
 
 /** iopin pattern for uart pins: */
 constexpr PinBias pickUart = PinBias(0b11010001); // rtfm, not worth making syntax
@@ -178,7 +184,7 @@ void Uart::beTransmitting(bool enabled)const{
 }
 
 void Uart::reception(bool enabled)const{
-  receiveDataInterruptEnable=enabled;
+  receiveDataInterruptEnable=enabled;  //triggered one with a null byte read
   //how bout line status interrupts? .. yeah add those:
   lineStatusInterruptEnable=enabled;
   //note: not our responsiblity to enable in the NVIC, that normally should be left alone during operation.
@@ -203,131 +209,67 @@ void Uart::irq(bool enabled)const{
 }
 
 //inner loop of sucking down the read fifo.
-unsigned Uart::tryInput(unsigned LSRValue) const{
-  typedef BitWad<7, 0> bits; // look just at the 'OR of 'some corruption' and the 'data available' bits
-  for(/* first read was done by caller, can't read it again */ ; bits::exactly(LSRValue, 0b01); LSRValue = LSR) {
-    receive(dataByte);
-  }
-  return LSRValue;
+void Uart::tryInput() const{
+  unsigned LSRValue=LSR;//read lsr before reading data to keep in sync
+
+  do {//execute once even if no data is in fifo, to get line status error to user
+    LSRValue &= ~bitMask(5,2);//erase transmit status bits
+    int packem=(~LSRValue)<<8;
+    if(LSRValue&1){//data is readable
+      packem|=dataByte;
+    }
+    unsigned actioncode=receive(packem);
+    switch (actioncode) {
+      case ~0://quit receiving
+        reception(false);
+        break;
+      case 0:
+        break;
+    }
+    LSRValue=LSR;
+  } while(LSRValue&1);//while something in fifo
+
 }
 
-void Uart::isr()const{
-  switch(InterruptID) {
-  case 0: // modem
-    break; // no formal reaction to modem line change.
-  case 1: { // thre
+void Uart::stuffsome() const {
+  while(bit(LSR,5)){
     int nextch = send();
     if(nextch < 0) {//negative for 'no more data'
-      // todo: stop xmit interrupts if tx ifo empty.
+      // stop xmit interrupts if tx fifo empty.
+      transmitHoldingRegisterEmptyInterruptEnable=0;
     } else {
       dataByte = nextch;
     }
-  } break;
-  case 2: // rda
-    tryInput(1);
+  }
+}
+
+void Uart::isr()const{
+  if(!NonePending){
+  switch(InterruptID) {
+  case 0: // modem
+    break; // no formal reaction to modem line change.
+  case 1:  // thre
+    stuffsome();
     break;
-  case 3: { // line error
-      unsigned LSRValue = tryInput(LSR); // copying other people here, e.g. this deals with overrun error
-      if(BitWad<7, 1, 2, 3, 4>::any(LSRValue)) { // someone else's code. grr, bundles OE with the others which is NOT so good.
-        receive(~LSRValue); // inform user code
-        LSRValue = dataByte;  // Dummy read on RDR to clear the interrupt latches, assigning it to something to ensure compiler doesn't delete it... but 'volatile' should take care of that.
-        return;
-      }
-    }
+  case 2: // rda
+    tryInput();
+    break;
+  case 3: // line error
+    tryInput();
     break;
   case 4: // reserved
     break;
   case 5: // reserved
     break;
   case 6: // char timeout (dribble in fifo)
-    tryInput(1);
+    tryInput();
     break;
   case 7: //reserved
     break;
   } // switch
+  }
   //todo: autobaud interrupts are seperate from ID encoded ones (even though there are enough spare codes for them, sigh).
 
 
 } // Uart::isr
 
-#if 0
-
-/**************************************************************************/
-void uartSendByte (uint8_t byte){
-  /* THRE status, contain valid data */
-  while(! (theUART.LSR & theUART.LSR_THRE)) {
-  }
-  theUART.THR = byte;
-}
-
-void uartInit(uint32_t baudrate){
-  uint32_t fDiv;
-  uint32_t regVal;
-
-  NVIC_DisableIRQ(UART_IRQn);
-
-  // Clear protocol control blocks
-  memset(&pcb, 0, sizeof(uart_pcb_t));
-  pcb.pending_tx_data = 0;
-  uartRxBufferInit();
-
-  /* Set 1.6 UART RXD */
-  IOCON_PIO1_6 &= ~IOCON_PIO1_6_FUNC_MASK;
-  IOCON_PIO1_6 |= IOCON_PIO1_6_FUNC_UART_RXD;
-
-  /* Set 1.7 UART TXD */
-  IOCON_PIO1_7 &= ~IOCON_PIO1_7_FUNC_MASK;
-  IOCON_PIO1_7 |= IOCON_PIO1_7_FUNC_UART_TXD;
-
-  /* Enable UART clock */
-  SCB_SYSAHBCLKCTRL |= (SCB_SYSAHBCLKCTRL_UART);
-  SCB_UARTCLKDIV = SCB_UARTCLKDIV_DIV1;     /* divided by 1 */
-
-  /* 8 bits, no Parity, 1 Stop bit */
-  theUART.LCR = (theUART.LCR_Word_Length_Select_8Chars |
-                 theUART.LCR_Stop_Bit_Select_1Bits |
-                 theUART.LCR_Parity_Disabled |
-                 theUART.LCR_Parity_Select_OddParity |
-                 theUART.LCR_Break_Control_Disabled |
-                 theUART.LCR_Divisor_Latch_Access_Enabled);
-
-  /* Baud rate */
-  regVal = SCB_UARTCLKDIV;
-  fDiv = (((CFG_CPU_CCLK * SCB_SYSAHBCLKDIV) / regVal) / 16) / baudrate;
-
-  theUART.DLM = fDiv / 256;
-  theUART.DLL = fDiv % 256;
-
-  /* Set DLAB back to 0 */
-  theUART.LCR = (theUART.LCR_Word_Length_Select_8Chars |
-                 theUART.LCR_Stop_Bit_Select_1Bits |
-                 theUART.LCR_Parity_Disabled |
-                 theUART.LCR_Parity_Select_OddParity |
-                 theUART.LCR_Break_Control_Disabled |
-                 theUART.LCR_Divisor_Latch_Access_Disabled);
-
-  /* Enable and reset TX and RX FIFO. */
-  theUART.FCR = (theUART.FCR_FIFO_Enabled |
-                 theUART.FCR_Rx_FIFO_Reset |
-                 theUART.FCR_Tx_FIFO_Reset);
-
-  /* Read to clear the line status. */
-  regVal = theUART.LSR;
-
-  /* Ensure a clean start, no data in either TX or RX FIFO. */
-  while((theUART.LSR & (theUART.LSR_THRE | theUART.LSR_TEMT)) != (theUART.LSR_THRE | theUART.LSR_TEMT)) {
-  }
-  while(theUART.LSR & theUART.LSR_RDR_DATA) {
-    /* Dump data from RX FIFO */
-    regVal = theUART.RBR;
-  }
-  /* Set the initialised flag in the protocol control block */
-  pcb.initialised = 1;
-  pcb.baudrate = baudrate;
-
-  /* Enable the UART Interrupt */
-  NVIC_EnableIRQ(UART_IRQn);
-  theUART.IER = theUART.IER_RBR_Interrupt_Enabled | theUART.IER_RLS_Interrupt_Enabled;
-} // uartInit
-
-#endif // if 0
