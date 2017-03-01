@@ -143,7 +143,7 @@ struct SCB {
   SFR AIRCR;                  /*!< Offset: 0x00C (R/W)  Application Interrupt / Reset Control Register        */
   SFR SCR;                    /*!< Offset: 0x010 (R/W)  System Control Register                               */
   SFR CCR;                    /*!< Offset: 0x014 (R/W)  Configuration Control Register                        */
-  SFR8 SHP[12];                /*!< Offset: 0x018 (R/W)  System Handlers Priority Registers (4-7, 8-11, 12-15) */
+  SFR SHP[12];                /*!< Offset: 0x018 (R/W)  System Handlers Priority Registers (4-7, 8-11, 12-15) */
   SFR SHCSR;                  /*!< Offset: 0x024 (R/W)  System Handler Control and State Register             */
   SFR CFSR;                   /*!< Offset: 0x028 (R/W)  Configurable Fault Status Register                    */
   SFR HFSR;                   /*!< Offset: 0x02C (R/W)  Hard Fault Status Register                            */

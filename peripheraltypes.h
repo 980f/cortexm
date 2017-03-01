@@ -38,8 +38,8 @@ typedef volatile u32 SFR;
 /** marker for non-occupied memory location */
 typedef const u32 SKIPPED;
 // packable byte:
-typedef volatile u8 SFR8;
-typedef volatile u16 SFR16;
+//typedef volatile u8 SFR8;
+//typedef volatile u16 SFR16;
 // todo: 16 bit ones, with word spacers.
 // todo: macro for skip block
 
@@ -57,7 +57,28 @@ enum IrqStyle {
   HighEdge   // edge, pulled down
 };
 
-/** Multiple contiguous bits in a register
+/** a datum at a known absolute address */
+template <typename Inttype, unsigned sfraddress> struct SFRint {
+  // read
+  operator unsigned() const {
+    return unsigned(*reinterpret_cast<volatile Inttype*>(sfraddress));
+  }
+
+  // write
+  void operator =(unsigned value) const {
+    *reinterpret_cast<volatile Inttype*>(sfraddress)=value;
+  }
+
+};
+
+/** making all (conveniently predefined) SFR's unsigned presuming that all hardware values are unsigned. About the only exception is ADC values. */
+template <unsigned sfraddress> using SFR8  = SFRint<uint8_t, sfraddress>;
+template <unsigned sfraddress> using SFR16 = SFRint<uint16_t,sfraddress>;
+template <unsigned sfraddress> using SFR32 = SFRint<uint32_t,sfraddress>;
+
+
+/** Multiple contiguous bits in a register. Requires register to be R/W.
+ * For write-only registers declare a union of int with struct of bitfields that describes the register. Manipulate an instance then assign it to an SFR8/16/32.
  * Note: This creates a class per sf register field, but the compiler should inline all uses making this a compile time burden but a runtime minimalization.
  * Note: 'volatile' isn't used here as it is gratuitous when the variable isn't nominally read multiple times in a function.
  */
@@ -124,8 +145,3 @@ public:
     return value;
   }
 };
-
-///** macro for first template argument for SFRfield and SFRbit, mates to cmsis style type declarations which can't use c bit-fields.*/
-//#define SFRptr(absaddress, blocktype, member) (absaddress + offsetof(blocktype, member))
-//todo: constexpr version
-

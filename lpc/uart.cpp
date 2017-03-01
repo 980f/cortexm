@@ -12,50 +12,6 @@ const Irq<uartIrq> uirq;
 
 using namespace LPC;
 
-namespace LPC {//for our local class, just to doubly make sure the name is unique.
-
-struct UART550 {
-  /** actually overlapped registers. For some stupid reason they are maintaining compatibility with code that would have been written for other processors.
-   * SO that is cute but they could have also provided direct access so that the aggravating overlay of registers isn't necessary.*/
-  union {
-    /** read receive fifo */
-    const SFR RBR;
-    /** data to transmit fifo */
-    SFR THR;
-    /** baud rate divisor lower word */
-    SFR DLL;
-  };
-
-  union {
-    /** baud rate divisor upper word */
-    SFR DLM;
-    /** interrupt enable */
-    SFR IER;
-  };
-
-  union {
-    const SFR IIR;
-    SFR FCR;
-  };
-  SFR LCR;
-  SFR MCR;
-  const SFR LSR;
-  const SFR MSR;
-  SFR SCR;
-  SFR ACR;
-  SFR ICR;
-  SFR FDR;
-  SKIPPED RESERVED0;
-  SFR TER;
-  SKIPPED RESERVED1[6];
-  SFR RS485CTRL;
-  SFR ADRMATCH;
-  SFR RS485DLY;
-  const SFR FIFOLVL;
-};
-} // namespace LPC
-
-DefineSingle(UART550, apb0Device(2));
 // going through one level of computation in expectation that we will meet a part with more than one uart:
 constexpr unsigned uartRegister(unsigned offset){
   return apb0Device(2) + offset;
@@ -64,6 +20,39 @@ constexpr unsigned uartRegister(unsigned offset){
 constexpr unsigned &uartClockDivider(){
   return *sysConReg(0x98);
 }
+
+const SFR8<uartRegister(0)> dataByte;
+
+//interrupt enable register:
+constexpr unsigned IER=uartRegister(0x04);
+SFRbit<IER,0> receiveDataInterruptEnable;
+SFRbit<IER,1> transmitHoldingRegisterEmptyInterruptEnable;
+SFRbit<IER,2> lineStatusInterruptEnable;
+SFRbit<IER,8> AutoBaudCompleteInterruptEnable;
+SFRbit<IER,9> AutoBaudTimeoutInterruptEnable;
+
+//interrupt status register:
+constexpr unsigned IIR=uartRegister(0x08);
+const SFRbit<IIR,0> NonePending;
+const SFRfield<IIR,1,3> InterruptID;
+const SFRfield<IIR,6,2> FifoLevelSetting; //see FCR comments.
+const SFRbit<IIR,8> AutoBaudCompleteInterrupt;
+const SFRbit<IIR,9> AutoBaudTimeoutInterrupt;
+
+/** receive fifo interrupt level is 1,4,8, or 14:
+1: 0001->0
+4: 0100->1
+8: 1000->2
+14:1110->3
+so use 2 msbs of given value, illegal value->legal value that is less than the illegal one
+*/
+//can't do this as register is write-only (read is IIR) ... SFRfield<FCR,6,2> receiveFifoLevel;
+const SFR8<uartRegister(0x08)> FCR;
+
+void Uart::setRxLevel(unsigned one48or14) const{
+  FCR = 1 | (one48or14>>2);//must have the lsb a 1 else we kill the uart. see manual 12.6.6 table 201.
+}
+
 
 // line control register:
 constexpr unsigned LCR = uartRegister(0x0c);
@@ -77,16 +66,10 @@ SFRbit<LCR, 6> sendBreak;
 /** the heinous divisor latch access bit. */
 SFRbit<LCR, 7> dlab;
 
-//interrupt enable register:
-constexpr unsigned IER=uartRegister(0x04);
-SFRbit<IER,0> receiveDataInterruptEnable;
-SFRbit<IER,1> transmitHoldingRegisterEmptyInterruptEnable;
-SFRbit<IER,2> lineStatusInterruptEnable;
-SFRbit<IER,8> AutoBaudCompleteInterruptEnable;
-SFRbit<IER,9> AutoBaudTimeoutInterruptEnable;
-/** level is 1,4,8, or 14 */
-//SFRfield<FCR,6,2> receiveFifoLevel;
+//modem control register at 0x10
 
+//line status register. We don't pick bits directly out of it as reading the byte clears all values.
+const SFR8<uartRegister(0x14)> LSR;
 
 
 /** iopin pattern for uart pins: */
@@ -105,14 +88,11 @@ void Uart::initializeInternals() const{
   //system prescaler, before the uart's own 'DLAB' is applied.
   uartClockDivider() = 1U; // a functioning value, that allows for the greatest precision, if in range.
 
-  theUART550.FCR=1;//enable fifo
-  theUART550.FCR=7;//clear fifos
+  FCR=7;//enable, clear fifos, minimal fifo threshold
   uirq.enable();//having reset all the controls we won't get any interrupts until more configuration is done.
 }
 
-Uart::Uart(Uart::Receiver receiver, Uart::Sender sender):
-receive(~0,receiver),
-send(~0,sender){
+Uart::Uart(Uart::Receiver receiver, Uart::Sender sender):receive(receiver),send(sender){
   initializeInternals();
 }
 
@@ -123,7 +103,7 @@ void configureModemWire(unsigned which, bool onP3){
 
 unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsigned sysFreq) const {
   if(sysFreq == 0) { // then it is a request to use the active value
-    sysFreq = clockRate(CK::UART);
+    sysFreq = clockRate(UART);
   }
   if(mul == 0 || mul > 15 || div > mul) { // invalid, so set to disabling values:
     mul = 1;
@@ -141,15 +121,6 @@ unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsig
   dlab = 0;
   return rate((mul * sysFreq) , ((mul + div) * divider * uartClockDivider() * 16));
 } // Uart::setBaud
-
-//unsigned Uart::setBaud(unsigned hertz, unsigned sysFreq) const {
-//  if(sysFreq == 0) {
-//    sysFreq = coreHz();
-//  }
-////hard code 115200 for a bit
-//  // todo: find best pair of 4 bit mul/div to match error/hertz instead of just rounding to nearest.
-//  return setBaudPieces(4, 8, 5, sysFreq);
-//} // Uart::setBaud
 
 void Uart::setFraming(const char *coded) const {
   unsigned numbits = *coded++ - '0';
@@ -234,18 +205,14 @@ void Uart::irq(bool enabled)const{
 //inner loop of sucking down the read fifo.
 unsigned Uart::tryInput(unsigned LSRValue) const{
   typedef BitWad<7, 0> bits; // look just at the 'OR of 'some corruption' and the 'data available' bits
-  for(/* first read was done by caller, no point in reading it again */ ; bits::exactly(LSRValue, 0b01); LSRValue = theUART550.LSR) {
-    receive(theUART550.RBR);
+  for(/* first read was done by caller, can't read it again */ ; bits::exactly(LSRValue, 0b01); LSRValue = LSR) {
+    receive(dataByte);
   }
   return LSRValue;
 }
 
 void Uart::isr()const{
-  unsigned IIRValue = theUART550.IIR; // read once, so many of these registers have side effects let us practice on this one.
-
-  BitField<1, 3> irqID(IIRValue);
-
-  switch(unsigned(irqID)) {
+  switch(InterruptID) {
   case 0: // modem
     break; // no formal reaction to modem line change.
   case 1: { // thre
@@ -253,17 +220,17 @@ void Uart::isr()const{
     if(nextch < 0) {//negative for 'no more data'
       // todo: stop xmit interrupts if tx ifo empty.
     } else {
-      theUART550.THR = nextch;
+      dataByte = nextch;
     }
   } break;
   case 2: // rda
     tryInput(1);
     break;
   case 3: { // line error
-      unsigned LSRValue = tryInput(theUART550.LSR); // copying other people here, e.g. this deals with overrun error
+      unsigned LSRValue = tryInput(LSR); // copying other people here, e.g. this deals with overrun error
       if(BitWad<7, 1, 2, 3, 4>::any(LSRValue)) { // someone else's code. grr, bundles OE with the others which is NOT so good.
         receive(~LSRValue); // inform user code
-        LSRValue = theUART550.RBR;  // Dummy read on RX to clear the interrupt latches
+        LSRValue = dataByte;  // Dummy read on RDR to clear the interrupt latches, assigning it to something to ensure compiler doesn't delete it... but 'volatile' should take care of that.
         return;
       }
     }
@@ -275,9 +242,12 @@ void Uart::isr()const{
   case 6: // char timeout (dribble in fifo)
     tryInput(1);
     break;
-  case 7:
+  case 7: //reserved
     break;
   } // switch
+  //todo: autobaud interrupts are seperate from ID encoded ones (even though there are enough spare codes for them, sigh).
+
+
 } // Uart::isr
 
 #if 0

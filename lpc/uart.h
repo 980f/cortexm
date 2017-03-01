@@ -1,17 +1,11 @@
 #pragma once
 
-#include "eztypes.h"
-#include "nvic.h"
 #include "hook.h" //null checked handler functions
-// apb dev 2
 // interrupt id must be #defined, need it to make names.
 #define uartIrq 46
-/* there is only one interrupt, we can share controller for it: */
-//extern const Irq uirq;
 
 namespace LPC {
 /** uart manager class, not to be confused with hardware register class.
- *  Extend/derive from it for interrupt driven usage.
  * Note: if you pass the data source and sink in the constructor the instance can be const.
  */
   class Uart {
@@ -21,12 +15,12 @@ public:
 private:
     /** called by isr on an input event.
      * negative values of @param are notifications of line errors, -1 for interrupts disabled */
-    typedef Hooker<bool,int /*incoming*/>::Pointer Receiver;
-    Hooker<bool,int /*incoming*/> receive;
+    typedef Hooker<bool,~0,int /*incoming*/>::Pointer Receiver;
+    Hooker<bool,~0,int /*incoming*/> receive;
     /** called by isr when transmission becomes possible.
      *  @return either an 8 bit unsigned character, or -1 to disable transmission events*/
-    typedef Hooker<int>::Pointer Sender;
-    Hooker<int>  send;
+    typedef Hooker<int,~0>::Pointer Sender;
+    Hooker<int,~0> send;
 protected:
     /** read at least one char from fifo, stop on error. @param LSRValue is recent read of line status register, @returns final read of line status register */
     unsigned tryInput(unsigned LSRValue)const;
@@ -34,12 +28,9 @@ public:
     //trying for full const'd instance
     Uart(Receiver receiver,Sender sender);
 
-    /** set the baudrate using tweaky fields: */
+    /** set the baudrate using tweaky fields. @see baudsearch class for generating these value. */
     unsigned setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsigned sysFreq) const;
 
-    /** @param hertz is used to compute multiple register settings to get the closest to the desired value.
-     *  @returns the actual rate.@param sysFreq if left 0 uses the running clock's frequency for calculations else the given value is used.  */
- //   unsigned setBaud(unsigned hertz, unsigned sysFreq = 0) const;
     /** @param coded e.g. "8N1" for typical binary protocol, 8E2 for modbus */
     void setFraming(const char *coded) const;
 
@@ -55,6 +46,7 @@ public:
     /** indirect access to the nvic interrupt enable */
     void irq(bool enabled)const;
     void initializeInternals()const;
+    void setRxLevel(unsigned one48or14)const;
   };
 } // namespace LPC
 
