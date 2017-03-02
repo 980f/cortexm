@@ -11,14 +11,16 @@ public:
   const LPC::InputPin<1,4> wakeup;
   //reset button is pio0/0, if reset functionality is defeated.
   //pin 1/0 is bootup select, avoid hanging anything important on it.
-  const LPC::Output led0={3, 0};
-  const LPC::Output led1={3, 1};
-  const LPC::Output led2={3, 2};
-  const LPC::Output led3={3, 3};
-  const LPC::Output led4={2, 4};
-  const LPC::Output led5={2, 5};
-  const LPC::Output led6={2, 6};
-  const LPC::Output led7={2, 7};
+  const LPC::OutputPin<3,0> led0;//={3, 0};
+  const LPC::OutputPin<3,1> led1;//={3, 1};
+  const LPC::OutputPin<3,2> led2;//={3, 2};
+  const LPC::OutputPin<3,3> led3;//={3, 3};
+  const LPC::OutputPin<2,4> led4;//={2, 4};
+  const LPC::OutputPin<2,5> led5;//={2, 5};
+  const LPC::OutputPin<2,6> led6;//={2, 6};
+  const LPC::OutputPin<2,7> led7;//={2, 7};
+  //changing the above from Output's to OutputPins added a bunch of vtables. Code mushroomed while data shrunk a little bit.
+  //it trades ram init'ed consts initialized with constructor code for vtables. The vtables should have been removable by linker ...
 
   //parallel access to the leds
   const GpioOutputField lownib={3, 3, 0};
