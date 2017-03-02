@@ -7,7 +7,7 @@ void SystemInit(void); // __USE_CMSIS __USE_LPCOPEN
 #pragma GCC diagnostic ignored "-Wmain"
 int main(void); // entry point
 
-/* my approach to dealing with errors is to start over. Use 'atExit' functionality to do a while(1) to prevent a restart */
+/* my approach to dealing with errors is to start over. If you don't like that then use 'atExit' functionality to do a while(1) to prevent a restart */
 extern void generateHardReset(void); // doesn't return! supplied by nvic.cpp as that is where reset hardware happens to reside.
 
 //the linker script creates and initializes these constant structures, used by cstartup()

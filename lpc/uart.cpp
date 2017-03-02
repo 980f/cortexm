@@ -25,11 +25,11 @@ const SFR8<uartRegister(0)> dataByte;
 
 //interrupt enable register:
 constexpr unsigned IER=uartRegister(0x04);
-SFRbit<IER,0> receiveDataInterruptEnable;
-SFRbit<IER,1> transmitHoldingRegisterEmptyInterruptEnable;
-SFRbit<IER,2> lineStatusInterruptEnable;
-SFRbit<IER,8> AutoBaudCompleteInterruptEnable;
-SFRbit<IER,9> AutoBaudTimeoutInterruptEnable;
+const SFRbit<IER,0> receiveDataInterruptEnable;
+const SFRbit<IER,1> transmitHoldingRegisterEmptyInterruptEnable;
+const SFRbit<IER,2> lineStatusInterruptEnable;
+const SFRbit<IER,8> AutoBaudCompleteInterruptEnable;
+const SFRbit<IER,9> AutoBaudTimeoutInterruptEnable;
 
 //interrupt status register:
 constexpr unsigned IIR=uartRegister(0x08);
@@ -59,17 +59,18 @@ void Uart::setRxLevel(unsigned one48or14) const{
 // line control register:
 constexpr unsigned LCR = uartRegister(0x0c);
 /** number of bit, minus 5*/
-SFRfield<LCR, 0, 2> numbitsSub5;
-SFRbit<LCR, 2> longStop;
+const SFRfield<LCR, 0, 2> numbitsSub5;
+const SFRbit<LCR, 2> longStop;
 /** only 5 relevant values, only 3 common ones*/
-SFRfield<LCR, 3, 3> parity;
+const SFRfield<LCR, 3, 3> parity;
 /** sends break for as long as this is true */
-SFRbit<LCR, 6> sendBreak;
+const SFRbit<LCR, 6> sendBreak;
 /** the heinous divisor latch access bit. */
-SFRbit<LCR, 7> dlab;
+const SFRbit<LCR, 7> dlab;
 
 //modem control register at 0x10
-SFRbit<uartRegister(0x10),4> loopback;
+const SFRbit<uartRegister(0x10),4> loopback;
+
 void Uart::setLoopback(bool on)const{
   loopback=on;
 }
@@ -170,12 +171,8 @@ void Uart::setFraming(const char *coded) const {
 
 void Uart::beTransmitting(bool enabled)const{
   if(enabled){
-    if(!transmitHoldingRegisterEmptyInterruptEnable){//if not enabled then send first byte
-      int nextch = send();
-      if(nextch >= 0) {
-        *atAddress(uartRegister(0)) = nextch;
-        transmitHoldingRegisterEmptyInterruptEnable=1;
-      }
+    if(!transmitHoldingRegisterEmptyInterruptEnable){//checking for breakpoint
+      transmitHoldingRegisterEmptyInterruptEnable=1;//this will immediately be followed by the isr if there is room for a character.
     }
   } else {
     transmitHoldingRegisterEmptyInterruptEnable=0;
@@ -245,28 +242,29 @@ void Uart::stuffsome() const {
 
 void Uart::isr()const{
   if(!NonePending){
-  switch(InterruptID) {
-  case 0: // modem
-    break; // no formal reaction to modem line change.
-  case 1:  // thre
-    stuffsome();
-    break;
-  case 2: // rda
-    tryInput();
-    break;
-  case 3: // line error
-    tryInput();
-    break;
-  case 4: // reserved
-    break;
-  case 5: // reserved
-    break;
-  case 6: // char timeout (dribble in fifo)
-    tryInput();
-    break;
-  case 7: //reserved
-    break;
-  } // switch
+    unsigned which=InterruptID;
+    switch(which) {
+    case 0: // modem
+      break; // no formal reaction to modem line change.
+    case 1:  // thre
+      stuffsome();
+      break;
+    case 2: // rda
+      tryInput();
+      break;
+    case 3: // line error
+      tryInput();
+      break;
+    case 4: // reserved
+      break;
+    case 5: // reserved
+      break;
+    case 6: // char timeout (dribble in fifo)
+      tryInput();
+      break;
+    case 7: //reserved
+      break;
+    } // switch
   }
   //todo: autobaud interrupts are seperate from ID encoded ones (even though there are enough spare codes for them, sigh).
 

@@ -58,7 +58,7 @@ stub( 53 );
 stub( 54 );
 stub( 55 );
 stub( 56 );
-Handler VectorTable[] __attribute__((section(".vectors.3"))) = {
+const Handler VectorTable[] __attribute__((section(".vectors.3"))) = {
 IrqName( 0 ),
 IrqName( 1 ),
 IrqName( 2 ),

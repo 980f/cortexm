@@ -14,7 +14,7 @@ struct RamBlock {
    *  Does anyone remember what BSS originally meant? Nowadays it is 'zeroed static variables' */
   void go(void)const{
     unsigned *target=address;
-    for(unsigned count=length;count> 0;--count) {
+    for(unsigned count=length;count> 0;--count) {//## ;count-->0; took more code bytes and execution than this, without -o3.
       *target++ = 0;
     }
   }
@@ -23,13 +23,12 @@ struct RamBlock {
 struct RamInitBlock {
   const unsigned int *rom;
   RamBlock ram;
-  /** NB: this startup presumes 32 bit aligned, 32bit padded structures
- compared to common usage of memcpy this moves 4 bytes at a time, without the overhead of testing whether that can be done. */
+  /** NB: this presumes 32 bit aligned, 32bit padded structures, compared to common usage of memcpy this moves 4 bytes at a time, without the overhead of testing whether that can be done. */
   void go(void)const {
-  //using local is slightly faster than member
+  //FYI: using locals is slightly faster than member, and lets us const the structure
     const unsigned int *source=rom;
     unsigned *target=ram.address;
-    for(unsigned length=ram.length;length> 0;--length) {
+    for(unsigned length=ram.length;length> 0;--length) {//## ;length-->0; took more code bytes and execution than this. 
       *target++ = *source++;
     }
   }
