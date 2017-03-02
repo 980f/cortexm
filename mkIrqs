@@ -9,7 +9,7 @@ do
   echo "stub( $c );"
 done
 
-echo "const Handler VectorTable[] __attribute__((section(\".vectors.3\"))) = {"
+echo "Handler VectorTable[] __attribute__((section(\".vectors.3\"))) = {"
 
 for (( c=0; c<=$MAXIRQ; c++ ))
 do

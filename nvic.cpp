@@ -198,7 +198,8 @@ stubFault(13);
 stubFault(14);
 stubFault(15);
 
-const Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top, 1 is reset vector, 2 for faults, 3 for plain irqs.
+//const in front of the below imitted it from the link, didn't even make it into the .o file as best I can tell.
+Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top, 1 is reset vector, 2 for faults, 3 for plain irqs.
   FaultName(2),
   FaultName(3),
   FaultName(4),
