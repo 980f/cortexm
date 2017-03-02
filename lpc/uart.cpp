@@ -1,4 +1,4 @@
-/** the implementation is partially migrated to using inline templated stuff vs. carefully crafter struct stuff.*/
+/** still tuning rom vs ram */
 
 #include "uart.h"
 #include "lpcperipheral.h" // the peripheral is wholly hidden within this module.
@@ -99,10 +99,6 @@ void Uart::initializeInternals() const{
   uirq.enable();//having reset all the controls we won't get any interrupts until more configuration is done.
 }
 
-Uart::Uart(Uart::Receiver receiver, Uart::Sender sender):receive(receiver),send(sender){
-  initializeInternals();
-}
-
 /** @param which 0:dsr, 1:dcd, 2:ri @param onP3 true: port 3 else port 2 */
 void configureModemWire(unsigned which, bool onP3){
   *atAddress(ioConReg(0xb4+(which<<2)))=onP3;
@@ -182,20 +178,9 @@ void Uart::beTransmitting(bool enabled)const{
 
 void Uart::reception(bool enabled)const{
   receiveDataInterruptEnable=enabled;  //triggered one with a null byte read
-  //how bout line status interrupts? .. yeah add those:
-  lineStatusInterruptEnable=enabled;
-  //note: not our responsiblity to enable in the NVIC, that normally should be left alone during operation.
+  lineStatusInterruptEnable=enabled;  //often triggers with thre
 }
 
-Uart &Uart::setTransmitter(Uart::Sender sender){
-  this->send = sender;
-  return *this;
-}
-
-Uart &Uart::setReceiver(Uart::Receiver receiver){
-  this->receive = receiver;
-  return *this;
-}
 
 void Uart::irq(bool enabled)const{
   if(enabled){
@@ -204,43 +189,43 @@ void Uart::irq(bool enabled)const{
     uirq.disable();
   }
 }
+//////////////////////////////////
+
+
 
 //inner loop of sucking down the read fifo.
-void Uart::tryInput() const{
+void UartHandler::tryInput() const{
   unsigned LSRValue=LSR;//read lsr before reading data to keep in sync
 
   do {//execute once even if no data is in fifo, to get line status error to user
     LSRValue &= ~bitMask(5,2);//erase transmit status bits
-    int packem=(~LSRValue)<<8;
+    unsigned packem=(~LSRValue)<<8;
     if(LSRValue&1){//data is readable
       packem|=dataByte;
     }
-    unsigned actioncode=receive(packem);
-    switch (actioncode) {
-      case ~0://quit receiving
-        reception(false);
-        break;
-      case 0:
-        break;
+    if(!receive(packem)){
+    //quit receiving
+      reception(false);
+      break;
     }
     LSRValue=LSR;
   } while(LSRValue&1);//while something in fifo
 
 }
 
-void Uart::stuffsome() const {
+void UartHandler::stuffsome() const {
   while(bit(LSR,5)){
     int nextch = send();
     if(nextch < 0) {//negative for 'no more data'
       // stop xmit interrupts if tx fifo empty.
       transmitHoldingRegisterEmptyInterruptEnable=0;
     } else {
-      dataByte = nextch;
+      dataByte = u8(nextch);
     }
   }
 }
 
-void Uart::isr()const{
+void UartHandler::isr()const{
   if(!NonePending){
     unsigned which=InterruptID;
     switch(which) {
@@ -268,6 +253,5 @@ void Uart::isr()const{
   }
   //todo: autobaud interrupts are seperate from ID encoded ones (even though there are enough spare codes for them, sigh).
 
-
-} // Uart::isr
+}
 
