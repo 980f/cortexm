@@ -4,8 +4,6 @@
 
 using namespace LPC;
 
-
-
 /*
 curiously: if you program a level triggered interrupt with low active level then leave it disabled
 one can still poll the 'active' level in the raw interrupt status register.
@@ -14,17 +12,6 @@ likewise one can capture edges without enabling the interrupt.
 Reading the pin via raw interrupt sense is only slightly more expensive than using the address==mask access.
 
 */
-
-//  SFR DIR; //0x500p8000
-
-//  SFR IS;  GPIOIS R/W 0x8004 Interrupt sense register for port n 0x00  1=level, 0=edge
-//  SFR IBE; GPIOIBE R/W 0x8008 Interrupt both edges register for port n 0x00
-//  SFR IEV; GPIOIEV R/W 0x800C Interrupt event register for port n 0x00
-
-//  SFR IE;  GPIOIE R/W 0x8010 Interrupt mask register for port n 0x00
-//  SFR RIS; GPIORIS R 0x8014 Raw interrupt status register for port n 0x00
-//  SFR MIS; GPIOMIS R 0x8018 Masked interrupt status register for port n 0x00
-//  SFR IC;  GPIOIC W 0x801C Interrupt clear register for port n 0x00
 
 void GPIO::setDirection(bool output)const{
   IrqControl myIrqc(*this);
@@ -121,7 +108,7 @@ void GpioField::setDirection(bool forOutput)const{
   }
 }
 
-GpioField::GpioField(PortNumber portNum, unsigned msb, unsigned lsb):
-  address( portBase(portNum) + ((1 << (msb + 3)) - (1 << (lsb + 2)))),
-lsb(lsb){ /*empty*/}
+GpioField::GpioField(PortNumber portNum, unsigned msb, unsigned lsb):address( portBase(portNum) + ((1 << (msb + 3)) - (1 << (lsb + 2)))),lsb(lsb){
+  configurePins(digitalPattern(0));//aarg- this makes us have to move doa back to the last point in the chain.
+}
 

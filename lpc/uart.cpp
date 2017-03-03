@@ -80,16 +80,20 @@ void Uart::setLoopback(bool on)const{
 */
 const SFR8<uartRegister(0x14)> LSR;
 
-/** iopin pattern for uart pins: */
-constexpr PinBias pickUart = PinBias(0b11010001); // rtfm, not worth making syntax
+constexpr u8 uartPattern(){
+  return 0b11011001;//function 1, buslatch, digital, not hysterical.
+}
 
 void Uart::initializeInternals() const{
   uirq.disable();
   disableClock(UART);
-  // the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
-  InputPin<PortNumber(1), BitNumber(6)> rxd(pickUart);
-  OutputPin<PortNumber(1), BitNumber(7)> txd(pickUart);
-  // the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
+  //{ the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
+  InputPin<PortNumber(1), BitNumber(6)> rxd;
+  rxd.setIocon(uartPattern());//neither uart pin is doa
+  OutputPin<PortNumber(1), BitNumber(7)> txd;
+  txd.setIocon(uartPattern());//neither uart pin is doa
+
+  //} the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
 
   /* Enable UART clock */
   enableClock(UART); //
