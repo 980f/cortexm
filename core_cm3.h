@@ -13,6 +13,11 @@ inline void spin(unsigned int loops){
   }
 }
 
+/* Memory mapping of Cortex-M3 Hardware */
+#define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Base Address */
+#define ITM_BASE            (0xE0000000UL)                            /*!< ITM Base Address                  */
+
+
 namespace CM3 {
 /*******************************************************************************
  *                 CMSIS definitions
@@ -57,13 +62,15 @@ namespace CM3 {
 
 /** \brief  Union type to access the Application Program Status Register (APSR). */
 union APSR {
+//putting the word entity first allows us to initialize with {}.
+  uint32_t w;                            /*!< Type      used for word access                  */
   struct {
 #if (__CORTEX_M == 4)
-    unsigned _reserved0 : 16;              /*!< bit:  0..15  Reserved                           */
+    unsigned : 16;              /*!< bit:  0..15  Reserved                           */
     unsigned GE : 4;                       /*!< bit: 16..19  Greater than or Equal flags        */
-    unsigned _reserved1 : 7;               /*!< bit: 20..26  Reserved                           */
+    unsigned : 7;               /*!< bit: 20..26  Reserved                           */
 #else
-    unsigned _reserved0 : 27;              /*!< bit:  0..26  Reserved                           */
+    unsigned : 27;              /*!< bit:  0..26  Reserved                           */
 #endif
     unsigned Q : 1;                        /*!< bit:     27  Saturation condition flag          */
     unsigned V : 1;                        /*!< bit:     28  Overflow condition code flag       */
@@ -71,24 +78,26 @@ union APSR {
     unsigned Z : 1;                        /*!< bit:     30  Zero condition code flag           */
     unsigned N : 1;                        /*!< bit:     31  Negative condition code flag       */
   } b;                                   /*!< Structure used for bit  access                  */
-  uint32_t w;                            /*!< Type      used for word access                  */
+ 
 };
 
 
 /** \brief  Union type to access the Interrupt Program Status Register (IPSR).
  */
 union IPSR {
+  uint32_t w;                            /*!< Type      used for word access                  */
   struct {
     unsigned ISR : 9;                      /*!< bit:  0.. 8  Exception number                   */
-    unsigned _reserved0 : 23;              /*!< bit:  9..31  Reserved                           */
+    unsigned  : 23;              /*!< bit:  9..31  Reserved                           */
   } b;                                   /*!< Structure used for bit  access                  */
-  uint32_t w;                            /*!< Type      used for word access                  */
+  
 };
 
 
 /** \brief  Union type to access the Special-Purpose Program Status Registers (xPSR).
  */
 union xPSR{
+  uint32_t w;                            /*!< Type      used for word access                  */
   struct {
     unsigned ISR : 9;                      /*!< bit:  0.. 8  Exception number                   */
 #if (__CORTEX_M == 4)
@@ -106,20 +115,20 @@ union xPSR{
     unsigned Z : 1;                        /*!< bit:     30  Zero condition code flag           */
     unsigned N : 1;                        /*!< bit:     31  Negative condition code flag       */
   } b;                                   /*!< Structure used for bit  access                  */
-  uint32_t w;                            /*!< Type      used for word access                  */
+ 
 } ;
 
 
 /** \brief  Union type to access the Control Registers (CONTROL).
  */
 union CONTROL{
+  uint32_t w;                            /*!< Type      used for word access                  */
   struct {
     unsigned nPRIV : 1;                    /*!< bit:      0  Execution privilege in Thread mode */
     unsigned SPSEL : 1;                    /*!< bit:      1  Stack to be used                   */
     unsigned FPCA : 1;                     /*!< bit:      2  FP extension active flag           */
     unsigned : 29;              /*!< bit:  3..31  Reserved                           */
   } b;                                   /*!< Structure used for bit  access                  */
-  uint32_t w;                            /*!< Type      used for word access                  */
 };
 
 /*@} end of group CMSIS_CORE */
@@ -158,7 +167,7 @@ struct SCB {
   const SFR ISAR[5];               /*!< Offset: 0x060 (R/ )  ISA Feature Register                                  */
 };
 
-/*the following are used to assembler and tear apart values that are to be read or written in a single access.
+/*the following are used to assemble and tear apart values that are to be read or written in a single access.
  * they are an alternative to structs with bitfields as those are not portable across compilers.
  * For example:
  * uint32_t cpuinfo= SCB.CPUID;
@@ -309,12 +318,16 @@ struct MPU {
   const SFR TYPE;                  /*!< Offset: 0x000 (R/ )  MPU Type Register                              */
   SFR CTRL;                   /*!< Offset: 0x004 (R/W)  MPU Control Register                           */
   SFR RNR;                    /*!< Offset: 0x008 (R/W)  MPU Region RNRber Register                     */
+  
   SFR RBAR;                   /*!< Offset: 0x00C (R/W)  MPU Region Base Address Register               */
   SFR RASR;                   /*!< Offset: 0x010 (R/W)  MPU Region Attribute and Size Register         */
+  
   SFR RBAR_A1;                /*!< Offset: 0x014 (R/W)  MPU Alias 1 Region Base Address Register       */
   SFR RASR_A1;                /*!< Offset: 0x018 (R/W)  MPU Alias 1 Region Attribute and Size Register */
+
   SFR RBAR_A2;                /*!< Offset: 0x01C (R/W)  MPU Alias 2 Region Base Address Register       */
   SFR RASR_A2;                /*!< Offset: 0x020 (R/W)  MPU Alias 2 Region Attribute and Size Register */
+  
   SFR RBAR_A3;                /*!< Offset: 0x024 (R/W)  MPU Alias 3 Region Base Address Register       */
   SFR RASR_A3;                /*!< Offset: 0x028 (R/W)  MPU Alias 3 Region Attribute and Size Register */
 };
@@ -389,9 +402,6 @@ struct MPU {
  *  @{
  */
 
-/* Memory mapping of Cortex-M3 Hardware */
-#define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Base Address */
-#define ITM_BASE            (0xE0000000UL)                            /*!< ITM Base Address                  */
 
 
 // #define SCB_BASE            (SCS_BASE + 0x0D00UL)                   /*!< System Control Block Base Address */

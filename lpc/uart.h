@@ -32,17 +32,17 @@ public: //configuration
 
 class UartHandler : public Uart {
 public:
-  /** the isr. a stub is locally generated to vector to it */
+  /** the isr. you will have to write a stub to vector to it. For the lpc13xx there can be only one uart, but the 43xx family has multiple so we use an othewise pointless class here in the hopes it will be useful later. */
   void isr(void) const;
 
 protected:
   /** called by isr on an input event.
        * negative values of @param are notifications of line errors, return -1 to disable reception.
        * ls byte of negative value is datum causing error, high byte is ~LSR. */
-  virtual bool receive(int incoming) { return false; }
+  virtual bool receive(int incoming) const { return false; }
   /** called by isr when transmission becomes possible.
        *  @return either an 8 bit unsigned character, or -1 to disable transmission events*/
-  virtual int send() { return -1; }
+  virtual int send() const { return -1; }
 
 public: //for polling and prodding
   /** read at least one char from fifo, stop on error. @returns whatver receive hook wants to do about the datum */

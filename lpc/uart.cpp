@@ -31,14 +31,15 @@ const SFRbit<IER,2> lineStatusInterruptEnable;
 const SFRbit<IER,8> AutoBaudCompleteInterruptEnable;
 const SFRbit<IER,9> AutoBaudTimeoutInterruptEnable;
 
-//interrupt status register:
-constexpr unsigned IIR=uartRegister(0x08);
-const SFRbit<IIR,0> NonePending;
-const SFRfield<IIR,1,3> InterruptID;
-const SFRfield<IIR,6,2> FifoLevelSetting; //see FCR comments.
-const SFRbit<IIR,8> AutoBaudCompleteInterrupt;
-const SFRbit<IIR,9> AutoBaudTimeoutInterrupt;
-//SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits?
+////interrupt status register:
+//constexpr unsigned IIR=uartRegister(0x08);
+//const SFRbit<IIR,0> NonePending;
+//const SFRfield<IIR,1,3> InterruptID;
+//const SFRfield<IIR,6,2> FifoLevelSetting; //see FCR comments.
+//const SFRbit<IIR,8> AutoBaudCompleteInterrupt;
+//const SFRbit<IIR,9> AutoBaudTimeoutInterrupt;
+
+SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits? YES, clears on read
 
 
 /** receive fifo interrupt level is 1,4,8, or 14:
@@ -226,9 +227,9 @@ void UartHandler::stuffsome() const {
 }
 
 void UartHandler::isr()const{
-  if(!NonePending){
-    unsigned which=InterruptID;
-    switch(which) {
+  u8 which=IIR;// must read just once
+  if(!bit(which,0)){
+    switch(extractField(which,3,1)) {
     case 0: // modem
       break; // no formal reaction to modem line change.
     case 1:  // thre

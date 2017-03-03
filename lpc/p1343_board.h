@@ -6,6 +6,8 @@ namespace LPC {
 
 class P1343devkit {
 public:
+  /** most common external clock, happens to be the same as the internal RC */
+  enum {ExpectedClock = 12000000};
   const LPC::InputPin<2,9> button;//={2,9};
   //other button is 'wakeup'
   const LPC::InputPin<1,4> wakeup;

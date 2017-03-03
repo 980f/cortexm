@@ -59,8 +59,8 @@ enum IrqStyle {
 
 /** a datum at a known absolute address */
 template <typename Inttype, unsigned sfraddress> struct SFRint {
-  // read
-  operator unsigned() const {
+  // read. If you assign this to an unsigned rather than Inttype you will incur a uxtb instruction.
+  operator Inttype() const {
     return unsigned(*reinterpret_cast<volatile Inttype*>(sfraddress));
   }
 
