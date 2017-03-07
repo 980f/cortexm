@@ -2,9 +2,8 @@
 
 #include "core-atomic.h" // so that routines at different interrupt priorities can talk to each other using a fifo.
 
-Fifo::Fifo(unsigned quantity, unsigned char *mem): mem(mem), quantity(quantity){
+Fifo::Fifo(unsigned quantity, unsigned char *mem): mem(mem), end(mem + quantity), quantity(quantity){
   clear();
-  end = mem + quantity;
 }
 
 void Fifo::clear(){

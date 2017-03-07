@@ -9,14 +9,21 @@ class Fifo {
   unsigned char *reader;
   unsigned char *writer;
   /** the memory*/
-  unsigned char *mem;
-  unsigned char *end;
+  unsigned char * const mem;
+  unsigned char * const end;
   const unsigned quantity;
 
   /** circularly increment reader or writer */
   inline void incrementPointer(unsigned char *&pointer){
-    if(++pointer== end) {
+// the following 3 lines fixed the runaway reader value, but there were still defects.
+//    if(pointer>=end){
+//      pointer-=quantity;//for breakpoint
+//    }
+    if(++pointer == end) {
       pointer= mem;
+    }
+    if(pointer>=end){
+      pointer-=quantity;//for breakpoint
     }
   }
 
