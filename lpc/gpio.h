@@ -39,7 +39,7 @@ constexpr unsigned pinMask(unsigned pinIndex){
 
 /** there is no relationship between the ioconfiguration register for a pin and its gpio designation.
  *  the LPC designers should be spanked for this, spanked hard and with something nasty. */
-constexpr unsigned ioconf_map[] =
+constexpr u8 ioconf_map[] =
 { // pass this a pinIndex
   3, 4, 7, 11, 12, 13, 19, 20, 24, 25, 26, 29,
   30, 31, 32, 36, 37, 40, 41, 42, 5, 14, 27, 38,

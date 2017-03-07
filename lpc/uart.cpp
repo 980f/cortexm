@@ -17,9 +17,7 @@ constexpr unsigned uartRegister(unsigned offset){
   return apb0Device(2) + offset;
 }
 
-constexpr unsigned &uartClockDivider(){
-  return *sysConReg(0x98);
-}
+const SFR16<sysConBase(0x98)> uartClockDivider;
 
 const SFR8<uartRegister(0)> dataByte;
 
@@ -53,7 +51,7 @@ so use 2 msbs of given value, illegal value->legal value that is less than the i
 const SFR8<uartRegister(0x08)> FCR;
 
 void Uart::setRxLevel(unsigned one48or14) const{
-  FCR = 1 | (one48or14>>2);//must have the lsb a 1 else we kill the uart. see manual 12.6.6 table 201.
+  FCR = 1 | ((one48or14>>2)<<6);//must have the lsb a 1 else we kill the uart. see manual 12.6.6 table 201.
 }
 
 
@@ -81,7 +79,7 @@ void Uart::setLoopback(bool on)const{
 const SFR8<uartRegister(0x14)> LSR;
 
 constexpr u8 uartPattern(){
-  return 0b11011001;//function 1, buslatch, digital, not hysterical.
+  return 0b1'1'0'11'001;//digital, something undefined, hysteresis, buslatch, function 1
 }
 
 void Uart::initializeInternals() const{
@@ -98,7 +96,7 @@ void Uart::initializeInternals() const{
   /* Enable UART clock */
   enableClock(UART); //
   //system prescaler, before the uart's own 'DLAB' is applied.
-  uartClockDivider() = 1U; // a functioning value, that allows for the greatest precision, if in range.
+  uartClockDivider = 1U; // a functioning value, that allows for the greatest precision, if in range.
 
   FCR=7;//enable, clear fifos, minimal fifo threshold
   uirq.enable();//having reset all the controls we won't get any interrupts until more configuration is done.
@@ -127,7 +125,7 @@ unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsig
   *atAddress(uartRegister(0x4))= divider >> 8;
   *atAddress(uartRegister(0x0))= divider;
   dlab = 0;
-  return rate((mul * sysFreq) , ((mul + div) * divider * uartClockDivider() * 16));
+  return rate((mul * sysFreq) , ((mul + div) * divider * uartClockDivider * 16));
 } // Uart::setBaud
 
 void Uart::setFraming(const char *coded) const {
