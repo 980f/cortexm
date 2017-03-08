@@ -15,15 +15,8 @@ class Fifo {
 
   /** circularly increment reader or writer */
   inline void incrementPointer(unsigned char *&pointer){
-// the following 3 lines fixed the runaway reader value, but there were still defects.
-//    if(pointer>=end){
-//      pointer-=quantity;//for breakpoint
-//    }
-    if(++pointer == end) {
+    if(++pointer >= end) {//'>' is a COA while we're hunting for the fifo read error bug.
       pointer= mem;
-    }
-    if(pointer>=end){
-      pointer-=quantity;//for breakpoint
     }
   }
 
@@ -62,6 +55,9 @@ public:
 
    /** @returns how many did NOT get pushed */
   unsigned stuff(const char *block,unsigned length);
+
+  /** @returns 0 for in bounds, 1 or -1 for outside of bounds.*/
+  int boundsError(bool reads)const;
 };
 
 /** allocate data and wrap it in a Fifo access mechanism.

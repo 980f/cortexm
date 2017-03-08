@@ -100,7 +100,7 @@ public:
   }
 
   /** this constructor is intended to be used for setting a value into a register which has no reference other than the assignment, but it is not easy to debug its use when something goes horribly wrong. */
-  explicit SFRfield(unsigned initlizer){
+  explicit SFRfield(unsigned initlizer) {
     this->operator =(initlizer);
   }
 

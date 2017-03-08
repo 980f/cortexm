@@ -72,3 +72,21 @@ unsigned Fifo::stuff(const char *block,unsigned length){
   }
   return 0;
 }
+
+int Fifo::boundsError(bool reads) const {
+  if(reads){
+    if(reader>=end){
+      return 1;
+    }
+    if(reader<mem){
+      return -1;
+    }
+  } else {//## leave this implementation expanded, so we can breakpoint on each independent issue
+    if(writer>=end){
+      return 1;
+    }
+    if(writer<mem){
+      return -1;
+    }
+  }
+}

@@ -1,7 +1,7 @@
 #include "core-atomic.h"
 
 /** cortex M atomic operations */
-#if __linux__
+#if __linux__   //create stubs, perhaps someday use <atomic> to do a real implementation.
 bool atomic_increment(unsigned &alignedDatum){
   ++alignedDatum;
   return false;
@@ -15,6 +15,7 @@ bool atomic_decrement(unsigned &alignedDatum){
 bool atomic_decrementNotZero(unsigned &alignedDatum){
   if(alignedDatum) {
     --alignedDatum;
+    return true;
   }
   return false;
 }

@@ -37,7 +37,7 @@ const SFRbit<IER,9> AutoBaudTimeoutInterruptEnable;
 //const SFRbit<IIR,8> AutoBaudCompleteInterrupt;
 //const SFRbit<IIR,9> AutoBaudTimeoutInterrupt;
 
-SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits? YES, clears on read
+const SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits? YES, clears on read
 
 
 /** receive fifo interrupt level is 1,4,8, or 14:

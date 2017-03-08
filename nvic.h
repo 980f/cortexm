@@ -2,7 +2,6 @@
 
 #include "eztypes.h"
 #include "peripheraltypes.h"
-//but no banding for the NVIC
 
 //macro's for generating numbers don't work in the irqnumber slot below. The argument must be a simple digit string, no math or lookups or even constexpr's
 #define IrqName(irqnumber) IRQ ## irqnumber
@@ -25,13 +24,15 @@ u8 setInterruptPriorityFor(unsigned irqnum, u8 newvalue);
 /** e.g. SysTick to lowest: setFaultHandlerPriority(15,255);*/
 void setFaultHandlerPriority(int faultIndex, u8 level);
 
+extern "C" void disableInterrupt(unsigned irqnum);
+
 /** value to put into PRIGROUP field, see arm tech ref manual.
   * 0: maximum nesting; 7: totally flat; 2<sup>7-code</sup> is number of different levels
   * stm32F10x only implements the 4 msbs of the logic so values 3,2,1 are same as 0*/
 void configurePriorityGrouping(int code);
 
 /** unhandled interrupt handler needed random access by number, so we constexpr'd the pieces out of the template class */
-extern "C" void disableInterrupt(unsigned irqnum);
+
 
 constexpr unsigned biasFor(unsigned number){
   return 0xE000E000 + ((number>>5)<<2);
@@ -71,7 +72,7 @@ public:
     return (mask & controlWord(grup))!=0;
   }
 
-  u8 setPriority(u8 newvalue){
+  u8 setPriority(u8 newvalue) const {
     return setInterruptPriorityFor(number,newvalue);
   }
 
@@ -113,10 +114,17 @@ public:
     }
   }
 
-
+  operator bool() const {
+    return isEnabled();
+  }
 };
 
-/** instantiating more than one of these for a given interrupt defeats the nesting nature of its enable. */
+#include "core-atomic.h"
+
+/** tool for managing disabling an interrupt in a nesting fashion, ie a function that needs to disable the interrupt can call another
+ * function that also needs to disable the interrupt and this guy ifproperly used can ensure that the interrupt isn't reenabled until the first disabler wished to do so.
+ * See IRQLock for the safest way to use this class.
+ * instantiating more than one of these for a given interrupt defeats the nesting nature of its enable. */
 template <unsigned number> class GatedIrq: public Irq<number> {
   int locker; //tracking nested attempts to lock out the interrupt.
 public:
@@ -125,7 +133,7 @@ public:
   void enable(void){
     if(locker > 0) { // if locked then reduce the lock such that the unlock will cause an enable
       --locker;  // one level earlier than it would have. This might be surprising so an
-      // unmatched unlock might be the best enable.
+      // unmatched unlock might be the best enable.(so we renamed this method to 'enable' ;)
     }
     if(locker == 0) { // if not locked then actually enable
       Irq<number>::enable();
@@ -153,12 +161,10 @@ public:
   *  future: automate detection of being in the irq service and drop the argument.
   */
 template <unsigned number> struct IRQLock {
-  GatedIrq<number> &irq;
+  static GatedIrq<number> irq;
 public:
-  IRQLock(bool inIrq = false){
-    if(! inIrq) {
-      irq.lock();
-    }
+  IRQLock(){
+    irq.lock();
   }
 
   ~IRQLock(){
@@ -180,7 +186,7 @@ extern const CPSI_i IRQEN;
 //this does not allow for static locking, only for within a function's execution (which is a good thing!):
 #define LOCK(somename) CriticalSection somename ## _locker
 
-/** creating one of these in a function (or blockscope) disables interrupts until said function (or blockscope) exits.
+/** creating one of these in a function (or blockscope) disables all interrupts until said function (or blockscope) exits.
   * By using this fanciness you can't accidentally leave interrupts disabled. */
 class CriticalSection {
   static volatile unsigned nesting;
