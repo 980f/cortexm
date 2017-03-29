@@ -41,7 +41,7 @@ constexpr unsigned ioConReg(unsigned byteOffset){
 
 /** enable the selected device clock. Since each will only be referenced in its own module there is no need for formal enum.  */
 inline void enableClock(unsigned bit){
-  setBit(*sysConReg(0x80), bit);
+  setBit(sysConReg(0x80), bit);
 }
 
 /** enable the selected device clock. Since each will only be referenced in its own module there is no need for formal enum.  */
@@ -49,6 +49,7 @@ inline void disableClock(unsigned bit){
   clearBit(sysConReg(0x80), bit);
 }
 
+template <unsigned ckbit> using ClockEnable = SFRbit<sysConBase(0x80), ckbit>;
 
 /** there are only 3 items with resets: 0: ssp0, 1:I2c 2:ssp1 */
 inline void reset(unsigned bit){

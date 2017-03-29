@@ -15,7 +15,7 @@ class Fifo {
 
   /** circularly increment reader or writer */
   inline void incrementPointer(unsigned char *&pointer){
-    if(++pointer >= end) {//'>' is a COA while we're hunting for the fifo read error bug.
+    if(++pointer == end) {//'>' is a COA while we're hunting for the fifo read error bug.
       pointer= mem;
     }
   }

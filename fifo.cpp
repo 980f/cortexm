@@ -89,4 +89,5 @@ int Fifo::boundsError(bool reads) const {
       return -1;
     }
   }
+  return 0;//strange, compiler didn't mention this missing return 
 }

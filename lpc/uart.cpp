@@ -10,6 +10,13 @@
 
 const Irq<uartIrq> uirq;
 
+static unsigned sendings=0;
+static unsigned receptions=0;
+
+
+#include "circularpointer.h"
+
+
 using namespace LPC;
 
 // going through one level of computation in expectation that we will meet a part with more than one uart:
@@ -29,15 +36,9 @@ const SFRbit<IER,2> lineStatusInterruptEnable;
 const SFRbit<IER,8> AutoBaudCompleteInterruptEnable;
 const SFRbit<IER,9> AutoBaudTimeoutInterruptEnable;
 
-////interrupt status register:
-//constexpr unsigned IIR=uartRegister(0x08);
-//const SFRbit<IIR,0> NonePending;
-//const SFRfield<IIR,1,3> InterruptID;
-//const SFRfield<IIR,6,2> FifoLevelSetting; //see FCR comments.
-//const SFRbit<IIR,8> AutoBaudCompleteInterrupt;
-//const SFRbit<IIR,9> AutoBaudTimeoutInterrupt;
+const SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits? YES, clears some content on read
 
-const SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits? YES, clears on read
+const SFR8<uartRegister(0x08)> FCR;
 
 
 /** receive fifo interrupt level is 1,4,8, or 14:
@@ -47,9 +48,6 @@ const SFR8<uartRegister(0x08)> IIR;//need to read once, then scan bits? YES, cle
 14:1110->3
 so use 2 msbs of given value, illegal value->legal value that is less than the illegal one
 */
-//can't do this as register is write-only (read is IIR) ... SFRfield<FCR,6,2> receiveFifoLevel;
-const SFR8<uartRegister(0x08)> FCR;
-
 void Uart::setRxLevel(unsigned one48or14) const{
   FCR = 1 | ((one48or14>>2)<<6);//must have the lsb a 1 else we kill the uart. see manual 12.6.6 table 201.
 }
@@ -70,6 +68,8 @@ const SFRbit<LCR, 7> dlab;
 //modem control register at 0x10
 const SFRbit<uartRegister(0x10),4> loopback;
 
+const ClockEnable<UART> myClock;
+
 void Uart::setLoopback(bool on)const{
   loopback=on;
 }
@@ -83,29 +83,52 @@ constexpr u8 uartPattern(){
 }
 
 void Uart::initializeInternals() const{
-  uirq.disable();
-  disableClock(UART);
+  uirq=0;//.disable();
+  // disableClock(UART);
+  myClock=0;
   //{ the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
   InputPin<PortNumber(1), BitNumber(6)> rxd;
   rxd.setIocon(uartPattern());//neither uart pin is doa
   OutputPin<PortNumber(1), BitNumber(7)> txd;
   txd.setIocon(uartPattern());//neither uart pin is doa
-
   //} the 134x parts are picky about order here, the clock must be OFF when configuring the pins.
-
   /* Enable UART clock */
-  enableClock(UART); //
+  //enableClock(UART); //
+  myClock=1;
   //system prescaler, before the uart's own 'DLAB' is applied.
   uartClockDivider = 1U; // a functioning value, that allows for the greatest precision, if in range.
 
   FCR=7;//enable, clear fifos, minimal fifo threshold
-  uirq.enable();//having reset all the controls we won't get any interrupts until more configuration is done.
+  uirq=1;//.enable();//having reset all the controls we won't get any interrupts until more configuration is done.
 }
 
 /** @param which 0:dsr, 1:dcd, 2:ri @param onP3 true: port 3 else port 2 */
 void configureModemWire(unsigned which, bool onP3){
   *atAddress(ioConReg(0xb4+(which<<2)))=onP3;
 }
+
+#if 0 //doc block
+@72000000
+lpc limit:
+/*4500000*/1,15,0,72000000
+//ftdi limit:
+/*3000000*/1,14,7,72000000
+
+/*115089*/23,10,7,72000000
+midi:
+/*31250*/144,15,0,72000000
+/*19200*/125,8,7,72000000
+/*9600*/386,14,3,72000000
+
+@12000000
+/*baud*/	divider,	mul,	div, rate
+/*115384*/6,12,1,12000000
+/*57692*/13,15,0,12000000
+/*19181*/23,10,7,12000000
+/*31250*/24,15,0,12000000
+
+/*9603*/71,10,1,12000000
+#endif
 
 unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsigned sysFreq) const {
   if(sysFreq == 0) { // then it is a request to use the active value
@@ -126,57 +149,29 @@ unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsig
   *atAddress(uartRegister(0x0))= divider;
   dlab = 0;
   return rate((mul * sysFreq) , ((mul + div) * divider * uartClockDivider * 16));
-} // Uart::setBaud
+}
 
-void Uart::setFraming(const char *coded) const {
-  unsigned numbits = *coded++ - '0';
-
-  if(numbits < 5) {
-    return;
-  }
-  if(numbits > 8) {
-    return;
-  }
+void Uart::setFraming(unsigned numbits, Uart::Parity parityCode, unsigned stops) const {
   numbitsSub5 = numbits - 5;
-  switch(*coded++) {
-  default:
-  case 0: return;
-
-  case 'N':
-    parity = 0;
-    break;
-  case 'O':
-    parity = 0b001;
-    break;
-  case 'E':
-    parity = 0b011;
-    break;
-  case 'M':
-    parity = 0b101;
-    break;
-  case 'S':
-    parity = 0b111;
-    break;
-  } // switch
-  int stopbits = *coded++ - '0';
-  if(stopbits < 1) {
-    return;
-  }
-  if(stopbits > 2) {
-    return;
-  }
-  longStop = stopbits != 1;
+  parity = parityCode;
+  longStop = stops != 1;
 } // Uart::setFraming
 
-void Uart::beTransmitting(bool enabled)const{
+bool Uart::beTransmitting(bool enabled)const{
   if(enabled){
     if(!transmitHoldingRegisterEmptyInterruptEnable){//checking for breakpoint
       transmitHoldingRegisterEmptyInterruptEnable=1;//this will immediately be followed by the isr if there is room for a character.
+      return true;
+    } else {
+      //how do we prime the pump?
+//      transmitHoldingRegisterEmptyInterruptEnable=0;
+//      transmitHoldingRegisterEmptyInterruptEnable=1;    
     }
   } else {
     transmitHoldingRegisterEmptyInterruptEnable=0;
     //but leave xmitter sending? for xoff we don't want to lose any data that has been queued.
   }
+  return false;
 }
 
 void Uart::reception(bool enabled)const{
@@ -197,7 +192,7 @@ void Uart::irq(bool enabled)const{
 
 
 //inner loop of sucking down the read fifo.
-void UartHandler::tryInput() const{
+void UartHandler::tryInput(){
   unsigned LSRValue=LSR;//read lsr before reading data to keep in sync
 
   do {//execute once even if no data is in fifo, to get line status error to user
@@ -205,6 +200,7 @@ void UartHandler::tryInput() const{
     unsigned packem=(~LSRValue)<<8;
     if(LSRValue&1){//data is readable
       packem|=dataByte;
+      ++receptions;
     }
     if(!receive(packem)){
     //quit receiving
@@ -216,7 +212,7 @@ void UartHandler::tryInput() const{
 
 }
 
-void UartHandler::stuffsome() const {
+void UartHandler::stuffsome() {
   while(bit(LSR,5)){
     int nextch = send();
     if(nextch < 0) {//negative for 'no more data'
@@ -224,11 +220,12 @@ void UartHandler::stuffsome() const {
       transmitHoldingRegisterEmptyInterruptEnable=0;
     } else {
       dataByte = u8(nextch);
+      ++sendings;
     }
   }
 }
 
-void UartHandler::isr()const{
+void UartHandler::isr(){
   u8 which=IIR;// must read just once
   if(!bit(which,0)){
     switch(extractField(which,3,1)) {
@@ -257,4 +254,8 @@ void UartHandler::isr()const{
   //todo: autobaud interrupts are seperate from ID encoded ones (even though there are enough spare codes for them, sigh).
 
 }
+
+bool UartHandler::receive(int incoming) { return false; }
+
+int UartHandler::send() { return -1; }
 
