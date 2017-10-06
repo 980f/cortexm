@@ -58,71 +58,70 @@ enum IrqStyle {
 };
 
 /** a datum at a known absolute address */
-template <typename Inttype, unsigned sfraddress> struct SFRint {
+template<typename Inttype, unsigned sfraddress> struct SFRint {
+
+  SFRint() = default;
+
   // read. If you assign this to an unsigned rather than Inttype you will incur a uxtb instruction.
   operator Inttype() const {
-    return unsigned(*reinterpret_cast<volatile Inttype*>(sfraddress));
+    return unsigned(*reinterpret_cast<volatile Inttype *>(sfraddress));
   }
 
   // write
-  void operator =(unsigned value) const {
-    *reinterpret_cast<volatile Inttype*>(sfraddress)=value;
+  void operator=(unsigned value) const {
+    *reinterpret_cast<volatile Inttype *>(sfraddress) = value;
   }
-
 };
 
 /** making all (conveniently predefined) SFR's unsigned presuming that all hardware values are unsigned. About the only exception is ADC values. */
-template <unsigned sfraddress> using SFR8  = SFRint<uint8_t, sfraddress>;
-template <unsigned sfraddress> using SFR16 = SFRint<uint16_t,sfraddress>;
-template <unsigned sfraddress> using SFR32 = SFRint<uint32_t,sfraddress>;
-
+template<unsigned sfraddress> using SFR8  = SFRint<uint8_t, sfraddress>;
+template<unsigned sfraddress> using SFR16 = SFRint<uint16_t, sfraddress>;
+template<unsigned sfraddress> using SFR32 = SFRint<uint32_t, sfraddress>;
 
 /** Multiple contiguous bits in a register. Requires register to be R/W.
  * For write-only registers declare a union of int with struct of bitfields that describes the register. Manipulate an instance then assign it to an SFR8/16/32.
  * Note: This creates a class per sf register field, but the compiler should inline all uses making this a compile time burden but a runtime minimalization.
  * Note: 'volatile' isn't used here as it is gratuitous when the variable isn't nominally read multiple times in a function.
  */
-template <unsigned sfraddress, int pos, int width = 1> class SFRfield {
+template<unsigned sfraddress, unsigned pos, unsigned width = 1> class SFRfield {
   enum {
     /** mask positioned */
-    mask = bitMask(pos,width)
+        mask = bitMask(pos, width)
   };
 
   inline SFR &sfr() const {
     return *reinterpret_cast<SFR *>(sfraddress);
   }
-private:
-  SFRfield(const SFRfield &other) = delete;
 
 public:
-  SFRfield(){
-    //this constructor is needed due to use of explicit on the other constructor
-  }
+  SFRfield(const SFRfield &other) = delete;
+
+  SFRfield() = default;   //this constructor is needed due to use of explicit on the other constructor
 
   /** this constructor is intended to be used for setting a value into a register which has no reference other than the assignment, but it is not easy to debug its use when something goes horribly wrong. */
   explicit SFRfield(unsigned initlizer) {
-    this->operator =(initlizer);
+    this->operator=(initlizer);
   }
 
   // read
-  inline operator uint32_t() const {
+  inline operator uint32_t() const { // NOLINT
     return (sfr() & mask) >> pos;
   }
 
   // write
-  inline void operator =(uint32_t value) const {
+  inline void operator=(uint32_t value) const { // NOLINT
     sfr() = ((value << pos) & mask) | (sfr() & ~mask);
   }
 
-  void operator +=(unsigned value) const {
-    sfr()=sfr()+value;
+  void operator+=(unsigned value) const {
+    sfr() = sfr() + value;
   }
 };
 
 
 /** single bit, ignoring the possibility it is in bitbanded memory.
  *  This is NOT derived from SFRfield as we can do some optimizations that the compiler might miss (or developer might have disabled)*/
-template <unsigned sfraddress, int pos> class SFRbit : public BoolishRef {
+template<unsigned sfraddress, unsigned pos> class SFRbit : public BoolishRef {
   enum {
     mask = bitMask(pos)
   };
@@ -130,14 +129,19 @@ template <unsigned sfraddress, int pos> class SFRbit : public BoolishRef {
   inline SFR &sfr() const {
     return *reinterpret_cast<SFR *>(sfraddress);
   }
+
 public:
+
+  SFRbit() = default;
+
   // read
-  inline operator bool() const {
+  inline operator bool() const override { // NOLINT
     return (sfr() & mask) != 0;
   }
+
   // write
-  bool operator =(bool value) const{
-    if(value) {
+  bool operator=(bool value) const override { // NOLINT
+    if (value) {
       sfr() |= mask;
     } else {
       sfr() &= ~mask;

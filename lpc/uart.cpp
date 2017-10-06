@@ -79,7 +79,7 @@ void Uart::setLoopback(bool on)const{
 const SFR8<uartRegister(0x14)> LSR;
 
 constexpr u8 uartPattern(){
-  return 0b1'1'0'11'001;//digital, something undefined, hysteresis, buslatch, function 1
+  return 0b11011001;//digital, something undefined, hysteresis, buslatch, function 1
 }
 
 void Uart::initializeInternals() const{
@@ -144,10 +144,10 @@ unsigned Uart::setBaudPieces(unsigned divider, unsigned mul, unsigned div, unsig
   SFRfield<FDR, 0, 4> fdiv(div);
   SFRfield<FDR, 4, 4> fmul(mul);
 
-  dlab = 1;
+  dlab = true;
   *atAddress(uartRegister(0x4))= divider >> 8;
   *atAddress(uartRegister(0x0))= divider;
-  dlab = 0;
+  dlab = false;
   return rate((mul * sysFreq) , ((mul + div) * divider * uartClockDivider * 16));
 }
 
@@ -193,7 +193,7 @@ void Uart::irq(bool enabled)const{
 
 //inner loop of sucking down the read fifo.
 void UartHandler::tryInput(){
-  unsigned LSRValue=LSR;//read lsr before reading data to keep in sync
+  unsigned LSRValue=unsigned(LSR);//read lsr before reading data to keep in sync
 
   do {//execute once even if no data is in fifo, to get line status error to user
     LSRValue &= ~bitMask(5,2);//erase transmit status bits

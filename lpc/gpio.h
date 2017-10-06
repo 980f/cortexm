@@ -19,7 +19,7 @@ namespace LPC {
 
 /** @returns block base address, 64k addresses per port */
 constexpr unsigned portBase(PortNumber portNum){
-  return 0x50000000 + (portNum << 16); // this is the only ahb device, and each gpio is 4 blocks thereof so just have a custom address computation.
+  return 0x50000000U + (portNum << 16); // this is the only ahb device, and each gpio is 4 blocks thereof so just have a custom address computation.
 }
 
 /** @returns block control address, base + 32k . @param regOffset is the value from the LPC manual */
@@ -30,7 +30,7 @@ constexpr unsigned portControl(PortNumber portNum,unsigned regOffset){
 /** @returns linear index of pin (combined port and bit)
  *  this index is useful for things like figuring out which interrupt vector is associated with the pin. */
 constexpr unsigned pinIndex(PortNumber portNum, BitNumber bitPosition){
-  return portNum * 12 + bitPosition;
+  return portNum * 12u + bitPosition;
 }
 
 constexpr unsigned pinMask(unsigned pinIndex){
@@ -62,7 +62,7 @@ constexpr bool canAnalog(unsigned pinIndex){
 
 
 constexpr unsigned gpioBankInterrupt(PortNumber portNum){
-  return 56-portNum;
+  return 56u-portNum;
 }
 
 /** declared outside of InputPin class so that we don't have to apply template args to each use.
@@ -90,9 +90,9 @@ union PinSpec {
 };
 
 /** our choice of how digital pins should be configured */
-constexpr u8 digitalPattern(bool doa){ return 0b11011000 + doa;}
+constexpr u8 digitalPattern(bool doa){ return static_cast<u8>(0b11011000 + doa);}
 /** how analog pins are configured */
-constexpr u8 analogPattern(bool doa){ return 0b01000001+doa;}
+constexpr u8 analogPattern(bool doa){ return static_cast<u8>(0b01000001 + doa);}
 
 constexpr unsigned *IoconRegister(unsigned moderegaddress){
   return & (reinterpret_cast<unsigned *>(LPC::apb0Device(17))[moderegaddress]);
@@ -111,7 +111,7 @@ public:
   }
 
   static constexpr unsigned baseAddress(unsigned pinIndex){
-    return baseAddress(pinIndex/12,pinIndex%12);
+    return baseAddress(static_cast<PortNumber>(pinIndex / 12), static_cast<BitNumber>(pinIndex % 12));
   }
 
 public:
@@ -124,12 +124,12 @@ public:
 
   /** set like writing to a boolean, @returns @param setHigh, per BoolishRef requirements*/
   bool operator =(bool setHigh) const {
-    dataAccess = 0-setHigh;//all ones for setHigh, all zeroes for !setHigh, address picks the bit.
+    dataAccess = -setHigh;//all ones for setHigh, all zeroes for !setHigh, address picks the bit.
     return setHigh;
   }
 
   /** read like a boolean, @returns 1 or 0, per BoolishRef requirements*/
-  operator bool() const {
+  operator bool() const override {
     return dataAccess!=0;
   }
 
@@ -313,12 +313,10 @@ public:
   }
 
   /** only special pins should use this directly. */
-  inline PortPin(){
-    //do not reconfigure on construction, extensions can do that.
-  }
+  inline PortPin()=default; //do not reconfigure on construction, extensions can do that.
 
   /** read the pin as if it were a boolean variable. */
-  inline operator bool() const {
+  inline operator bool() const override {
     return PortPin<portNum, bitPosition>::pin() != 0; // need to check assembler, a shift might be better.
   }  
 
@@ -350,10 +348,9 @@ public:
   }
 
   void setIrqStyle(IrqStyle style, bool andEnable)const{
-    //disable before recongifuring
+    //disable before reconfiguring
     clearRegister(16);
 
-    //  atAddress(regbase)&=~mask; //force to input, user can make it an output and interrupt themselves later if they so wish.
     switch(style){
     case NotAnInterrupt : // in case someone forgets to explicitly select a mode, or we wish to dynamically deconfigure.
       //nothing to do, we have disabled it above so it doesn't matter if we leave it somewhat configured.

@@ -7,7 +7,7 @@ namespace LPC {
 
 /** 16k blocks of address space are allocated per apb device */
 constexpr unsigned apb0Device(unsigned unitNumber){
-  return 0x40000000UL + (unitNumber << 14);
+  return PeripheralBase + (unitNumber << 14);
 }
 
 /** a control register given documentation of its offset */
@@ -26,11 +26,11 @@ constexpr unsigned *sysConReg(unsigned byteOffset){
   return atAddress(sysConBase(byteOffset));
 }
 
-inline void powerUp(int which){
+inline void powerUp(unsigned which){
   clearBit(sysConReg(0x238),which);
 }
 
-inline void powerDown(int which){
+inline void powerDown(unsigned which){
   setBit(sysConReg(0x238),which);
 }
 
