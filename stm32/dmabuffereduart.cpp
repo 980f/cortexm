@@ -1,4 +1,4 @@
-#include "DmaBufferedUart.h"
+#include "dmabuffereduart.h"
 
 void DmaBufferedUart::packDmaArgs(DmaChannel::StreamDefinition&def, RawBuffer&rb, int subset ){
   def.device = &Uart::dcb->DR;
