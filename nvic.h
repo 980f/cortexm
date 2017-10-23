@@ -42,8 +42,43 @@ constexpr unsigned bitFor(unsigned number){
   return number & bitMask(0,5);
 }
 
+
+class IrqRef {
+public:
+
+  virtual u8 setPriority(u8 newvalue) const=0;
+
+  virtual bool isActive(void) const =0;
+
+  virtual bool isEnabled(void) const =0;
+
+  virtual void enable(void) const =0;
+
+  virtual void fake(void) const =0;
+
+  virtual void clear(void) const =0;
+
+  virtual void disable(void) const =0;
+
+  virtual void prepare() const =0;
+
+  virtual void operator=(bool on) const {
+    if(on){
+      enable();
+    } else {
+      disable();
+    }
+  }
+
+  virtual operator bool() const {
+    return isEnabled();
+  }
+};
+
+
+
 /** Controls for an irq, which involves bit picking in a block of 32 bit registers */
-template <unsigned number> class Irq {
+template <unsigned number> class Irq: public IrqRef {
 public:
   enum {
     /** which member of group of 32 this is */

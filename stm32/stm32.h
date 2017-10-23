@@ -29,7 +29,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   inline volatile u32 &rccBit(unsigned basereg) const {
-    return atAddress(u32(rccBitter)| bandShift(basereg));
+    return *bandFor(rccBitter /*|bandShift(basereg)*/);
   }
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
   APBdevice(const APBdevice &other)=default;

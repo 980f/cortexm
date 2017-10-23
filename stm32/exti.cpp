@@ -4,14 +4,14 @@
 static const Exti theExti InitStep(InitHardware+10);//after ports
 
 
-Irq Exti ::irqsome[5+2]={
-  Irq(6+0),
-  Irq(6+1),
-  Irq(6+2),
-  Irq(6+3),
-  Irq(6+4),
-  Irq(23),
-  Irq(40),
+IrqRef Exti ::irqsome[5+2]={
+  Irq<6+0>,
+  Irq<6+1>,
+  Irq<6+2>,
+  Irq<6+3>,
+  Irq<6+4>,
+  Irq<23>,
+  Irq<40>,
 };
 
 unsigned Exti::irqIndex(unsigned pinnumber){
@@ -28,7 +28,7 @@ unsigned Exti::irqIndex(unsigned pinnumber){
 Exti::Exti():APBdevice(2,1){}
 
 
-Irq &Exti::enablePin(const Pin &pin,bool rising,bool falling){
+IrqRef &Exti::enablePin(const Pin &pin,bool rising,bool falling){
   //call  pin.DI() before calling this method.
   theAfioManager.selectEvent(pin);
   theExti.bit(0,pin.bitnum)=1;

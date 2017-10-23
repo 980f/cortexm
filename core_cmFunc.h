@@ -61,6 +61,7 @@ extern const MROG(ipsr) IPSR;
 extern const MROG(apsr) APSR;
 extern const MROG(xpsr) xPSR;
 
+//assembler doesn't like these two when cross compiling, ignore unless happens with arm compiler:
 extern const MREG(psp) PSP;
 extern const MREG(msp) MSP;
 

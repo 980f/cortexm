@@ -16,17 +16,17 @@ If bit n of one port is watched then no other ports' bit n can be watched.
 #include "gpio.h"
 #include "nvic.h" //return irq reference
 class Exti :public APBdevice {
-  static Irq irqsome[];
+  static IrqRef irqsome[];
 public: //
   static unsigned irqIndex(unsigned pinnumber);
 
 public:
   Exti();
 
-  /** @returns a reference to the sharred interrupt control object for the pin.
+  /** @returns a reference to the shared interrupt control object for the pin.
 you can set both rising and falling, then check the level directly to figure out which happened
 */
-  static Irq &enablePin(const Pin &pin, bool rising, bool falling);
+  static IrqRef &enablePin(const Pin &pin, bool rising, bool falling);
   static void clearPending(const Pin &pin);
 };
 

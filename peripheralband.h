@@ -30,7 +30,7 @@ constexpr unsigned bandit(unsigned byteAddress, unsigned bitnum = 0){
 this assumes that the byte address ends in 00, which all of the ones in the st manual do.
 */
 constexpr volatile unsigned *bandFor(unsigned byteAddress, unsigned bitnum = 0){
-  return atAddress ((bitnum << 2) | bandShift(byteAddress) | (byteAddress & 0xE0000000) | 0x02000000);
+  return atAddress (bandit(byteAddress,bitnum));
 }
 
 /** @return bitband address for given bit (default 0) of @param byte address.
