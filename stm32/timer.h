@@ -17,6 +17,8 @@
 #include "nvic.h"
 #include "minimath.h"
 
+#include "gpio.h" //for control of associated pins
+
 /* between stm embedding a 16 bit only device in a 32 bit address space and not making it byte writable and
   * gcc insisting on using byte operations for accessing bit fields whenever possible
   * we can't simply make a struct that represents the hardware register content.
@@ -142,20 +144,20 @@ struct TIMER_BAND {
 struct Timer {
   TIMER_BAND *b;
   TIMER_DCB dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
-  APBdevice apb;
-  Irq irq;
-  int luno; //handy for debug, and pin setter routine
+  const APBdevice apb;
+  const Irq irq;
+  unsigned luno; //handy for debug, and pin setter routine
 
   bool isAdvanced(void) const {
     return luno == 1 || luno == 8;
   }
 
-  Timer(int stLuno);
+  Timer(unsigned stLuno);
   /** input to timer's 16 bit counter in integer Hz,
     * appears to truncate rather than round.*/
   u32 baseRate(void) const;
 
-  /**sets the prescalar to generate the given hz.*/
+  /** sets the prescalar to generate the given hz.*/
   void setPrescaleFor(double hz) const;
   /** set cycle length in units determined by baseRate and prescale:*/
   void setCycler(u32 ticks) const;
@@ -171,35 +173,35 @@ struct Timer {
     */
   void configureCountExternalInput(enum ExternalInputOption, unsigned filter = 0) const;
 
-  /**most uses will have to turn on some of the interrupts before calling this function.*/
-  virtual void beRunning(bool on = true) const {
+  /** most uses will have to turn on some of the interrupts before calling this function.*/
+  void beRunning(bool on = true) const {
     b->enabled = on;
   }
 
-  inline void clearEvents(void) const {
+  void clearEvents(void) const {
     dcb[8] = 0;
   }
 
   /**
-    * access time for this guy is critical in detector head acquisition routine.
+    * access time for this guy was critical in first use.
     */
   inline u16 *counter(void) const {
     return &dcb[18];
   }
 
-  /**clear the counter and any flags then enable counting*/
-  inline void startRunning(void) const {
+  /** clear the counter and any flags then enable counting */
+  void startRunning(void) const {
     b->enabled = 0; //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
     *counter() = 0;
     clearEvents();
     beRunning(true);
   }
 
-  inline void UIE(bool on) const {
+  void UIE(bool on) const {
     b->updateIE = on;
   }
 
-  inline void Interrupts(bool on){
+  void Interrupts(bool on){
     if(on) {
       irq.enable();
     } else {
@@ -210,8 +212,8 @@ struct Timer {
 
 struct CCUnit {
   const Timer&timer;
-  int zluno;
-  CCUnit(const Timer&_timer, int _ccluno);
+  unsigned zluno;
+  CCUnit(const Timer&_timer, unsigned _ccluno);
 
   /** set the mode of this capture compare unit */
   void setmode(u8 cc) const;
@@ -246,8 +248,8 @@ private:
   }
 public:
   /** unguarded tick setting, see saturateTicks() for when you can't prove your value will be legal.*/
-  inline void setTicks(int ticks) const {
-    *ticker() = ticks;
+  inline void setTicks(unsigned ticks) const {
+    *ticker() = u16(ticks);
   }
 
   inline u16 getTicks(void) const {
@@ -267,7 +269,7 @@ public:
 /** uses ARR register to divide clock and give an interrupt at a periodic rate*/
 class PeriodicInterrupter : public Timer {
 public:
-  PeriodicInterrupter(int stLuno) : Timer(stLuno){}
+  PeriodicInterrupter(unsigned stLuno) : Timer(stLuno){}
   /** @overload sets the interrupts then chains */
   void beRunning(bool on = true); //can't const as interrupts are manipulated
   /** @overload */

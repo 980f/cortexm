@@ -1,6 +1,6 @@
 #include "eztypes.h"
 #include "nvic.h"
-#include "buffer.h"
+//#include "buffer.h"
 
 /** logical access */
 class DmaChannel {
@@ -31,18 +31,22 @@ class DmaChannel {
   };
 
   DMA_DCB *theDMA_DCB;
-  DMA_DCB::CHANNEL_DCB&dcb; //cached pointer to theDMA_DCB.chan[luno]
-  const int luno; //channel within controller, 0 based
   const bool secondaryController; //which controller, handy for debug of constructor
+  const unsigned luno; //channel within controller, 0 based
+  DMA_DCB::CHANNEL_DCB&dcb; //cached pointer to theDMA_DCB.chan[luno]
   const bool sender; //direction is builtin to each use, a sender is like uart TX, mem ->peripheral
 public:
   Irq irq;
 
-  DmaChannel(int stNumber, bool forsender): //pass stnumber as 1..7 for dma controller 1, 8..12 for DMA2.
+  DmaChannel(unsigned stNumber, bool forsender): //pass stnumber as 1..7 for dma controller 1, 8..12 for DMA2.
     theDMA_DCB(reinterpret_cast <DMA_DCB *> ((stNumber > 7) ? 0x40020400 : 0x40020000)), //
-    dcb(theDMA_DCB->chan[luno]), luno(stNumber - (secondaryController ? 8 : 1)), //which channel of the controller
-    secondaryController(stNumber > 7), sender(forsender), irq((stNumber == 12) ? 59 : (stNumber + ((stNumber > 7) ? 48 : 10))){ //channels 4&5 share an interrupt.
-    /* all is in initlist */
+    secondaryController(stNumber > 7),
+    luno(stNumber - (secondaryController ? 8 : 1)), //which channel of the controller
+    dcb(theDMA_DCB->chan[luno]),
+    sender(forsender),
+    //todo: model specific stuff goes here!
+    irq((stNumber == 12) ? 59 : (stNumber + ((stNumber > 7) ? 48 : 10))){ //channels 4&5 share an interrupt.
+    //#done
   }
 
   //clear all interrupts

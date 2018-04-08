@@ -1,5 +1,5 @@
 #include "gpio.h"
-#include "peripheral.h" //deprecated bandFor
+#include "peripheralband.h" //deprecated bandFor
 #include "bitbanger.h"
 // priority must be such that these get created before any application objects.
 
@@ -10,10 +10,9 @@ const Port PD InitStep(InitHardware) ('D');
 const Port PE InitStep(InitHardware) ('E');
 // todo:3 use device define to add ports up to G.
 
-
 Port::Field::Field(unsigned pincode, const Port &port, unsigned lsb, unsigned msb):
   odr(port.odr()),
-  at(*port.registerAddress(0x10)),
+  at(port.registerAddress(0x10)),
   lsb(lsb),
   mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16){
   // and actually set the pins to their types
@@ -22,8 +21,9 @@ Port::Field::Field(unsigned pincode, const Port &port, unsigned lsb, unsigned ms
   }
 }
 
-void Port::Field::operator =(u16 value) const {
-  at = mask & ((~value << 16 | value) << lsb); // read the stm32 manual for this.
+void Port::Field::operator =(unsigned value) const {
+  ControlWord field(at);
+  field = mask & ((unsigned(~value << 16) | value) << lsb); // read the stm32 manual for this.
 }
 
 
@@ -31,7 +31,7 @@ Port::Field::operator u16(void) const {
   return (odr & mask) >> lsb;
 }
 
-void Port::Field::operator ^=(u16 value) const {
+void Port::Field::operator ^=(unsigned value) const {
   return *this = (value ^ *this); // uses operator = and operator cast u16.
 }
 
@@ -58,30 +58,30 @@ void Pin::output(unsigned int code, unsigned int mhz, bool openDrain) const {
   configureAs(code);
 }
 
-Pin::Pin(const Port &port, const unsigned int bitnum): bitnum(bitnum), port(port){/*empty*/}
+Pin::Pin(const Port &port, unsigned bitnum): bitnum(bitnum), port(port){/*empty*/}
 
 const Pin &Pin::AI() const {
   configureAs(0);
   return *this;
 }
 
-volatile u32 &Pin::DI(char UDF) const { // default Down as that is what meters will do.
+ControlWord Pin::DI(char UDF) const { // default Down as that is what meters will do.
   writer() = bit(UDF, 0); // ODR determines whether a pullup else a pulldown is connected ... this takes advantage of the ascii codes for U and D differing in the lsb.
   // NB: if the pin is already an output then the above line pulses current into it a moment before the next line turns off the driver. This is typically a good thing.
   configureAs((UDF == 'F') ? 4 : 8); // ... this determines if the pin actually gets pulled.
-  return reader();
+  return ControlWord(reader());
 }
 
-volatile u32 &Pin::highDriver() const { // volatile to prevent removal by optimizer
-  volatile u32 *confword = port.registerAddress((bitnum >= 8) ? 4 : 0);
-  int bitoff = (bitnum & 7) * 4 + 2;
+ControlWord Pin::highDriver() const {
+  Address confword=port.registerAddress((bitnum >= 8) ? 4 : 0);
+  unsigned bitoff = (bitnum & 7) * 4 + 2;
 
-  return *bandAddress(confword, bitoff);
+  return ControlWord(confword, bitoff);
 }
 
-volatile u32 &Pin::DO(unsigned int mhz, bool openDrain) const { // volatile to prevent removal by optimizer
+ControlWord Pin::DO(unsigned int mhz, bool openDrain) const { // volatile to prevent removal by optimizer
   output(0, mhz, openDrain);
-  return writer();
+  return ControlWord(writer());
 }
 
 const Pin &Pin::FN(unsigned int mhz, bool openDrain) const {
@@ -89,12 +89,12 @@ const Pin &Pin::FN(unsigned int mhz, bool openDrain) const {
   return *this;
 }
 
-volatile u32 &Pin::reader() const {
-  return *bandAddress(port.registerAddress(8), bitnum);
+ControlWord Pin::reader() const {
+  return ControlWord(port.registerAddress(8), bitnum);
 }
 
-volatile u32 &Pin::writer() const { // volatile to prevent removal by optimizer
-  return *bandAddress(port.registerAddress(12), bitnum);
+ControlWord Pin::writer() const { // volatile to prevent removal by optimizer
+  return ControlWord(port.registerAddress(12), bitnum);
 }
 
 //////////////////////////////////
@@ -115,7 +115,7 @@ OutputPin::OutputPin(const Pin &pin, bool lowactive, unsigned int mhz, bool open
 }
 
 void OutputPin::toggle(){
-  bitbanger=1-bitbanger;//we cah ignore polarity stuff :)
+  bitbanger=1-bitbanger;//we can ignore polarity stuff :)
 }
 
 /////////////////////////////////
@@ -124,24 +124,19 @@ bool Port::isOutput(unsigned pincode){
   return (pincode&3)!=0;//if so then code is Alt/Open
 }
 
-Port::Port(const char letter): APBdevice(2, 2 + letter - 'A'){}
+Port::Port(char letter): APBdevice(2, 2 + unsigned(letter - 'A')){}
 
 void Port::configure(unsigned bitnum, unsigned code) const {
   if(! isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects wihtout wasting power if they aren't needed.
     init(); // must have the whole port running before we can modify a config of any pin.
   }
-  volatile u32 &confword(*registerAddress((bitnum & 8) ? 4 : 0));
-  bitnum &= 7; // modulo 8, number of conf blocks in a 32 bit word.
-  // 4 bits each block, apply to offset and to width:
-  mergeBits(confword, code, bitnum<<2, 4); // can't use bitfield insert, position is not a constant.
-}
-
-volatile u16 &Port::odr() const {
-  return *reinterpret_cast<volatile u16 *>(registerAddress(12));
+  ControlField confword(registerAddress((bitnum & 8) ? 4 : 0),(bitnum&7)<<2,4);// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
+  confword= code;
 }
 
 
-LogicalPin::LogicalPin(volatile u32 &registerAddress, bool inverted):
+
+LogicalPin::LogicalPin(Address registerAddress, bool inverted):
   bitbanger(registerAddress),
   lowactive(inverted?1:0){
   /*empty*/

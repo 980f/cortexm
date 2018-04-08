@@ -9,7 +9,7 @@ For the c startup initialization it trades off number of inline constants (regis
 putting those constants explicitly in the rom and inlining only a pointer thereto. The compiler was able to do a load multiple versus seperate load immediates.
 
 The building of the vector table is shared between linker generated stack top and the vector table proper being
-declared elsewhere (@see alh's nvic.cpp) using the same facility that 'init' attributes uses. I used SORT where others don't bother so that the vector table can be developed 
+declared elsewhere (@see 980f's nvic.cpp) using the same facility that 'init' attributes uses. I used SORT where others don't bother so that the vector table can be developed 
 in seperate files, such as stack init and reset vector where the code using them is, and the others in the nvic module.
 
 Some people (CMSIS- looking at you) conditionally include some special calls around the c startup (useful for things like powering up parts of the
@@ -76,19 +76,20 @@ SECTIONS {
 
 /* exit table, although a good mcu program never exits */
   .exit : {
-    *(SORT(.dtors.*))    /* explicit destructions,alh thinks this should follow the plain dtors */
+    *(SORT(.dtors.*))    /* explicit destructions,980f thinks this should follow the plain dtors */
     *(.dtors)            /* implicit destructions (nameless objects) */
     *(.fini_array)       /* general exit stuff */
-    *(SORT(.fini_array.*))  /* particular exit stuff, alh thinks this should precede the plan fini_array */
-    LONG(0)  /*mark end of table, instead of having code for decrementing a count */
+    *(SORT(.fini_array.*))  /* particular exit stuff, 980f thinks this should precede the plan fini_array */
+    LONG(0)  /* mark end of table, instead of having code for decrementing a count */
   } >FLASH
 __exit_table__ = LOADADDR(.exit);
 
 
 /* fully const'ed data, note that some things declared const end up in .data despite valiant attempts to compile time compute values. */
   .rodata :{
-    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata. Eventually the 'used' attribute was applied, but we shall keep the KEEP in case something reverts.
-       we can't just keep all rodata's because the libraries are chick full of such sections */
+    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata. 
+        Eventually the 'used' attribute was applied, but we shall keep the KEEP in case something reverts.    
+        We can't just keep all rodata's because the libraries are chock full of such sections */
     KEEP( *(SORT(.table.*)))
     *(SORT(.rodata.*))
     *(.rodata)
@@ -123,7 +124,6 @@ __exit_table__ = LOADADDR(.exit);
   __data_segment__ = LOADADDR(.startupCopy);
 
 /* diagnostic, or feed into a runtime stack check routine */
-
   .findEnd :{ /* cute trick to get the total SRAM used. This trick keeps us from having to move the __stack_limit__ assignment into whichever ram block becomes the last.*/
     __stack_limit__ = .;  /* if SP is ever below this value we are corrupting memory. */
   } >SRAM
@@ -143,7 +143,14 @@ __exit_table__ = LOADADDR(.exit);
   include in the device.ld  declaring all the peripheral blocks.
 */
 
-
+/* The following fragment is copied from the AC6 auto generated ld file, not yet sure what it does. */
+  /* Remove information from the compiler libraries */
+  /DISCARD/ :
+  {
+    libc.a ( * )
+    libm.a ( * )
+    libgcc.a ( * )
+  }
 
 }
 

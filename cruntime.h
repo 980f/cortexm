@@ -3,7 +3,8 @@
 #define CRUNTIME_H
 /** parts of the c startup that might be useful to a running program */
 
-extern "C" [[gnu::naked,noreturn]] void generateHardReset();
+/** removed the naked attribute ~gcc 7 as it complains about non-asm code :( */
+extern "C" [[/*gnu::naked,*/noreturn]] void generateHardReset();
 
 /** these structs are created via LONG(...) directives in the ld file.
    That way only one symbol needs to be shared between the ld file and this file for each block.*/
@@ -28,7 +29,7 @@ struct RamInitBlock {
   //FYI: using locals is slightly faster than member, and lets us const the structure
     const unsigned int *source=rom;
     unsigned *target=ram.address;
-    for(unsigned length=ram.length;length> 0;--length) {//## ;length-->0; took more code bytes and execution than this. 
+    for(unsigned length=ram.length;length> 0;--length) {//## ;length-->0; took more code bytes and execution than this.
       *target++ = *source++;
     }
   }

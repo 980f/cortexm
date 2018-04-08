@@ -34,6 +34,8 @@ struct InterruptController {
   unsigned int pendSVSet : 1;
   unsigned int : 2;
   unsigned int pendNMISet : 1;
+  unsigned int : 1;
+
   u32 VectorTableBase; // bits 6..0 better be set to 0!
 
   struct AIRC {
@@ -113,13 +115,13 @@ struct InterruptController {
  */
 soliton(InterruptController, 0xE000ED04);
 
-void configurePriorityGrouping(int code){
+void configurePriorityGrouping(unsigned code){
   *atAddress(0xE000ED0C) = ((code & 7) << 8) | (0x05FA<<16); //5FA is a guard against random writes.
 }
 
 extern "C" { // to keep names simple for "alias" processor
   void unhandledFault(void){
-    register int num = theInterruptController.active;
+    int num = theInterruptController.active;
 
     if(num >= 4) {
       theInterruptController.priority[num - 4] = 0xFF; // lower them as much as possible
@@ -136,7 +138,7 @@ extern "C" { // to keep names simple for "alias" processor
       /** infinite recursion gets here, stack trashing, I've had vptr's go bad...*/
       generateHardReset(); // since we usually get into an infinite loop.
       /* used hard reset rather than soft as my hardware module interfaces expect it.*/
-      break;
+      break;//# leave this here in case generateHardReset loses its 'never returns' attribute.
     case 4: // memmanage
       theInterruptController.memoryFaultEnable = 0;
       break;
@@ -165,7 +167,7 @@ extern "C" { // to keep names simple for "alias" processor
 
 
   void disableInterrupt(unsigned irqnum){
-    *atAddress(biasFor(irqnum)|0x180)=bitMask(bitFor(irqnum));
+    ControlWord(Irq::biasFor(irqnum)|0x180)=bitMask(Irq::bitFor(irqnum));
   }
 
   void unhandledInterruptHandler(void){
@@ -217,7 +219,7 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
 };
 
 //if the following table doesn't exist use mkIrqs to build it for your processor
-#include "nvicTable.link" //table in parent directory as it is project specific. 
+#include "nvicTable.link" //table in parent directory as it is project specific.
 //I've named the above .link as I am prebuilding tables for various processors and using a soft link to pick one.
 
 //trying to get good assembler code on this one :)
@@ -236,7 +238,7 @@ void generateHardReset(){
 bool IRQEN;
 #else
 //shared instances need this treatment.
-const CPSI_i IRQEN;
+//const CPSI_i IRQEN;
 #endif
 
 ///* ##########################   NVIC functions  #################################### */

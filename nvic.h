@@ -29,75 +29,51 @@ extern "C" void disableInterrupt(unsigned irqnum);
 /** value to put into PRIGROUP field, see arm tech ref manual.
   * 0: maximum nesting; 7: totally flat; 2<sup>7-code</sup> is number of different levels
   * stm32F10x only implements the 4 msbs of the logic so values 3,2,1 are same as 0*/
-void configurePriorityGrouping(int code);
-
-/** unhandled interrupt handler needed random access by number, so we constexpr'd the pieces out of the template class */
+void configurePriorityGrouping(unsigned code);
 
 
-constexpr unsigned biasFor(unsigned number){
-  return 0xE000E000 + ((number>>5)<<2);
-}
-
-constexpr unsigned bitFor(unsigned number){
-  return number & bitMask(0,5);
-}
 
 
-class IrqRef {
+/** Controls for an irq, which involves bit picking in a block of 32 bit registers.
+ templated version was too difficult to manage for the slight potential gain in efficiency, i.e. templating was creeping through classes that didn't template well and a base class that the template can extend adds greater runtime overhead than the template can remove. Instead we just inline the code as a template would have required of us and let the compiler work at optimizing this. */
+class Irq {
 public:
 
-  virtual u8 setPriority(u8 newvalue) const=0;
-
-  virtual bool isActive(void) const =0;
-
-  virtual bool isEnabled(void) const =0;
-
-  virtual void enable(void) const =0;
-
-  virtual void fake(void) const =0;
-
-  virtual void clear(void) const =0;
-
-  virtual void disable(void) const =0;
-
-  virtual void prepare() const =0;
-
-  virtual void operator=(bool on) const {
-    if(on){
-      enable();
-    } else {
-      disable();
-    }
+  /** unhandled interrupt handler needed random access by number */
+  static constexpr unsigned biasFor(unsigned number){
+    return 0xE000E000 + ((number>>5)<<2);
   }
 
-  virtual operator bool() const {
-    return isEnabled();
+  static constexpr unsigned bitFor(unsigned number){
+    return number & bitMask(0,5);
   }
-};
-
-
-
-/** Controls for an irq, which involves bit picking in a block of 32 bit registers */
-template <unsigned number> class Irq: public IrqRef {
-public:
-  enum {
     /** which member of group of 32 this is */
-    bit=bitFor(number),
-    /** memory offset for which group of 32 this is in */
-    bias=biasFor(number),
+    const unsigned bit;
+    /** memory offset for which group of 32 this is in, including the nvic base address */
+    const unsigned bias;
     /** bit pattern to go with @see bit index, for anding or oring into 32 bit grouped registers blah blah.*/
-    mask=bitMask(bit)
-  };
+    const unsigned mask;
+
+    const unsigned number;
+
+    Irq(unsigned number):
+      bit(bitFor(number)),
+      bias(biasFor(number)),
+      mask(bitMask(bit)),
+      number(number)
+    {
+     //#done
+    }
 
 protected:
 
-  /** @returns reference to word related to the feature. */
-  inline constexpr unsigned &controlWord(unsigned grup)const{
-    return *atAddress(grup | bias);
+  /** @returns reference to word related to the feature. @param grup is the offset from the Cortex manuals as published by STM */
+  ControlWord controlWord(unsigned grup)const{
+    return ControlWord(grup + bias);
   }
 
   /** this is for the registers where you write a 1 to a bit to make something happen. */
-  inline void strobe(unsigned grup)const{
+  void strobe(unsigned grup)const{
     controlWord(grup) = mask;
   }
 
@@ -157,32 +133,32 @@ public:
 #include "core-atomic.h"
 
 /** tool for managing disabling an interrupt in a nesting fashion, ie a function that needs to disable the interrupt can call another
- * function that also needs to disable the interrupt and this guy ifproperly used can ensure that the interrupt isn't reenabled until the first disabler wished to do so.
+ * function that also needs to disable the interrupt and this guy if properly used can ensure that the interrupt isn't reenabled until the first disabler wished to do so.
  * See IRQLock for the safest way to use this class.
- * instantiating more than one of these for a given interrupt defeats the nesting nature of its enable. */
-template <unsigned number> class GatedIrq: public Irq<number> {
-  int locker; //tracking nested attempts to lock out the interrupt.
+ * instantiating more than one of these for a given interrupt defeats the nesting nature of its enable.
+*/
+class GatedIrq: public Irq {
+  unsigned locker; //tracking nested attempts to lock out the interrupt.
 public:
-  GatedIrq():locker(0){}
+  GatedIrq(unsigned number):Irq(number),locker(0){}
 
   void enable(void){
-    if(locker > 0) { // if locked then reduce the lock such that the unlock will cause an enable
-      --locker;  // one level earlier than it would have. This might be surprising so an
+    if(atomic_decrementNowZero(locker)) {
+      enable();
+      // if locked then reduce the lock such that the unlock will cause an enable
+      // one level earlier than it would have. This might be surprising so an
       // unmatched unlock might be the best enable.(so we renamed this method to 'enable' ;)
-    }
-    if(locker == 0) { // if not locked then actually enable
-      Irq<number>::enable();
     }
   }
 
   void lock(){
-    if(locker++ == 0) {
-      Irq<number>::disable();
+    if(atomic_incrementWasZero(locker)){
+      disable();
     }
   }
 
   void prepare(){
-    Irq<number>::clear(); // acknowledge to hardware
+    clear(); // acknowledge to hardware
     enable(); // allow again
   }
 
@@ -195,10 +171,10 @@ public:
   *  Since each interrupt can be stifled at its source this should not be a problem.
   *  future: automate detection of being in the irq service and drop the argument.
   */
-template <unsigned number> struct IRQLock {
-  static GatedIrq<number> irq;
+struct IRQLock {
+  GatedIrq &irq;
 public:
-  IRQLock(){
+  IRQLock(GatedIrq &irq):irq(irq){
     irq.lock();
   }
 
@@ -209,33 +185,32 @@ public:
 
 
 #ifdef __linux__ //just compiling for syntax checking
-extern bool IRQEN;
+extern bool IrqEnable;
 #define IRQLOCK(irq)
 
 #else
 #include "core_cmFunc.h"
-extern const CPSI_i IRQEN;
 #define IRQLOCK(irqVarb) IRQLock IRQLCK ## irqVarb(irqVarb)
 #endif
 
 //this does not allow for static locking, only for within a function's execution (which is a good thing!):
 #define LOCK(somename) CriticalSection somename ## _locker
 
-/** creating one of these in a function (or blockscope) disables all interrupts until said function (or blockscope) exits.
+/** creating one of these in a function (or blockscope) disables <em> all </em> interrupts until said function (or blockscope) exits.
   * By using this fanciness you can't accidentally leave interrupts disabled. */
 class CriticalSection {
   static volatile unsigned nesting;
 public:
   CriticalSection(void){
     if(!nesting++){
-      IRQEN=0;
+      IrqEnable=0;
     }
   }
 
   ~CriticalSection (void){
     if(nesting) { //then interrupts are globally disabled
       if(--nesting == 0) {
-        IRQEN=1;
+        IrqEnable=1;
       }
     }
   }

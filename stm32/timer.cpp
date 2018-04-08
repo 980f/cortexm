@@ -1,6 +1,7 @@
 #include "timer.h"
 #include "minimath.h"
 #include "afio.h"
+#include "clocks.h"
 
 #define PSC dcb[20]
 #define ARR dcb[22]
@@ -26,9 +27,9 @@ static const TimerConstant T[] = {
   { 2, 13, 44, Timer8Stop },
 };
 
-Timer::Timer(int stLuno): apb(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq){
-  dcb = reinterpret_cast <TIMER_DCB> (apb.getAddress());
-  b = reinterpret_cast <TIMER_BAND *> (apb.getBand());
+Timer::Timer(unsigned stLuno): apb(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq){
+  dcb = reinterpret_cast <TIMER_DCB> (apb.blockAddress);
+  b = reinterpret_cast <TIMER_BAND *> (apb.bandAddress);
   luno = stLuno;
   apb.init(); //for most extensions this is the only time we do the init.
 }
@@ -46,8 +47,8 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
 } /* configureCountExternalInput */
 
 u32 Timer::baseRate(void) const {
-  register u32 apbRate = apb.getClockRate();
-  register u32 ahbRate = clockRate(0);
+  u32 apbRate = apb.getClockRate();
+  u32 ahbRate = clockRate(0);
 
   return (ahbRate == apbRate) ? apbRate : apbRate *= 2;
 }
@@ -113,7 +114,7 @@ const CCUnit& DelayTimer::setDelay(int ticks) const {
   return cc;
 }
 ////////////////////////////
-CCUnit::CCUnit (const Timer&_timer, int _ccluno): timer(_timer), zluno(_ccluno - 1){
+CCUnit::CCUnit (const Timer&_timer, unsigned _ccluno): timer(_timer), zluno(_ccluno - 1){
   //nothing to do here
 }
 
@@ -152,14 +153,14 @@ void CCUnit::takePin(unsigned alt,bool inverted) const { //todo:3 options to onl
   CCER&myccer = ccer();
 
   switch(timer.luno){
-  case 1:theAfioManager.field.tim1=alt; break;
-  case 2:theAfioManager.field.tim2=alt; break;
-  case 3:theAfioManager.field.tim3=alt; break;
-  case 4:theAfioManager.field.tim4=alt; break;
-  case 5:theAfioManager.field.tim5=alt; break;
+  case 1:theAfioManager.remap.tim1=alt; break;
+  case 2:theAfioManager.remap.tim2=alt; break;
+  case 3:theAfioManager.remap.tim3=alt; break;
+  case 4:theAfioManager.remap.tim4=alt; break;
+  case 5:theAfioManager.remap.tim5=alt; break;
     //no remaps for other timers, could wtf if alt!=0
   }
-  theAfioManager.update();
+  theAfioManager.remap.update();
 
   pin(alt, 0).FN();
   if(amDual()) { //todo:3 'and Take complementary pin as well'

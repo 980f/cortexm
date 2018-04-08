@@ -15,19 +15,19 @@ APBdevice::APBdevice(unsigned int stbus, unsigned int slot):
 {}
 
 void APBdevice::reset() const {
-  volatile u32 &resetter(rccBit(0x0C));
+  ControlWord resetter(rccBit(0x0C));
   resetter = 1;
   resetter = 0; //manual is ambiguous as to whether reset is a command or a state.
 }
 
 void APBdevice::setClockEnable(bool on) const {
-  volatile u32 &clocker(rccBit(0x18));
+  ControlWord clocker(rccBit(0x18));
   clocker = on;
 }
 
 bool APBdevice::isEnabled() const {
   //  (reset on forces the clock off (I think) so we only have to check one bit)
-  volatile u32 &clocker(rccBit(0x18));
+  ControlWord clocker(rccBit(0x18));
   return clocker;
 }
 
