@@ -12,17 +12,17 @@ constexpr Address APB_Band(unsigned bus2, unsigned slot)  { return (PeripheralBa
 const Address RCCBASE (0x40021000);
 
 
-/** each peripheral's reset pin, clock enable, and bus address are calculable from 2 simple numbers.
+/** each peripheral's reset pin, clock enable, and bus address are computable from 2 simple numbers.
 working our way up to a template. */
 struct APBdevice {
   const u8 bus2; //boolean, packed
   const u8 slot; //max 32 items (value is 0..31)
-  /** base device address @see registerAddress() for multibit control */
-  const unsigned blockAddress;
+  /** base device address @see registerAddress() for multi-bit control */
+  const Address blockAddress;
   /** base bit band address. @see bit() to access a single bit control */
-  const unsigned bandAddress;
-  /** base used for calculating this devices bits in RCC device. */
-  const unsigned rccBitter;
+  const Address bandAddress;
+  /** base used for calculating this device's bits in RCC device. */
+  const Address rccBitter;
 
 protected:
   /** @return bit address given the register address of the apb2 group*/
@@ -46,12 +46,12 @@ public:
   /** get base clock for this module */
   u32 getClockRate(void) const;
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
-  Address registerAddress(Address offset) const {
+  Address registerAddress(unsigned offset) const {
     return blockAddress+offset;
   }
   /** @returns bit band address of bit of a register, @param offset is value from st's manual (byte address) */
   ControlWord bit(Address offset, unsigned bit)const{
-    return ControlWord(blockAddress+offset,bit);
+    return ControlWord(bandAddress+bandFor(offset,bit));
   }
 };
 

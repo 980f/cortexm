@@ -99,7 +99,7 @@ should actively configure the pin's presence and not rely upon our weak pullup.
 //got tired of finesse:
 #define makeTxPin(P,b) Pin(P, b).FN(rxtxSpeedRange)
 
-void  grabInput(const Port &PX,int bn, char udf) {
+static void  grabInput(const Port &PX,int bn, char udf) {
 //assignment is to get compiler to not prune the code (although it kindly warned us that it did).
   Pin(PX, bn).DI(udf)=1;
 }

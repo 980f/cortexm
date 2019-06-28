@@ -1,8 +1,12 @@
+//so many defects in hardware that we couldn't do more than one operation per reset.
+//this code is now too stale to copile, need to crib from stm HAL.
 #include "i2c.h"
 #include "minimath.h"
+#include "gpio.h"
 
-#if I2C_TRACE
-static I2C::Stage stages[100];
+#if I2C_TRACE>0
+#include "buffer.h"
+static I2C::Stage stages[I2C_TRACE];
 static Indexer <I2C::Stage> stageTrace(stages, sizeof(stages));
 void I2C::setStage(I2C::Stage stageCode){
   stage = stageCode;
@@ -11,6 +15,7 @@ void I2C::setStage(I2C::Stage stageCode){
   }
 }
 #endif
+
 static int dbgCount = 0; //will use for 'ignore count' for breakpoints.
 
 I2C::I2C(int luno, bool alt1): APBdevice(1, 20 + luno), b(reinterpret_cast <I2C_BAND *> (getBand())), dcb(reinterpret_cast <I2C_DCB *> (getAddress())), eventIrq(29 + 2 * luno), errorIrq(30 + 2 * luno){
@@ -43,7 +48,7 @@ void I2C::clearHW(void){ //grrr, soft reset also clears config, why does it exis
 void I2C::init400k(void){ //todo:3 parameters for fast and a kiloHertz
   init();
   clearHW();
-#if I2C_TRACE
+#ifdef I2C_TRACE
   stageTrace.rewind();
 #endif
   //cr1 as apb.init sets it up is fine

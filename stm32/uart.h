@@ -153,7 +153,7 @@ struct Uart:public APBdevice {
   volatile UartBand &b;
   volatile USART_DCB &dcb;
 
-  IrqRef &irq;
+  Irq irq;
   unsigned int zluno;
   unsigned int altpins;
   //zluno is ST's nomenclature -1

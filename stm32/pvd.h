@@ -19,12 +19,12 @@ class PVD: public APBdevice {
     unsigned :5;
     unsigned enableWakeupEvent:1;
 
-  } *dcb;
+  } &dcb;
 public:
   PVD();
   void setThreshold(int mV);
   bool isLow(){
-    return dcb->powerIsLow;
+    return dcb.powerIsLow;
   }
   /** return whether power became good*/
   bool waitForGood(unsigned spinner);

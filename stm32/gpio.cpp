@@ -136,8 +136,8 @@ void Port::configure(unsigned bitnum, unsigned code) const {
 
 
 
-LogicalPin::LogicalPin(Address registerAddress, bool inverted):
+LogicalPin::LogicalPin(Address registerAddress, bool active):
   bitbanger(registerAddress),
-  lowactive(inverted?1:0){
+  active(active){
   /*empty*/
 }

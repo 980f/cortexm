@@ -1,21 +1,15 @@
 #include "exti.h"
 #include "afio.h" //to get to selectors for lower 16 exti's
 #include "bitbanger.h"
-static const Exti theExti InitStep(InitHardware+10);//after ports
+static const Exti theExti InitStep(InitHardware+10); //after ports
 
-
-IrqRef Exti ::irqsome[5+2]={
-  Irq<6+0>,
-  Irq<6+1>,
-  Irq<6+2>,
-  Irq<6+3>,
-  Irq<6+4>,
-  Irq<23>,
-  Irq<40>,
+const Irq Exti::irqsome[5 + 2] = { //psuedo random association of irq with port.
+Irq(6 + 0), Irq(6 + 1), Irq(6 + 2), Irq(6 + 3), Irq(6 + 4), //
+    Irq(23),  Irq(40) , //
 };
 
-unsigned Exti::irqIndex(unsigned pinnumber){
-  switch(pinnumber){
+unsigned Exti::irqIndex(unsigned pinnumber) {
+  switch (pinnumber) {
   case 10 ... 15:  //qt colorizer misidentifies this as an error
     return 6;
   case 5 ... 9:    //... it doesn't know about case ranges (yet)
@@ -25,21 +19,22 @@ unsigned Exti::irqIndex(unsigned pinnumber){
   }
 }
 
-Exti::Exti():APBdevice(2,1){}
+Exti::Exti() :
+    APBdevice(2, 1) {
+}
 
-
-IrqRef &Exti::enablePin(const Pin &pin,bool rising,bool falling){
+const Irq &Exti::enablePin(const Pin &pin, bool rising, bool falling) {
   //call  pin.DI() before calling this method.
   theAfioManager.selectEvent(pin);
-  theExti.bit(0,pin.bitnum)=1;
-  theExti.bit(0x4,pin.bitnum)=1;//also set as an event, mostly to test the .bit method
+  theExti.bit(0, pin.bitnum) = 1;
+  theExti.bit(0x4, pin.bitnum) = 1;    //also set as an event, mostly to test the .bit method
 
-  theExti.bit(0x08,pin.bitnum)=rising;
-  theExti.bit(0x0C,pin.bitnum)=falling;
+  theExti.bit(0x08, pin.bitnum) = rising;
+  theExti.bit(0x0C, pin.bitnum) = falling;
   return irqsome[irqIndex(pin.bitnum)];
 }
 
-void Exti::clearPending(const Pin &pin){
-  theExti.bit(0x14,pin.bitnum)=1;
+void Exti::clearPending(const Pin &pin) {
+  theExti.bit(0x14, pin.bitnum) = 1;
 }
 

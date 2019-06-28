@@ -113,16 +113,16 @@ struct Pin /*Manager*/ {
 class LogicalPin {
 protected:
   const ControlWord bitbanger;
-  /** a 1 for LOWACTIVE output, ie: setting this element to a 1 sets the physical pin low */
-  const bool lowactive;
+  /** the level that is deemed active  */
+  const bool active;
   bool polarized(bool operand)const{
-    return lowactive!=operand;
+    return active!=operand;
   }
 
-  LogicalPin(Address registerAddress,bool inverted);
+  LogicalPin(Address registerAddress,bool active=1);
 public:
 
-  /** @returns for outputs REQUESTED state of pin, for inputs the acutal pin */
+  /** @returns for outputs REQUESTED state of pin, for inputs the actual pin */
   operator bool(void)const{
     return polarized(bitbanger);
   }
@@ -135,8 +135,8 @@ maydo: retain UDF setting as value to return in operator bool ternary.
 class InputPin :public LogicalPin {
 
 public:
-  InputPin(const Pin &pin, char UDF = 'D', bool lowactive=false);
-  InputPin(const Pin &pin,bool lowactive);  //pull the opposite way of the 'active' level.
+  InputPin(const Pin &pin, char UDF = 'D', bool active=1);
+  InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
   //maydo: add method to change pullup/pulldown bias while running
 
 };
@@ -148,7 +148,7 @@ Note that these objects can be const while still manipulating the pin.
 class OutputPin :public LogicalPin {
 
 public:
-  OutputPin(const Pin &pin,bool lowactive=false,unsigned int mhz = 2, bool openDrain = false);
+  OutputPin(const Pin &pin, bool active=1, unsigned int mhz = 2, bool openDrain = false);
 
   /** @returns pass through @param truth after setting pin to that value */
   bool operator = (bool truth)const{
@@ -156,7 +156,7 @@ public:
     return truth;//don't reread the pin, nor its actual, keep this as a pass through
   }
 
-  /** set to given value, @returns whether a change actually occured.*/
+  /** set to given value, @returns whether a change actually occurred.*/
   bool changed(bool truth) const{
     truth=polarized(truth);
     if(bitbanger!=truth){

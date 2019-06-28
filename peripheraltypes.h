@@ -39,8 +39,8 @@ typedef volatile u32 SFR;
 typedef const u32 SKIPPED;
 
 /** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
-typedef unsigned Address;
-#define Ref(address) *reinterpret_cast<volatile unsigned *>(address)
+using Address= unsigned;
+#define Ref(address) *reinterpret_cast<volatile Address *>(address)
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
 const Address PeripheralBase(0x40000000);//1<<30
@@ -63,7 +63,7 @@ constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0){
   //bit gets shifted by 2 as the underlying mechanism inspects the 32bit word address only, doesn't see the 2 lsbs of the address.
   //0xE000 0000: stm32 segments memory into 8 512M blocks, banding is within a block
   //0x0200 0000: indicates this is a bitband address
-  //bit to lsbs of address |  byteaddress shifted up far enouhg for address space to go away | restore address space | bitband indicator.
+  //bit to lsbs of address |  byteaddress shifted up far enough for address space to go away | restore address space | bitband indicator.
   return ((bitnum << 2) | bandShift(byteAddress) | (byteAddress & 0xE0000000) | 0x02000000);
 }
 
@@ -114,7 +114,7 @@ public:
 
 /** Multiple contiguous bits in a register. Requires register to be R/W.
  * For write-only registers declare a union of int with struct of bitfields that describes the register. Manipulate an instance then assign it to an SFR8/16/32.
- * Note: This creates a class per sf register field, but the compiler should inline all uses making this a compile time burden but a runtime minimalization.
+ * Note: This creates a class per sf register field, but the compiler should inline all uses making this a compile time burden but a runtime minimization.
  * Note: 'volatile' isn't used here as it is gratuitous when the variable isn't nominally read multiple times in a function.
  */
 class ControlField {

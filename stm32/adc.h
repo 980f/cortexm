@@ -2,6 +2,7 @@
 #define ADC_H
 
 #include "stm32.h"
+#include "shadow.h"
 
 struct ADC_CR1 {
   unsigned int watchChannel : 5;
@@ -48,8 +49,8 @@ struct ADC_CR2 {
 
 struct ADC_DCB {
   volatile unsigned int status;
-  unsigned int cr1;
-  unsigned int cr2;
+  Shadowed<ADC_CR1,unsigned int> cr1;
+  Shadowed<ADC_CR2,unsigned int> cr2;
   unsigned int smp1; //will use algorithmic access or external constant generator.
   unsigned int smp2; //...
   unsigned int joffset[4];
@@ -107,8 +108,8 @@ struct ADC_Band {
 
 class ADC : public APBdevice {
 public:
-  ADC_DCB *dcb;
-  ADC_Band *band;
+  ADC_DCB &dcb;
+  ADC_Band &band;
 
   ADC(int luno);
   void init(void);
@@ -116,7 +117,7 @@ public:
   void convertChannel(int channelcode);
 
   inline u16 readConversion(void){
-    return dcb->data;
+    return dcb.data;
   }
 
   void configureInput(unsigned int channel);
