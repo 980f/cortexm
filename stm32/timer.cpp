@@ -129,10 +129,10 @@ Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
     }
   case 2:
     switch(zluno){
-    case 0: return Pin(PA,bit(alt,0)?15:0);
-    case 1: return bit(alt,0)?Pin(PB,3):Pin(PA,1);
-    case 2:return bit(alt,1)?Pin(PB,10):Pin(PA,2);
-    case 3:return bit(alt,1)?Pin(PB,11):Pin(PA,3);
+    case 0: return Pin(PA,bitFrom(alt,0)?15:0);
+    case 1: return bitFrom(alt,0)?Pin(PB,3):Pin(PA,1);
+    case 2: return bitFrom(alt,1)?Pin(PB,10):Pin(PA,2);
+    case 3: return bitFrom(alt,1)?Pin(PB,11):Pin(PA,3);
     } break;
   case 3:   //todo:3 ignoring alt for a bit:
     return zluno < 2 ? Pin(PA, 4 + zluno) : Pin(PB, zluno - 2);

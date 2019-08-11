@@ -89,14 +89,13 @@ namespace SystemTimer {
 
 /** start ticking at the given rate.*/
 void startPeriodicTimer(u32 persecond){
-  //todo:2 fullspeed is hardcoded to 1 downstream of here, need to take care of that.
   theSysTicker.fullspeed = 1;
   //lpc has a programmable divider 
 //the following fragment is stm32's fullspeed===0 logic
 //  if(!theSysTicker.fullspeed) {//!! stm32 specific (although others copy it)
 //    persecond *= 8; // times 8 here instead of /8 in the rate computation.
 //  }
-  u32 num=clockRate(theSysTicker.fullspeed ? 0: -1);
+  u32 num = clockRate(theSysTicker.fullspeed ? 0: -1);
   theSysTicker.start(rate(num, persecond));
 }
 
@@ -152,7 +151,7 @@ u32 snapTickTime(void){
   return ((snapms + 1) * (theSysTicker.reload + 1)) - snaptick;
 }
 
-u64 snapLongTime(void){//this presumes  little endian 64 bit integer.
+u64 snapLongTime(void){//this presumes little endian 64 bit integer.
   theSysTicker.enableCounting = 0; //can't use bitlock on a field in a struct :(
   u64 retval=milliTime |(u64(macroTime)<<32);//need a hack to get compiler to be efficient here.
   theSysTicker.enableCounting = 1; //todo:3 add some to systick to compensate for the dead time of this routine.

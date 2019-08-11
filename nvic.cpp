@@ -238,7 +238,9 @@ void generateHardReset(){
 bool IRQEN;
 #else
 //shared instances need this treatment.
-//const CPSI_i IRQEN;
+const CPSI_i IRQEN;    //cmsis name
+const CPSI_i IrqEnable;//legacy name
+
 #endif
 
 ///* ##########################   NVIC functions  #################################### */

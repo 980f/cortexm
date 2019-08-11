@@ -145,12 +145,12 @@ __exit_table__ = LOADADDR(.exit);
 
 /* The following fragment is copied from the AC6 auto generated ld file, not yet sure what it does. */
   /* Remove information from the compiler libraries */
-  /DISCARD/ :
+/*10aug2019 libc.a linker error hunt  /DISCARD/ :
   {
     libc.a ( * )
     libm.a ( * )
     libgcc.a ( * )
   }
-
+*/
 }
 

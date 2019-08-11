@@ -2,7 +2,7 @@
 
 #include "eztypes.h"
 #include "peripheraltypes.h"
-#include "atomic"
+//not stable part of gcc it appears, will use ours instead. #include "atomic"
 
 //macro's for generating numbers don't work in the irqnumber slot below. The argument must be a simple digit string, no math or lookups or even constexpr's
 #define IrqName(irqnumber) IRQ ## irqnumber

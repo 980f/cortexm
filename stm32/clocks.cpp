@@ -173,8 +173,8 @@ void warp9(bool internal){
   theClockControl.maxit(internal);
 }
 
-u32 clockRate(unsigned int bus){
-  return theClockControl.clockRate(bus);
+u32 clockRate(int which){
+  return theClockControl.clockRate(which);
 }
 
 /** stm32 has a feature to post its own clock on a pin, for reference or use by other devices. */

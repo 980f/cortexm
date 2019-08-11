@@ -41,7 +41,7 @@ void cstartup(void){
   // Zero other static variables.
   __bss_segment__.go();
   // a CMSIS hook:
-  SystemInit(); // stuff that C++ construction might need, like turning on hardware modules (e.g. my LPC::GPIO::Init())
+  SystemInit(); // stuff that C++ construction might need, like turning on hardware modules (e.g. 980f LPC::GPIO::Init())
 
   run_table(__init_table__);
   //incorporated by linker into our run_init:  __libc_init_array(); // C++ library initialization (includes constructors for static objects)
@@ -52,7 +52,7 @@ void cstartup(void){
   generateHardReset(); // auto restart on problems, design your system to tolerate spontaneous power cycles on fatal firmware error
 }
 
-// stack pointer is set to end of ram via linker script
+// stack pointer is set to end of ram via linker script, gets followed by:
 void (*resetVector)(void) __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix
 
@@ -98,5 +98,6 @@ extern "C" int __aeabi_atexit(void *object, void (*destructor)(void *), void *ds
 //    wtf(-2);
 //  }
 //}
+
 #endif
 

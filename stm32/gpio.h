@@ -36,6 +36,7 @@ struct Port /*Manager*/ : public APBdevice {
     todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
     */
   void configure(unsigned bitnum, unsigned code) const;
+  /** @returns accessor object for "output data register" */
   ControlWord odr(void) const {
     return ControlWord(registerAddress(12));
   }
@@ -66,7 +67,7 @@ enum IrqStyle {
 
 /**
   * this class manages the nature of a pin, and provides cacheable accessors for the pin value.
-  * there is no point in using const in declaring a Pin, the internals are all const.
+  * you may declare each as const, the internals are all const.
   */
 struct Pin /*Manager*/ {
   const unsigned bitnum;
@@ -102,9 +103,8 @@ struct Pin /*Manager*/ {
  @see OutputPin for business logic version */
   bool operator = (bool truth)const{
     writer()=truth;
-    return truth;//don't reread the pin, nor its actual, keep this as a pass through
+    return truth;//#don't reread the pin, nor its actual, keep this as a pass through
   }
-
 
 };
 
@@ -130,7 +130,6 @@ public:
 
 /**
 hide the volatile and * etc that I sometimes forget.
-maydo: retain UDF setting as value to return in operator bool ternary.
 */
 class InputPin :public LogicalPin {
 

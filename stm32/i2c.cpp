@@ -21,6 +21,7 @@ static int dbgCount = 0; //will use for 'ignore count' for breakpoints.
 I2C::I2C(int luno, bool alt1): APBdevice(1, 20 + luno), b(reinterpret_cast <I2C_BAND *> (getBand())), dcb(reinterpret_cast <I2C_DCB *> (getAddress())), eventIrq(29 + 2 * luno), errorIrq(30 + 2 * luno){
   inprogress = 0;
   pinbase = 2 + 4 * luno + (alt1 ? 2 : 0);
+  stage=Stage::Idle;
 }
 
 void I2C::configurePins(bool withSmb){

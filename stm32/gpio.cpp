@@ -66,10 +66,10 @@ const Pin &Pin::AI() const {
 }
 
 ControlWord Pin::DI(char UDF) const { // default Down as that is what meters will do.
-  writer() = bit(UDF, 0); // ODR determines whether a pullup else a pulldown is connected ... this takes advantage of the ascii codes for U and D differing in the lsb.
+  writer() = bitFrom(UDF, 0); // ODR determines whether a pullup else a pulldown is connected ... this takes advantage of the ascii codes for U and D differing in the lsb.
   // NB: if the pin is already an output then the above line pulses current into it a moment before the next line turns off the driver. This is typically a good thing.
   configureAs((UDF == 'F') ? 4 : 8); // ... this determines if the pin actually gets pulled.
-  return ControlWord(reader());
+  return reader();
 }
 
 ControlWord Pin::highDriver() const {
@@ -103,7 +103,7 @@ InputPin::InputPin(const Pin &pin, char UDF, bool lowactive): LogicalPin(pin.DI(
   /*empty*/
 }
 
-InputPin::InputPin(const Pin &pin, bool lowactive): InputPin(pin,lowactive, lowactive ? 'U' : 'D'){
+InputPin::InputPin(const Pin &pin, bool lowactive): InputPin(pin, lowactive ? 'U' : 'D',lowactive){
   /*empty*/
 }
 
@@ -127,7 +127,7 @@ bool Port::isOutput(unsigned pincode){
 Port::Port(char letter): APBdevice(2, 2 + unsigned(letter - 'A')){}
 
 void Port::configure(unsigned bitnum, unsigned code) const {
-  if(! isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects wihtout wasting power if they aren't needed.
+  if(! isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
     init(); // must have the whole port running before we can modify a config of any pin.
   }
   ControlField confword(registerAddress((bitnum & 8) ? 4 : 0),(bitnum&7)<<2,4);// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
