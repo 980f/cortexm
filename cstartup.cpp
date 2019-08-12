@@ -84,7 +84,7 @@ const unsigned __stack_limit__(0);
 #else
 //destructor failure stuff, but ours won't ever actually fail
 extern "C" int __aeabi_atexit(void *object, void (*destructor)(void *), void *dso_handle){
-  return 0;
+  return int(&destructor)+int(object)+int(dso_handle);//stupid code to get rid of gratuitous warnings.
 }
 
 //these guys get linked in when you have explicit destructors, even if those destructors are "=default".

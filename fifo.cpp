@@ -66,7 +66,7 @@ int Fifo::remove(){
  /** @returns how many did NOT get pushed */
 unsigned Fifo::stuff(const char *block,unsigned length){
   while(length-->0){
-    if(insert(*block++)<0){
+    if(!insert(*block++)){//error here was a warning but was a really significant error! (insert function changed from returning the status to returning status==OK)
       return ++length;
     }
   }
