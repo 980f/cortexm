@@ -1,8 +1,7 @@
 #include "gpio.h"
 #include "peripheralband.h" //deprecated bandFor
 #include "bitbanger.h"
-// priority must be such that these get created before any application objects.
-
+// priority must be such that these get created before any application objects
 const Port PA InitStep(InitHardware) ('A');
 const Port PB InitStep(InitHardware) ('B');
 const Port PC InitStep(InitHardware) ('C');

@@ -20,8 +20,10 @@ u32 clockRate(int which);
 void warp9(bool internal);
 
 /** this class exists to run clock setup code at a user selectable init level.
+    this is done over an init function call so that it can be between construction of other initializing gizmos.
+    If we figure out that we can always turn these on first them we may just have a function with a return that inits a static variable that we can InitStep.
  Usage:
-ClockStarter InitStep(InitHardware-100) (false,0,1000);
+    ClockStarter InitStep(InitHardware-100) (false,0,1000);
 */
 struct ClockStarter {
   const bool intosc;//hs oscillator selection
@@ -30,4 +32,8 @@ struct ClockStarter {
   /** by declaring an explicit constructor the compiler arranges for it to be called even if we use {} initializer */
   ClockStarter(bool intosc,u32 coreHertz,u32 sysHertz);
 };
+
+/** MCO pin configuration (to snoop on internal clock).
+*/
+void setMCO(unsigned int mode);
 

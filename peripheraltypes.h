@@ -1,8 +1,8 @@
 #pragma once
 
-#include "eztypes.h"
 #include "bitbanger.h"
 #include "boolish.h"
+#include "eztypes.h"
 
 /**
  *  types used for declaration of peripherals.
@@ -31,7 +31,7 @@ I am working on replacing *'s with &'s, its a statisitcal thing herein as to whi
 //}
 
 /** for a private single instance block */
-#define soliton(type, address) type & the ## type = *reinterpret_cast <type *> (address);
+#define soliton(type, address) type& the##type = *reinterpret_cast<type*>(address);
 
 /** the following are mostly markers, but often it is tedious to insert the 'volatile' and dangerous to leave it out. */
 typedef volatile u32 SFR;
@@ -39,11 +39,11 @@ typedef volatile u32 SFR;
 typedef const u32 SKIPPED;
 
 /** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
-using Address= unsigned;
-#define Ref(address) *reinterpret_cast<volatile Address *>(address)
+using Address = unsigned;
+#define Ref(address) *reinterpret_cast<volatile Address*>(address)
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
-const Address PeripheralBase(0x40000000);//1<<30
+const Address PeripheralBase(0x40000000);  //1<<30
 
 const Address PeripheralBand(0x42000000);
 
@@ -51,15 +51,15 @@ const Address PeripheralBand(0x42000000);
  * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
 This replaces a 3-clock operation that is susceptible to interruption into a one clock operation that is not. That is important if an ISR is modifying the same control word as main thread code.
 */
-constexpr Address bandShift(Address byteOffset){
+constexpr Address bandShift(Address byteOffset) {
   //5: 2^5 bits per 32 bit word. we expect a byte address here, so that one can pass values as read from the stm32 manual.
-  return byteOffset<<5;
+  return byteOffset << 5;
 }
 
 /** @return bitband address for given bit (default 0) of @param byte address.
 this assumes that the byte address ends in 00, which all of the ones in the st manual do.
 */
-constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0){
+constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
   //bit gets shifted by 2 as the underlying mechanism inspects the 32bit word address only, doesn't see the 2 lsbs of the address.
   //0xE000 0000: stm32 segments memory into 8 512M blocks, banding is within a block
   //0x0200 0000: indicates this is a bitband address
@@ -81,33 +81,35 @@ constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0){
 //  return bandFor(byteAddress,bitnum);
 //}
 
-
 /** when you don't know the address at compile time use one of these, else use an SFRxxx. */
 class ControlWord {
-  volatile unsigned &item;
-public:
-  ControlWord(Address dynaddr):item(Ref(dynaddr)){
+  volatile unsigned& item;
+
+ public:
+  ControlWord(Address dynaddr)
+      : item(Ref(dynaddr)) {
     //#done
   }
   /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
-  ControlWord(const ControlWord &other)=default;
+  ControlWord(const ControlWord& other) = default;
 
-  ControlWord(Address dynaddr,unsigned bitnum):ControlWord(bandFor(dynaddr,bitnum)){
-   //#done
+  ControlWord(Address dynaddr, unsigned bitnum)
+      : ControlWord(bandFor(dynaddr, bitnum)) {
+    //#done
   }
 
   /** yes, const is allowed here! */
-  void operator =(unsigned value)const{
-    item=value;
+  void operator=(unsigned value) const {
+    item = value;
   }
 
   /** mostly exists to appease compiler complaint about ambiguity of assignement. */
-  void operator =(const ControlWord &other)const{
-    item=other;
+  void operator=(const ControlWord& other) const {
+    item = other;
   }
 
   /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
-  operator unsigned ()const{
+  operator unsigned() const {
     return item;
   }
 };
@@ -118,42 +120,38 @@ public:
  * Note: 'volatile' isn't used here as it is gratuitous when the variable isn't nominally read multiple times in a function.
  */
 class ControlField {
-  volatile unsigned &word;
+  volatile unsigned& word;
 
-    /** mask gets pre-positioned */
+  /** mask gets pre-positioned */
   const unsigned mask;
   const unsigned pos;
-public:
-  ControlField(Address sfraddress, unsigned pos, unsigned width = 1):
-    word(Ref(sfraddress)),
-    mask(bitMask(pos, width)),
-    pos(pos)
-  {}
 
+ public:
+  ControlField(Address sfraddress, unsigned pos, unsigned width = 1)
+      : word(Ref(sfraddress)), mask(bitMask(pos, width)), pos(pos) {}
 
-public:
-  ControlField(const ControlField &other) = delete;
+ public:
+  ControlField(const ControlField& other) = delete;
   ControlField() = delete;
 
   // read
   inline operator unsigned() const {
-    return (word & mask) >> pos;//the compiler should render this down to a bitfield extract instruction.
+    return (word & mask) >> pos;  //the compiler should render this down to a bitfield extract instruction.
   }
 
   // write
   void operator=(unsigned value) const {
-    word = ((value << pos) & mask) | (word & ~mask);//the compiler should render this down to a bitfield insert instruction.
+    word = ((value << pos) & mask) | (word & ~mask);  //the compiler should render this down to a bitfield insert instruction.
   }
 
   void operator+=(unsigned value) const {
-    operator =( unsigned() + value);
+    operator=(unsigned() + value);
   }
 };
 
-
 /** a datum at a known absolute address */
-template<typename Inttype, Address sfraddress> struct SFRint {
-
+template <typename Inttype, Address sfraddress>
+struct SFRint {
   SFRint() = default;
 
   // read. If you assign this to an unsigned rather than Inttype you will incur a uxtb instruction.
@@ -177,16 +175,17 @@ template<typename Inttype, Address sfraddress> struct SFRint {
  * Note: This creates a class per sf register field, but the compiler should inline all uses making this a compile time burden but a runtime minimalization.
  * Note: 'volatile' isn't used here as it is gratuitous when the variable isn't nominally read multiple times in a function.
  */
-template<Address sfraddress, unsigned pos, unsigned width = 1> class SFRfield {
+template <Address sfraddress, unsigned pos, unsigned width = 1>
+class SFRfield {
   enum {
     /** mask positioned */
-        mask = bitMask(pos, width)
+    mask = bitMask(pos, width)
   };
 
-public:
-  SFRfield(const SFRfield &other) = delete;
+ public:
+  SFRfield(const SFRfield& other) = delete;
 
-  SFRfield() = default;   //this constructor is needed due to use of explicit on the other constructor
+  SFRfield() = default;  //this constructor is needed due to use of explicit on the other constructor
 
   /** this constructor is intended to be used for setting a value into a register which has no reference other than the assignment, but it is not easy to debug its use when something goes horribly wrong. */
   explicit SFRfield(unsigned initlizer) {
@@ -194,12 +193,12 @@ public:
   }
 
   // read
-  inline operator unsigned() const { // NOLINT
+  inline operator unsigned() const {  // NOLINT
     return (Ref(sfraddress) & mask) >> pos;
   }
 
   // write
-  inline void operator=(unsigned value) const { // NOLINT
+  inline void operator=(unsigned value) const {  // NOLINT
     Ref(sfraddress) = ((value << pos) & mask) | (Ref(sfraddress) & ~mask);
   }
 
@@ -208,33 +207,50 @@ public:
   }
 };
 
-
 /** single bit, ignoring the possibility it is in bitbanded memory.
  *  This is NOT derived from SFRfield as we can do some optimizations that the compiler might miss (or developer might have disabled)*/
-template<Address sfraddress, unsigned pos> class SFRbit : public BoolishRef {
+template <Address sfraddress, unsigned pos>
+class SFRbit : public BoolishRef {
   enum {
     mask = bitMask(pos)
   };
 
-  inline SFR &sfr() const {
-    return *reinterpret_cast<SFR *>(sfraddress);
+  inline SFR& sfr() const {
+    return *reinterpret_cast<SFR*>(sfraddress);
   }
 
-public:
+ public:
   SFRbit() = default;
 
   // read
-  inline operator bool() const override { // NOLINT
+  inline operator bool() const override {  // NOLINT
     return (sfr() & mask) != 0;
   }
 
   // write
-  bool operator=(bool value) const override { // NOLINT
+  bool operator=(bool value) const override {  // NOLINT
     if (value) {
       sfr() |= mask;
     } else {
       sfr() &= ~mask;
     }
+    return value;
+  }
+};
+
+template <Address sfraddress, unsigned bitnum>
+struct Controlbit : public BoolishRef {
+  enum {
+    bandAddress = bandFor(sfraddress, bitnum),
+  };
+  // read
+  inline operator bool() const override {  // NOLINT
+    return *(reinterpret_cast<volatile unsigned*>(bandAddress));
+  }
+
+  // write
+  bool operator=(bool value) const override {  // NOLINT
+    *(reinterpret_cast<unsigned*>(bandAddress)) = value;
     return value;
   }
 };
