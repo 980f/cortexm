@@ -19,5 +19,5 @@ struct Bluepill {
 };
 
 //experimenting with putting this in the header file, only the main() should include a board file and having this here reduces some $ifdef'ing.
-Bluepill board;
+extern Bluepill board;
 #endif // P103_BOARD_H
