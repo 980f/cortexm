@@ -154,10 +154,10 @@ struct Uart:public APBdevice {
   volatile USART_DCB &dcb;
 
   Irq irq;
-  unsigned int zluno;
+  unsigned int stluno;//1..5 etc, 0= invalid
   unsigned int altpins;
-  //zluno is ST's nomenclature -1
-  Uart(unsigned int zluno, unsigned int alt = 0);
+  
+  Uart(unsigned int stluno, unsigned int alt = 0);
 
   /** we default the handshakes to "not used" as they are nearly useless, as well as having atrociously wrong names.*/
   void takePins(bool tx, bool rx, bool hsout = false, bool hsin = false);
