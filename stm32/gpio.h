@@ -5,7 +5,7 @@
 /** the 16 bits as a group.
   * Note well that even when the group is not enabled the port can be read from (as long as it exists).
   *
-  * For pins that are optional to a module use (const Pin *) parameters a pass nulls. Trying to create safely non-functional pins is expensive and the check for 'has a pin' is the same cost, but only burdens those pin uses which ca be optionally present. There are usually some port bits that aren't pinned out which can be used as dummies when a null pointer to a pin just isn't convenient.
+  * For pins that are optional to a module use (const Pin *) parameters to pass nulls. Trying to create safely non-functional pins is expensive and the check for 'has a pin' is the same cost, but only burdens those pin uses which can be optionally present. There are usually some port bits that aren't pinned out which can be used as dummies when a null pointer to a pin just isn't convenient.
   */
 
 struct Port /*Manager*/ : public APBdevice {
@@ -17,6 +17,7 @@ struct Port /*Manager*/ : public APBdevice {
     const Address at;
     const unsigned lsb;
     const unsigned mask; //derived from width
+    /** @param pincode is the same as */
     Field(unsigned pincode,const Port &port, unsigned lsb, unsigned msb);
     /** insert @param value into field, shifting and masking herein, i.e always lsb align the value you supply here */
     void operator =(unsigned value)const;
@@ -43,6 +44,41 @@ struct Port /*Manager*/ : public APBdevice {
 
 };
 
+/* configure and Port::Field expect a 4 bit code that is built as follows:
+For inputs 0 for analog, 4 for floating 8 for biased 
+For outputs +4 for open drain +8 for alt function + 1 for 10Mhz, 2 for 2 Mhz, 3 for 50 Mhz.
+
+analog, floating, biased 
+
+opendrain, function, slow, medium, fast
+
+Portcode::analog
+Portcode::output(unsigned 10,2,50,bool function=false, bool open=false){
+}
+
+*/
+
+struct Portcode {//using struct as namespace
+  static constexpr unsigned input(bool analog=false,bool floating=false){
+    return analog?0:(floating?4:8);//only 3 combos are legal
+  }
+  enum Slew {
+    medium=1,slow=2,fast=3
+  };
+  static constexpr unsigned output(Slew slew=slow,bool function=false, bool open=false){
+   return slew+function?8:0+open?4:0;
+  }
+  unsigned code;
+  
+  Portcode(unsigned code):code(code){}
+  //default copy etc are fine.
+  static Portcode Input(bool analog=false,bool floating=false){
+   return Portcode(input(analog,floating));
+  }
+  static Portcode Output(Slew slew=slow,bool function=false, bool open=false){
+    return Portcode(output(slew,function,open));
+  }
+};
 
 //these take up little space and it gets annoying to have copies in many places.
 extern const Port PA;

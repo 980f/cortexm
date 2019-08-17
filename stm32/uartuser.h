@@ -6,18 +6,20 @@
 #include "uart.h"
 
 class UartUser {
+public:
   Uart u;
-using Agent = Hook<int>;
+  private:
+  using Agent = Hook<int>;
   Agent agent;
   ByteScanner xmitter;
 
-public:
-  
-  UartUser(Agent agent, int uartluno, int altpins = 0) : u(uartluno, altpins), agent(agent) {
+ public:
+  UartUser(Agent agent, int uartluno, int altpins = 0)
+      : u(uartluno, altpins), agent(agent) {
     //# do nothing to allow for easy static init.
   }
 
-public:
+ public:
   int byteErrors;
   int ffErrors;
   /** uart compatible init args:*/
@@ -27,8 +29,8 @@ public:
     u.beReceiving(beOn);
   }
   /** @param buffer gets sliced into, you can't sanely modify it until transmission is complete.*/
-  bool transmit(ByteScanner &buffer);
-  bool transmit(CharScanner &buffer);
+  bool transmit(ByteScanner& buffer);
+  bool transmit(CharScanner& buffer);
 
   /** @return whether a call to transmit() will succeed.
 can only send if last message is completely sent.*/

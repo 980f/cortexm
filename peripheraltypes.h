@@ -149,6 +149,24 @@ class ControlField {
   }
 };
 
+/** */
+struct ControlBit : public BoolishRef {
+  const volatile unsigned  bandAddress;
+
+  ControlBit(Address sfraddress, unsigned bitnum):bandAddress(bandFor(sfraddress, bitnum)){}
+  
+  // read
+  inline operator bool() const override {  
+    return *(reinterpret_cast<volatile unsigned*>(bandAddress));
+  }
+
+  // write
+  bool operator=(bool value) const override { 
+    *(reinterpret_cast<unsigned*>(bandAddress)) = value;
+    return value;
+  }
+};
+
 /** a datum at a known absolute address */
 template <typename Inttype, Address sfraddress>
 struct SFRint {
@@ -238,8 +256,10 @@ class SFRbit : public BoolishRef {
   }
 };
 
+
+/** if your bit is in bitband space use this in stead of SFRbit */
 template <Address sfraddress, unsigned bitnum>
-struct Controlbit : public BoolishRef {
+struct SFRbandbit: public BoolishRef {
   enum {
     bandAddress = bandFor(sfraddress, bitnum),
   };

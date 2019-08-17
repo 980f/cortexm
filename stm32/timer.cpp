@@ -92,10 +92,10 @@ void PeriodicInterrupter::beRunning(bool on){ //can't const as interrupts are ma
 
 void PeriodicInterrupter::restart(u32 ticks){ //can't const as interrupts are manipulated
   setCycler(ticks);
-  beRunning(1);
+  beRunning(true);
 }
 
-void PeriodicInterrupter::restart(double hz){ //can't const as interrupts are manipulated
+void PeriodicInterrupter::restartHz(double hz){ //can't const as interrupts are manipulated
   restart(ticksForHz(hz));
 }
 

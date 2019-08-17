@@ -50,7 +50,7 @@ public:
   /** reads and removes a byte from the memory, @returns the byte, or -1 if there wasn't one*/
   int remove();
 
-  /** tries to insert a byte, @returns whether empty (-1), busy (-2), or succeeded (char removed).*/
+  /** tries to remove a byte, @returns whether empty (-1), busy (-2), or succeeded (char removed).*/
   int attempt_remove();
 
    /** @returns how many did NOT get pushed */

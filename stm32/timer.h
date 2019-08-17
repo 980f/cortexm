@@ -274,7 +274,7 @@ public:
   void beRunning(bool on = true); //can't const as interrupts are manipulated
   /** @overload */
   void restart(u32 ticks); //can't const as interrupts are manipulated
-  void restart(double hz); //can't const as interrupts are manipulated //todo:L pull up hierarchy
+  void restartHz(double hz); //can't const as interrupts are manipulated //todo:L pull up hierarchy
 };
 
 /*

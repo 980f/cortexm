@@ -75,8 +75,8 @@ struct APBperiph {
     return RCCBASE | ((1 - bus2) << 2) + basereg;
   }
 
-  const Controlbit<rccWord(0x0C), slot> resetter;
-  const Controlbit<rccWord(0x18), slot> clocker;
+  const SFRbandbit<rccWord(0x0C), slot> resetter;
+  const SFRbandbit<rccWord(0x18), slot> clocker;
 
   /** reset and enable clock */
   void init(void) const {
