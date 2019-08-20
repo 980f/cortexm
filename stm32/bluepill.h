@@ -1,6 +1,5 @@
 #pragma once
 
-#ifndef BLUEPILL_H
 #define BLUEPILL_H
 
 #include "gpio.h"
@@ -18,6 +17,5 @@ struct Bluepill {
   void toggleLed();
 };
 
-//experimenting with putting this in the header file, only the main() should include a board file and having this here reduces some $ifdef'ing.
-Bluepill board;
-#endif // P103_BOARD_H
+extern Bluepill board;//there can be only one. (if there are none then don't include the .cpp)
+
