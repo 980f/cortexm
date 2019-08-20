@@ -56,15 +56,8 @@ void cstartup(void){
 void (*resetVector)(void) __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix
 
+//todo: separate out stackFault into its own file, for those who won't use it nor wtf.
 #include "wtf.h"  //error routine, a place to share a breakpoint for trouble.
-
-/** sometimes pure virtual functions that aren't overloaded get called anyway,
-  * such as from extended classes prophylactically calling the overloaded parent,
-    or constructors calling their pure virtual members */
-extern "C" void __cxa_pure_virtual(){  /* upon call of pure virtual function */
-  wtf(100000); /* ignore it, but have a place for a breakpoint */
-}
-
 
 extern unsigned const __stack_limit__;//created in linker script
 void stackFault(){
@@ -82,10 +75,19 @@ const InitRoutine __init_table__[]={nullptr};
 const InitRoutine __exit_table__[]={nullptr};
 const unsigned __stack_limit__(0);
 #else
-//destructor failure stuff, but ours won't ever actually fail
-extern "C" int __aeabi_atexit(void *object, void (*destructor)(void *), void *dso_handle){
-  return int(&destructor)+int(object)+int(dso_handle);//stupid code to get rid of gratuitous warnings.
-}
+
+//-nostartupfiles seems to have gotten rid of the need for these stubs.
+////destructor failure stuff, but ours won't ever actually fail
+//extern "C" int __aeabi_atexit(void *object, void (*destructor)(void *), void *dso_handle){
+//  return int(&destructor)+int(object)+int(dso_handle);//stupid code to get rid of gratuitous warnings.
+//}
+/** sometimes pure virtual functions that aren't overloaded get called anyway,
+  * such as from extended classes prophylactically calling the overloaded parent,
+    or constructors calling their pure virtual members */
+//extern "C" void __cxa_pure_virtual(){  /* upon call of pure virtual function */
+//  wtf(100000); /* ignore it, but have a place for a breakpoint */
+//}
+
 
 //these guys get linked in when you have explicit destructors, even if those destructors are "=default".
 //... that keeps on rehappening due to the warning of 'have virtual functions but not virtual destructor' inspiring the creation of pointless destructors.
