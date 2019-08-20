@@ -5,7 +5,7 @@
 /** the 16 bits as a group.
   * Note well that even when the group is not enabled the port can be read from (as long as it exists).
   *
-  * For pins that are optional to a module use (const Pin *) parameters a pass nulls. Trying to create safely non-functional pins is expensive and the check for 'has a pin' is the same cost, but only burdens those pin uses which ca be optionally present. There are usually some port bits that aren't pinned out which can be used as dummies when a null pointer to a pin just isn't convenient.
+  * For pins that are optional to a module use (const Pin *) parameters to pass nulls. Trying to create safely non-functional pins is expensive and the check for 'has a pin' is the same cost, but only burdens those pin uses which can be optionally present. There are usually some port bits that aren't pinned out which can be used as dummies when a null pointer to a pin just isn't convenient.
   */
 
 struct Port /*Manager*/ : public APBdevice {
@@ -17,32 +17,68 @@ struct Port /*Manager*/ : public APBdevice {
     const Address at;
     const unsigned lsb;
     const unsigned mask; //derived from width
+    /** @param pincode is the same as */
     Field(unsigned pincode,const Port &port, unsigned lsb, unsigned msb);
     /** insert @param value into field, shifting and masking herein, i.e always lsb align the value you supply here */
-    void operator =(unsigned value)const;
+    void operator =(unsigned value)const; // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
     /** toggle the bits in the field that correspond to ones in the @param value */
     void operator ^=(unsigned value)const;
     /** @returns the value set by the last operator =, ie the requested output- not what the physical pins are reporting. */
-    operator u16() const;
+    operator u16() const; // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     /** read back the actual pins */
     u16 actual() const;
     //more operators only at need
   };
 
   /** @param letter is the uppercase character from the stm32 manual */
-  Port(char letter);
+  explicit Port(char letter);
   /**
     * configure the given pin.
     todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
     */
   void configure(unsigned bitnum, unsigned code) const;
   /** @returns accessor object for "output data register" */
-  ControlWord odr(void) const {
+  ControlWord odr() const {
     return ControlWord(registerAddress(12));
   }
 
 };
 
+/* configure and Port::Field expect a 4 bit code that is built as follows:
+For inputs 0 for analog, 4 for floating 8 for biased 
+For outputs +4 for open drain +8 for alt function + 1 for 10Mhz, 2 for 2 Mhz, 3 for 50 Mhz.
+
+analog, floating, biased 
+
+opendrain, function, slow, medium, fast
+
+Portcode::analog
+Portcode::output(unsigned 10,2,50,bool function=false, bool open=false){
+}
+
+*/
+
+struct Portcode {//using struct as namespace
+  static constexpr unsigned input(bool analog=false,bool floating=false){
+    return analog?0:(floating?4:8);//only 3 combos are legal
+  }
+  enum Slew {
+    medium=1,slow=2,fast=3
+  };
+  static constexpr unsigned output(Slew slew=slow,bool function=false, bool open=false){
+   return slew+(function?8:0)+(open?4:0);
+  }
+  unsigned code;
+  
+  explicit Portcode(unsigned code):code(code){}
+  //default copy etc are fine.
+  static Portcode Input(bool analog=false,bool floating=false){
+   return Portcode(input(analog,floating));
+  }
+  static Portcode Output(Slew slew=slow,bool function=false, bool open=false){
+    return Portcode(output(slew,function,open));
+  }
+};
 
 //these take up little space and it gets annoying to have copies in many places.
 extern const Port PA;
@@ -77,31 +113,31 @@ struct Pin /*Manager*/ {
 
   Pin(const Port &port, unsigned bitnum);
   /** @returns this after configuring it for analog input */
-  const Pin& AI(void) const;
+  const Pin& AI() const;
   /** @returns bitband address for input after configuring as digital input, pull <u>U</u>p, pull <u>D</u>own, or leave <u>F</u>loating*/
   ControlWord DI(char UDF = 'D') const;
   /** @returns bitband address for controlling high drive capability [rtfm] */
-  ControlWord highDriver(void) const;
+  ControlWord highDriver() const;
   /** configure as simple digital output */
   ControlWord DO(unsigned int mhz = 2, bool openDrain = false) const;
   /** configure pin as alt function output*/
   const Pin& FN(unsigned int mhz = 2, bool openDrain = false) const;
   /** declare your variable volatile, reads the actual pin, writing does nothing */
-  ControlWord reader(void) const;
+  ControlWord reader() const;
   /** @returns reference for writing to the physical pin, reading this reads back the DESIRED output */
-  ControlWord writer(void) const;
+  ControlWord writer() const;
 
   /** for special cases, try to use one of the above which all call this one with well checked argument */
   void configureAs(unsigned int code) const;
 
   /** raw access convenience. @see InputPin for business logic version of a pin */
-  operator bool(void)const{
+  operator bool()const{ // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
     return reader();
   }
 
   /** @returns pass through @param truth after setting pin to that value.
  @see OutputPin for business logic version */
-  bool operator = (bool truth)const{
+  bool operator = (bool truth)const{ // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     writer()=truth;
     return truth;//#don't reread the pin, nor its actual, keep this as a pass through
   }
@@ -119,11 +155,11 @@ protected:
     return active!=operand;
   }
 
-  LogicalPin(Address registerAddress,bool active=1);
+  explicit LogicalPin(Address registerAddress,bool active=true);
 public:
 
   /** @returns for outputs REQUESTED state of pin, for inputs the actual pin */
-  operator bool(void)const{
+  operator bool()const{ // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     return polarized(bitbanger);
   }
 };
@@ -134,8 +170,8 @@ hide the volatile and * etc that I sometimes forget.
 class InputPin :public LogicalPin {
 
 public:
-  InputPin(const Pin &pin, char UDF = 'D', bool active=1);
-  InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
+  explicit InputPin(const Pin &pin, char UDF = 'D', bool active=1);
+  explicit InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
   //maydo: add method to change pullup/pulldown bias while running
 
 };
@@ -147,7 +183,7 @@ Note that these objects can be const while still manipulating the pin.
 class OutputPin :public LogicalPin {
 
 public:
-  OutputPin(const Pin &pin, bool active=1, unsigned int mhz = 2, bool openDrain = false);
+  explicit OutputPin(const Pin &pin, bool active=true, Portcode::Slew slew=Portcode::Slew::slow, bool openDrain = false);
 
   /** @returns pass through @param truth after setting pin to that value */
   bool operator = (bool truth)const{

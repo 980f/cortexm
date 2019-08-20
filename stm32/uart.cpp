@@ -81,12 +81,12 @@ void Uart::init(unsigned int baud, char parityNEO, unsigned int numbits){
   irq.enable(); //the reconfigure disables all interrupt sources, so enabling interrupts here won't cause any.
 }
 
-//uart0 is on bus2, others on bus 1    slot is 14 for uart0  16+luno for others
-Uart::Uart(unsigned int zluno, unsigned int alt): APBdevice(zluno ? 1: 2, zluno ? (zluno + 16): 14),
+//uart1 is on bus2, others on bus 1    slot is 14 for uart1  15+luno for others
+Uart::Uart(unsigned int stluno, unsigned int alt): APBdevice(stluno>1 ? 1: 2, stluno>1 ? (stluno + 15): 14),
   b  (*reinterpret_cast <volatile UartBand *> (bandAddress)),
   dcb (*reinterpret_cast <volatile USART_DCB *> (blockAddress)),
-  irq((zluno < 3 ? 37: 49) + zluno),
-  zluno(zluno),
+  irq((stluno <= 3 ? 36: 48) + stluno), //37,38,39, 54,53 ...
+  stluno(stluno),
   altpins(alt){
   //not grabbing pins quite yet as we may be using a spare uart internally as a funky timer.
 }
@@ -99,7 +99,7 @@ should actively configure the pin's presence and not rely upon our weak pullup.
 //got tired of finesse:
 #define makeTxPin(P,b) Pin(P, b).FN(rxtxSpeedRange)
 
-void  grabInput(const Port &PX,int bn, char udf) {
+static void grabInput(const Port &PX,int bn, char udf) {
 //assignment is to get compiler to not prune the code (although it kindly warned us that it did).
   Pin(PX, bn).DI(udf)=1;
 }
@@ -107,10 +107,10 @@ void  grabInput(const Port &PX,int bn, char udf) {
 #define pinMux(stnum) theAfioManager.remap.uart##stnum=altpins;theAfioManager.remap.update()
 
 void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
-  int rxtxSpeedRange=bitsPerSecond()>460e3?10:2;
+  int rxtxSpeedRange=bitsPerSecond()>460e3?10:2;//pin speed codes, 2Mhz rounded off signal too much past 460kbaud
 
-  switch(zluno) {
-  case 0: //st's 1
+  switch(stluno) {
+  case 1:
     pinMux(1);
     if(hsin) {
       grabInput(PA, 11,'U');
@@ -136,8 +136,8 @@ void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
       }
       break;
     } /* switch */
-    break; //todo:M CHECK XRT! this break was missing which caused pins A2,A3 to be taken whenever A9,A10 were.
-  case 1: //st's 2
+    break;
+  case 2:
     pinMux(2);
     switch(altpins) {
     case 0:
@@ -171,7 +171,7 @@ void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
       break;
     } /* switch */
     break;
-  case 2: //uart 3
+  case 3:
     pinMux(3);
     //todo:3 add hs lines
     switch(altpins) {
