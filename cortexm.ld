@@ -3,23 +3,23 @@ simplified linker script for bare metal flash execution only
 
 This should be included *after* a script that defines MEMORY sections SRAM and FLASH.
 
-This takes advantage of gcc emitting data alignment commands in the input files, so we don't have to redundantly claim them herein.
+This takes advantage of gcc emitting data alignment commands in the input files, so we don't have to redundantly implement them herein.
 
 For the c startup initialization it trades off number of inline constants (register load immediates) with
-putting those constants explicitly in the rom and inlining only a pointer thereto. The compiler was able to do a load multiple versus seperate load immediates.
+putting those constants explicitly in the rom and inlining only a pointer thereto. The compiler was able to do a load multiple versus seperate load immediates at the point of use.
 
 The building of the vector table is shared between linker generated stack top and the vector table proper being
 declared elsewhere (@see 980f's nvic.cpp) using the same facility that 'init' attributes uses. I used SORT where others don't bother so that the vector table can be developed 
-in seperate files, such as stack init and reset vector where the code using them is, and the others in the nvic module.
+in separate files, such as stack init and reset vector where the code using them is, and the others in the nvic module.
 
 Some people (CMSIS- looking at you) conditionally include some special calls around the c startup (useful for things like powering up parts of the
 chip that need to be on before c-structs for accessing them are constructed), I have implemented that via weak references
-to a routine that devolves into a "bx lr".
+to a routine that devolves into a "bx lr". Compare that to CMSIS having #define symbols managing that.
 
 Some people have multiple initialization call tables, I pack them into one segment and null terminate it
-which eliminates the need for a slew of shared symbols and counting. I may have unintentionaly altered the
+which eliminates the need for a slew of shared symbols and counting. I may have unintentionally altered the
 priority, the point of the multiple lists was to allow for some control over order in which initialization
-routines execute, which is done via the order of input declarations.
+routines execute, which is done via the order of input declarations. Number them via attributes and sort!
 
 ---
 The following dance is done for some sections:
@@ -36,13 +36,15 @@ a custom value to put them earlier or later in the table.
 No special provision has been made for a ram vector table. The compiler can align a user built array of function pointers
 and user code can assign to the vector table system control register to enable it.
 
-I initially left off destructor and other 'atexit' functionality, my only 'atexit' is to generate a hard reset. I've added it back but it is untested.
+I initially left off destructor and other 'atexit' functionality, my only 'atexit' is to generate a hard reset. I've added that mostly back in but it is untested.
 
 I have left off a no-init data section, that is a dangerous technology with many different possible implementations.
 The stm32 non-volatile data has holes in it beyond the ability of the linker to readily compensate for. Not zeroing some ram
-that will programmaticallly be loaded from a non-volatile device is a minor performance burden for keeping this script generic.
+that will programmatically be loaded from a non-volatile device is a minor performance burden for keeping this script generic.
 
 I have made it convenient to swap around the order of the sections without having to rework explict references to the others.
+
+The cmake makefiles mess with working directory, so I had to add ''-L parent-directory-to-my-ld-files' to the linker settings for it to find included ld files such as this one.
 
 */
 
@@ -56,7 +58,7 @@ SECTIONS {
 /* normal code */
   .text : {
     *(.text .text.*)
-     /* alh commented out segments produced by features he doesn't want to be using, some of which are not available on cortexM? parts */
+     /* 980f commented out segments produced by features he doesn't want to be using, some of which are not available on cortexM? parts */
      /**(.glue_7t .glue_7 .gnu.linkonce.t.* .gcc_except_table .ARM.extab* .gnu.linkonce.armextab.*)  */
 
   } >FLASH
@@ -64,10 +66,10 @@ SECTIONS {
 /* things that should be called before main():  
  Needs KEEP directive as these functions will only be referenced by this table.*/
   .init : {
-/* code that initializes static data via run-time computation. */
+/* code that initializes static data via startup-time computation: */
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array))
- /* static constructors after C lib inits*/
+ /* static constructors after C lib initializations: */
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
     LONG(0)  /*mark end of table, instead of having code for decrementing a count */
@@ -105,7 +107,7 @@ __exit_table__ = LOADADDR(.exit);
 
   .startupClear : {/* the following initializes what my cstartup.cpp calls 'struct RamBlock' */
     LONG(ADDR(.bss))
-    LONG((SIZEOF(.bss)+3)>>2)
+    LONG((SIZEOF(.bss)+3)>>2)  /* word count instead of bytes, startup takes advantage of compiler forced alignment to do 4 bytes per cycle. */
   } >FLASH
   __bss_segment__ = LOADADDR(.startupClear);
 
@@ -145,7 +147,7 @@ __exit_table__ = LOADADDR(.exit);
 
 /* The following fragment is copied from the AC6 auto generated ld file, not yet sure what it does. */
   /* Remove information from the compiler libraries */
-/*10aug2019 libc.a linker error hunt  /DISCARD/ :
+/* 10aug2019 libc.a linker error hunt  /DISCARD/ :
   {
     libc.a ( * )
     libm.a ( * )

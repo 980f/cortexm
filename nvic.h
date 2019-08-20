@@ -39,7 +39,7 @@ public:
 
   /** unhandled interrupt handler needed random access by number */
   static constexpr unsigned biasFor(unsigned number) {
-    return 0xE000E000 + ((number >> 5) << 2);
+    return 0xE000E000 + ((number >> 5) << 2); // NOLINT(hicpp-signed-bitwise)
   }
 
   static constexpr unsigned bitFor(unsigned number) {
@@ -54,7 +54,7 @@ public:
   /** the raw interrupt number */
   const unsigned number;
 
-  Irq(unsigned number) :
+  explicit Irq(unsigned number) :
       bit(bitFor(number)), bias(biasFor(number)), mask(bitMask(bit)), number(number) {
     //#done
   }
@@ -82,28 +82,28 @@ public:
   }
 
   /** @returns whether the source of the request is active */
-  bool isActive(void) const {
+  bool isActive() const {
     return irqflag(0x300);
   }
 
   /** @returns whether the individual enable is active */
-  bool isEnabled(void) const {
+  bool isEnabled() const {
     return irqflag(0x100);
   }
 
-  void enable(void) const {
+  void enable() const {
     strobe(0x100);
   }
   /** simulate the interrupt, expect it to be handled before the next line of your code. */
-  void fake(void) const {
+  void fake() const {
     strobe(0x200);
   }
 
-  void clear(void) const {
+  void clear() const {
     strobe(0x280);
   }
 
-  void disable(void) const {
+  void disable() const {
     strobe(0x180);
   }
 
@@ -114,7 +114,7 @@ public:
   }
 
   /** enable or disable */
-  void operator=(bool on) const {
+  void operator=(bool on) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     if (on) {
       enable();
     } else {
@@ -123,7 +123,7 @@ public:
   }
 
   /** @returns whether the interrupt is enabled, NOT the state of the request. */
-  operator bool() const {
+  operator bool() const { // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     return isEnabled();
   }
 };
@@ -138,11 +138,11 @@ public:
 class GatedIrq: public Irq {
   unsigned locker; //tracking nested attempts to lock out the interrupt.
 public:
-  GatedIrq(unsigned number) :
+  explicit GatedIrq(unsigned number) :
       Irq(number), locker(0) {
   }
 
-  void enable(void) {
+  void enable() {
     if (atomic_decrementNowZero(locker)) {
       enable();
       // if locked then reduce the lock such that the unlock will cause an enable
@@ -174,7 +174,7 @@ public:
 struct IRQLock {
   GatedIrq &irq;
 public:
-  IRQLock(GatedIrq &irq) :
+  explicit IRQLock(GatedIrq &irq) :
       irq(irq) {
     irq.lock();
   }
@@ -201,16 +201,16 @@ extern bool IrqEnable;
 class CriticalSection {
   static volatile unsigned nesting;
 public:
-  CriticalSection(void) {
+  CriticalSection() {
     if (!nesting++) {
-      IrqEnable = 0;
+      IrqEnable = false;
     }
   }
 
-  ~CriticalSection(void) {
+  ~CriticalSection() {
     if (nesting) { //then interrupts are globally disabled
       if (--nesting == 0) {
-        IrqEnable = 1;
+        IrqEnable = true;
       }
     }
   }

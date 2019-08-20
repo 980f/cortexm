@@ -109,7 +109,8 @@ struct Pin /*Manager*/ {
   const unsigned bitnum;
   const Port &port;
 
-  void output(unsigned int code, unsigned int mhz, bool openDrain) const; /* output */
+
+  void output(unsigned int code, Portcode::Slew  slew, bool openDrain) const; /* output */
 
   Pin(const Port &port, unsigned bitnum);
   /** @returns this after configuring it for analog input */
@@ -119,9 +120,9 @@ struct Pin /*Manager*/ {
   /** @returns bitband address for controlling high drive capability [rtfm] */
   ControlWord highDriver() const;
   /** configure as simple digital output */
-  ControlWord DO(unsigned int mhz = 2, bool openDrain = false) const;
+  ControlWord DO(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const;
   /** configure pin as alt function output*/
-  const Pin& FN(unsigned int mhz = 2, bool openDrain = false) const;
+  const Pin& FN(Portcode::Slew slew =  Portcode::Slew::slow, bool openDrain = false) const;
   /** declare your variable volatile, reads the actual pin, writing does nothing */
   ControlWord reader() const;
   /** @returns reference for writing to the physical pin, reading this reads back the DESIRED output */
@@ -186,7 +187,7 @@ public:
   explicit OutputPin(const Pin &pin, bool active=true, Portcode::Slew slew=Portcode::Slew::slow, bool openDrain = false);
 
   /** @returns pass through @param truth after setting pin to that value */
-  bool operator = (bool truth)const{
+  bool operator = (bool truth)const{ // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
     bitbanger=polarized(truth);
     return truth;//don't reread the pin, nor its actual, keep this as a pass through
   }

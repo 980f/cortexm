@@ -1,3 +1,7 @@
+#pragma clang diagnostic push
+//this inspection has some stupid variations, like requiring unsigned shift for unsigned integer.
+#pragma ide diagnostic ignored "hicpp-signed-bitwise"
+
 #include "gpio.h"
 #include "peripheralband.h" //deprecated bandFor
 #include "bitbanger.h"
@@ -20,13 +24,13 @@ Port::Field::Field(unsigned pincode, const Port &port, unsigned lsb, unsigned ms
   }
 }
 
-void Port::Field::operator =(unsigned value) const {
+void Port::Field::operator =(unsigned value) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
   ControlWord field(at);
-  field = mask & ((unsigned(~value << 16) | value) << lsb); // read the stm32 manual for this.
+  field = mask & ((( ((~value) << 16) | value)) << lsb); // read the stm32 manual for this.
 }
 
 
-Port::Field::operator u16(void) const {
+Port::Field::operator u16() const {
   return (odr & mask) >> lsb;
 }
 
@@ -46,13 +50,13 @@ void Pin::configureAs(unsigned int code) const {
   port.configure(bitnum, code);
 }
 
-void Pin::output(unsigned int code, unsigned int mhz, bool openDrain) const {
+void Pin::output(unsigned int code, Portcode::Slew  slew, bool openDrain) const {
   code |= openDrain << 2;
-  switch(mhz) {
+  switch(slew) {
   default: // on any errors be a slow output
-  case 2: code |= 2; break;
-  case 10: code |= 1; break;
-  case 50: code |= 3; break;
+  case Portcode::Slew::slow: code |= 2; break;
+  case Portcode::Slew::medium: code |= 1; break;
+  case Portcode::Slew::fast: code |= 3; break;
   }
   configureAs(code);
 }
@@ -78,13 +82,13 @@ ControlWord Pin::highDriver() const {
   return ControlWord(confword, bitoff);
 }
 
-ControlWord Pin::DO(unsigned int mhz, bool openDrain) const { // volatile to prevent removal by optimizer
-  output(0, mhz, openDrain);
+ControlWord Pin::DO(Portcode::Slew slew, bool openDrain) const { // volatile to prevent removal by optimizer
+  output(0, slew, openDrain);
   return ControlWord(writer());
 }
 
-const Pin &Pin::FN(unsigned int mhz, bool openDrain) const {
-  output(8, mhz, openDrain);
+const Pin &Pin::FN(Portcode::Slew slew, bool openDrain) const {
+  output(8, slew, openDrain);
   return *this;
 }
 
@@ -108,8 +112,8 @@ InputPin::InputPin(const Pin &pin, bool lowactive): InputPin(pin, lowactive ? 'U
 
 //////////////////////////////////
 
-OutputPin::OutputPin(const Pin &pin, bool lowactive, unsigned int mhz, bool openDrain):
-  LogicalPin(pin.DO(mhz, openDrain),lowactive){
+OutputPin::OutputPin(const Pin &pin, bool lowactive, Portcode::Slew slew, bool openDrain):
+  LogicalPin(pin.DO(slew, openDrain),lowactive){
   /*empty*/
 }
 
@@ -120,7 +124,7 @@ void OutputPin::toggle(){
 /////////////////////////////////
 
 bool Port::isOutput(unsigned pincode){
-  return (pincode&3)!=0;//if so then code is Alt/Open
+  return (pincode&3U)!=0;//if so then code is Alt/Open
 }
 
 Port::Port(char letter): APBdevice(2, 2 + unsigned(letter - 'A')){}
@@ -129,7 +133,7 @@ void Port::configure(unsigned bitnum, unsigned code) const {
   if(! isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
     init(); // must have the whole port running before we can modify a config of any pin.
   }
-  ControlField confword(registerAddress((bitnum & 8) ? 4 : 0),(bitnum&7)<<2,4);// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
+  ControlField confword(registerAddress(bitnum & 8 ? 4 : 0), (bitnum & 7) << 2, 4);// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
   confword= code;
 }
 
@@ -140,3 +144,5 @@ LogicalPin::LogicalPin(Address registerAddress, bool active):
   active(active){
   /*empty*/
 }
+
+#pragma clang diagnostic pop

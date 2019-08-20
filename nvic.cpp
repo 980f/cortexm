@@ -127,6 +127,7 @@ extern "C" { // to keep names simple for "alias" processor
       theInterruptController.priority[num - 4] = 0xFF; // lower them as much as possible
     }
     switch(num) {
+    default://added to stifle compiler warning.
     case 0: // surreal: stack pointer init rather than an interrupt
     case 1: // reset
       // todo:3 reset vector table base to rom.
@@ -170,7 +171,8 @@ extern "C" { // to keep names simple for "alias" processor
     ControlWord(Irq::biasFor(irqnum)|0x180)=bitMask(Irq::bitFor(irqnum));
   }
 
-  void unhandledInterruptHandler(void){
+
+  void unhandledInterruptHandler(void) {//#used by linker's vctor table support.
     /* turn it off so it doesn't happen again, and a handy breakpoint */
     disableInterrupt(theInterruptController.active - 16);
   }
@@ -180,7 +182,7 @@ extern "C" { // to keep names simple for "alias" processor
 
 
 #define stubFault(index) void FAULT ## index(void) __attribute__((weak, alias("unhandledFault")))
-#define stub(irq) void IRQ ## irq(void) __attribute__((weak, alias("unhandledInterruptHandler")))
+
 
 //typedef void (*Handler)(void);
 stubFault(0);
@@ -218,20 +220,25 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
   FaultName(15),
 };
 
+//used by nvicTable.link
+#define stub(irq) void IRQ ## irq(void) __attribute__((weak, alias("unhandledInterruptHandler")))
 //if the following table doesn't exist use mkIrqs to build it for your processor
 #include "nvicTable.link" //table in parent directory as it is project specific.
 //I've named the above .link as I am prebuilding tables for various processors and using a soft link to pick one.
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
 //trying to get good assembler code on this one :)
 void generateHardReset(){
   //maydo: DSB before and after the reset
   //lsdigit: 1 worked on stm32, 4 should have worked but looped under the debugger.
-  unsigned pattern=0x5FA0005 | (theInterruptController.airc & bitMask(8,3));//retain priority group setting, JIC we don't reset that during startup
+  unsigned pattern=0x5FA0005U | (theInterruptController.airc & bitMask(8,3));//retain priority group setting, JIC we don't reset that during startup
   do {//keep on hitting the bit until we reset.
     theInterruptController.airc=pattern;
     //probably should try 5 above in case different vendors misread the arm spec differently.
-  } while (1);
+  } while (true);
 }
+#pragma clang diagnostic pop
 
 
 #ifdef __linux__ //just compiling for syntax checking

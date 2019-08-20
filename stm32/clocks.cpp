@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "hicpp-signed-bitwise"
 #include "clocks.h"
 #include "peripheral.h"
 #include "gpio.h"
@@ -133,7 +135,7 @@ struct ClockControl {
     }
   } /* maxit */
 
-  void waitForClockSwitchToComplete(void){
+  void waitForClockSwitchToComplete(){
     while(SWdesired != SWactual) {
       //could check for hopeless failures,
       //or maybe toggle an otherwise unused I/O pin.
@@ -145,21 +147,23 @@ struct ClockControl {
     case 0: return HSI_Hz ; //HSI
     case 1: return EXTERNAL_HERTZ;  //HSE, might be 0 if there is none
     case 2: return (pllMultiplier + 2) * (PLLsource ? (PLLExternalPRE ? (EXTERNAL_HERTZ / 2) : EXTERNAL_HERTZ) : HSI_Hz / 2); //HSI is div by 2 before use, and nominal 8MHz for parts in hand.
+    default:
+      return 0; //defective call argument
     }
-    return 0; //defective call argument
   }
 
   u32 clockRate(unsigned int bus){
     u32 rate = sysClock(SWactual);
 
     switch(bus) {
-    case - 1: return rate;
+    case ~0U: return rate;
     case 0: return rate >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));
     case 1: return rate >> (apb1Prescale >= 4 ? (apb1Prescale - 3) : 0);
     case 2: return rate >> (apb2Prescale >= 4 ? (apb2Prescale - 3) : 0);
     case 3: return clockRate(2) / 2 * (adcPrescale + 1);
+    default:
+      return 0; //should blow up on user.
     }
-    return 0; //should blow up on user.
   } /* clockRate */
 };
 
@@ -182,10 +186,12 @@ void setMCO(unsigned int mode){
   Pin MCO(PA, 8); //depends on mcu family ...
 
   if(mode >= 4) { //bit 2 is 'enable'
-    MCO.FN(50); //else we round off the signal.
+    MCO.FN(Portcode::fast); //else we round off the signal.
   } else {
     MCO.configureAs(4);//set to floating input
   }
   theClockControl.MCOselection = mode;
 }
 
+
+#pragma clang diagnostic pop
