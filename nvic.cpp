@@ -183,7 +183,6 @@ extern "C" { // to keep names simple for "alias" processor
 
 #define stubFault(index) void FAULT ## index(void) __attribute__((weak, alias("unhandledFault")))
 
-
 //typedef void (*Handler)(void);
 stubFault(0);
 stubFault(1);
@@ -202,7 +201,7 @@ stubFault(13);
 stubFault(14);
 stubFault(15);
 
-//const in front of the below imitted it from the link, didn't even make it into the .o file as best I can tell.
+//const in front of the below omitted it from the link, didn't even make it into the .o file as best I can tell.
 Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top, 1 is reset vector, 2 for faults, 3 for plain irqs.
   FaultName(2),
   FaultName(3),
@@ -224,7 +223,13 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
 #define stub(irq) void IRQ ## irq(void) __attribute__((weak, alias("unhandledInterruptHandler")))
 //if the following table doesn't exist use mkIrqs to build it for your processor
 #include "nvicTable.link" //table in parent directory as it is project specific.
-//I've named the above .link as I am prebuilding tables for various processors and using a soft link to pick one.
+/* I've named the above .link as I am prebuilding tables for various processors and using a soft link to pick one.
+ * Other people insert a massive switch here on #defined symbols for the processor, but my system only needs to know the number of the highest interrupt you will be using.
+ * The file above creates names for interrupts using the Irqname( ) macro where the argument must be a preprocessor resolved decimal number.
+ * Instead of dedicated names for each interrupt request you name your isr whatever pleases you then mention that it is a strong reference to Irqname( xx).
+ * This does mean that the point of use needs to know the actual irq number, but that is also needed in order to control the nvic bits so you will have that at hand.
+ * Unfortunately this is all c preprocessor magic so you can't use constexpr stuff to compute an interrupt request from some configuration knowledge.
+ * */
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
