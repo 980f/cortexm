@@ -8,11 +8,10 @@ inputs 0:4 have individual interrupts, 6+#.
 inputs 5..9 share one at 23,
 inputs 10..15 share another at 40.
 
-If bit n of one port is watched then no other ports' bit n can be watched.
+If bit n of one port is watched then no other port's bit n can be watched.
 
-*/
+refs gpio port so that enabling an interrupt reconfigures the pin to be an input */
 
-/* refs gpio port so that enabling an interrupt reconfigures the pin to be an input */
 #include "gpio.h"
 #include "nvic.h" //return irq reference
 class Exti :public APBdevice {

@@ -1,11 +1,11 @@
 #include "exti.h"
 #include "afio.h" //to get to selectors for lower 16 exti's
-#include "bitbanger.h"
-static const Exti theExti InitStep(InitHardware+10); //after ports
+
+static const Exti theExti InitStep(InitHardware + 10); //after ports
 
 const Irq Exti::irqsome[5 + 2] = { //psuedo random association of irq with port.
-Irq(6 + 0), Irq(6 + 1), Irq(6 + 2), Irq(6 + 3), Irq(6 + 4), //
-    Irq(23),  Irq(40) , //
+  Irq(6 + 0), Irq(6 + 1), Irq(6 + 2), Irq(6 + 3), Irq(6 + 4), //
+  Irq(23), Irq(40), //
 };
 
 unsigned Exti::irqIndex(unsigned pinnumber) {
@@ -19,8 +19,7 @@ unsigned Exti::irqIndex(unsigned pinnumber) {
   }
 }
 
-Exti::Exti() :
-    APBdevice(2, 1) {
+Exti::Exti() : APBdevice(2, 1) {
 }
 
 const Irq &Exti::enablePin(const Pin &pin, bool rising, bool falling) {

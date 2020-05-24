@@ -5,10 +5,11 @@
 
 //this constructor only supports ADC1 and 2
 ADC::ADC(int luno) :
-    APBdevice(2, 8 + luno),
-    dcb(*reinterpret_cast<ADC_DCB *>(blockAddress)), //
-    band(*reinterpret_cast<ADC_Band *>(bandAddress)) {
+  APBdevice(2, 8 + luno),
+  dcb(*reinterpret_cast<ADC_DCB *>(blockAddress)), //
+  band(*reinterpret_cast<ADC_Band *>(bandAddress)) {
 }
+
 void ADC::init(void) {
   APBdevice::init(); //makes registers accessible, following code only need mention things that differ from reset values
   dcb.cr2.sequenceTrigger = 7;
@@ -36,6 +37,7 @@ void ADC::convertChannel(int channelcode) {
   dcb.seq3 = channelcode;
   band.startSequence = 1; //a trigger
 }
+
 /** pin 2 adc channel mapping, medium density series:
  * A0..7 ch0..7
  * B0..1 ch8..9
@@ -60,7 +62,7 @@ float ADC::milliVolts(u16 reading, u16 vrefReading, float vrefmV) {
 }
 
 ADC::TrefCalibration::TrefCalibration(float Tcal, float mvAtTcal, float TpermV) :
-    Tcal(Tcal), mvAtTcal(mvAtTcal), TpermV(TpermV) {
+  Tcal(Tcal), mvAtTcal(mvAtTcal), TpermV(TpermV) {
 }
 
 float ADC::TrefCalibration::celsius(float millis) {

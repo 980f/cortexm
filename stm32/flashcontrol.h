@@ -11,7 +11,7 @@ void setFlash4Clockrate(unsigned int hz);
 struct OptionByte {
   u8 normal;
   u8 complement;
-  bool isValid(void){
+  bool isValid() const {
     return normal == u8(~complement); //#ignore warning about promoting ~unsigned
   }
 };

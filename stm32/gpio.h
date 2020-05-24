@@ -186,11 +186,14 @@ class OutputPin :public LogicalPin {
 public:
   explicit OutputPin(const Pin &pin, bool active=true, Portcode::Slew slew=Portcode::Slew::slow, bool openDrain = false);
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "misc-unconventional-assign-operator"
   /** @returns pass through @param truth after setting pin to that value */
   bool operator = (bool truth)const{ // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
     bitbanger=polarized(truth);
     return truth;//don't reread the pin, nor its actual, keep this as a pass through
   }
+#pragma clang diagnostic pop
 
   /** set to given value, @returns whether a change actually occurred.*/
   bool changed(bool truth) const{
