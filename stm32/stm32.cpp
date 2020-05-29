@@ -5,14 +5,14 @@
 //  return reinterpret_cast <u32 *> ((bitnum << 2) | (((u32) dcb) << 5) | ((((u32) dcb) & 0xE0000000) | 0x02000000));
 //}
 
-APBdevice::APBdevice(unsigned int stbus, unsigned int slot):
-  bus2(stbus - 1),
-  slot(slot),
-  blockAddress(APB_Block(bus2, slot)),
-  bandAddress(APB_Band(bus2, slot)),
-  //a ternary generated a test and branch around a pair of load via PC
-  rccBitter(bandFor(RCCBASE | ((1-bus2)<<2),slot)) //bus 2 is the first of a pair of which bus1 is the second. ST doesn't like consistency.
-{}
+//constexpr APBdevice::APBdevice(unsigned int stbus, unsigned int slot):
+//  bus2(stbus - 1),
+//  slot(slot),
+//  blockAddress(APB_Block(bus2, slot)),
+//  bandAddress(APB_Band(bus2, slot)),
+//  //a ternary generated a test and branch around a pair of load via PC
+//  rccBitter(bandFor(RCCBASE | ((1u-bus2)<<2u),slot)) //bus 2 is the first of a pair of which bus1 is the second. ST doesn't like consistency.
+//{}
 
 void APBdevice::reset() const {
   ControlWord resetter(rccBit(0x0C));

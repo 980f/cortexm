@@ -1,5 +1,8 @@
 #pragma once
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "hicpp-signed-bitwise"
+
 #include "stm32.h"
 
 /** the 16 bits as a group.
@@ -17,12 +20,22 @@ struct Port /*Manager*/ : public APBdevice {
     const Address at;
     const unsigned lsb;
     const unsigned mask; //derived from width
-    /** @param pincode is the same as */
-    Field(unsigned pincode,const Port &port, unsigned lsb, unsigned msb);
+    const Port &port;
+
+    constexpr Field(const Port &port, unsigned lsb, unsigned msb);
+
+    /** @param pincode is the same as for pin class */
+    void configure(unsigned pincode){
+      // and actually set the pins to their types
+      for(unsigned abit = lsb; mask&(1u<<abit); ++abit) {
+        port.configure(abit, pincode);
+      }
+    }
     /** insert @param value into field, shifting and masking herein, i.e always lsb align the value you supply here */
-    void operator =(unsigned value)const; // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
+    void operator=(unsigned value) const; // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
     /** toggle the bits in the field that correspond to ones in the @param value */
-    void operator ^=(unsigned value)const;
+    void operator^=(unsigned value) const;
+
     /** @returns the value set by the last operator =, ie the requested output- not what the physical pins are reporting. */
     operator u16() const; // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     /** read back the actual pins */
@@ -31,17 +44,24 @@ struct Port /*Manager*/ : public APBdevice {
   };
 
   /** @param letter is the uppercase character from the stm32 manual */
-  explicit Port(char letter);
+  explicit constexpr Port(char letter);
+
   /**
     * configure the given pin.
     todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
     */
-  void configure(unsigned bitnum, unsigned code) const;
-  /** @returns accessor object for "output data register" */
-  ControlWord odr() const {
-    return ControlWord(registerAddress(12));
+  void configure(unsigned bitnum, unsigned code) const {
+    if (!isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
+      init(); // must have the whole port running before we can modify a config of any pin.
+    }
+    const ControlField confword(registerAddress(bitnum & 8 ? 4 : 0), (bitnum & 7) << 2, 4);// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
+    confword = code;
   }
 
+//  /** @returns accessor object for "output data register" */
+//  constexpr ControlWord odr() const {
+//    return ControlWord(registerAddress(12));
+//  }
 };
 
 /* configure and Port::Field expect a 4 bit code that is built as follows:
@@ -59,24 +79,29 @@ Portcode::output(unsigned 10,2,50,bool function=false, bool open=false){
 */
 
 struct Portcode {//using struct as namespace
-  static constexpr unsigned input(bool analog=false,bool floating=false){
-    return analog?0:(floating?4:8);//only 3 combos are legal
+  static constexpr unsigned input(bool analog = false, bool floating = false) {
+    return analog ? 0 : (floating ? 4 : 8);//only 3 combos are legal
   }
+
   enum Slew {
-    medium=1,slow=2,fast=3
+    medium = 1, slow = 2, fast = 3
   };
-  static constexpr unsigned output(Slew slew=slow,bool function=false, bool open=false){
-   return slew+(function?8:0)+(open?4:0);
+
+  static constexpr unsigned output(Slew slew = slow, bool function = false, bool open = false) {
+    return slew + (function ? 8 : 0) + (open ? 4 : 0);
   }
+
   unsigned code;
-  
-  explicit Portcode(unsigned code):code(code){}
+
+  explicit Portcode(unsigned code) : code(code) {}
+
   //default copy etc are fine.
-  static Portcode Input(bool analog=false,bool floating=false){
-   return Portcode(input(analog,floating));
+  static Portcode Input(bool analog = false, bool floating = false) {
+    return Portcode(input(analog, floating));
   }
-  static Portcode Output(Slew slew=slow,bool function=false, bool open=false){
-    return Portcode(output(slew,function,open));
+
+  static Portcode Output(Slew slew = slow, bool function = false, bool open = false) {
+    return Portcode(output(slew, function, open));
   }
 };
 
@@ -100,7 +125,6 @@ enum IrqStyle {
   HighEdge   // edge, pulled down
 };
 
-
 /**
   * this class manages the nature of a pin, and provides cacheable accessors for the pin value.
   * you may declare each as const, the internals are all const.
@@ -108,71 +132,117 @@ enum IrqStyle {
 struct Pin /*Manager*/ {
   const unsigned bitnum;
   const Port &port;
+  const ControlWord reader;
+  const ControlWord writer;
+  const ControlField confword;
 
-
-  void output(unsigned int code, Portcode::Slew  slew, bool openDrain) const; /* output */
-
-  Pin(const Port &port, unsigned bitnum);
-  /** @returns this after configuring it for analog input */
-  const Pin& AI() const;
-  /** @returns bitband address for input after configuring as digital input, pull <u>U</u>p, pull <u>D</u>own, or leave <u>F</u>loating*/
-  ControlWord DI(char UDF = 'D') const;
-  /** @returns bitband address for controlling high drive capability [rtfm] */
-  ControlWord highDriver() const;
-  /** configure as simple digital output */
-  ControlWord DO(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const;
-  /** configure pin as alt function output*/
-  const Pin& FN(Portcode::Slew slew =  Portcode::Slew::slow, bool openDrain = false) const;
-  /** declare your variable volatile, reads the actual pin, writing does nothing */
-  ControlWord reader() const;
-  /** @returns reference for writing to the physical pin, reading this reads back the DESIRED output */
-  ControlWord writer() const;
-
-  /** for special cases, try to use one of the above which all call this one with well checked argument */
-  void configureAs(unsigned int code) const;
-
-  /** raw access convenience. @see InputPin for business logic version of a pin */
-  operator bool()const{ // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
-    return reader();
+  /** configure as output using given options */
+  void output(unsigned int code, Portcode::Slew slew, bool openDrain) const {
+    code |= openDrain << 2;
+    switch (slew) {
+    default: // on any errors be a slow output
+    case Portcode::Slew::slow:
+      code |= 2;
+      break;
+    case Portcode::Slew::medium:
+      code |= 1;
+      break;
+    case Portcode::Slew::fast:
+      code |= 3;
+      break;
+    }
+    configureAs(code);
   }
 
-  /** @returns pass through @param truth after setting pin to that value.
- @see OutputPin for business logic version */
-  bool operator = (bool truth)const{ // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
-    writer()=truth;
+  constexpr Pin(const Port &port, unsigned bitnum) :
+    bitnum(bitnum), port(port), reader(port.registerAddress(8), bitnum), writer(port.registerAddress(12), bitnum),
+    confword(port.registerAddress(bitnum & 8 ? 4 : 0), (bitnum & 7) << 2, 4)// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
+  {
+    /*empty*/
+  }
+
+/** @returns this after configuring it for analog input */
+  const Pin &AI() const;
+
+/** @returns bitband address for input after configuring as digital input, pull <u>U</u>p, pull <u>D</u>own, or leave <u>F</u>loating*/
+  void DI(char UDF = 'D') const;
+
+///** @returns bitband address for controlling high drive capability [rtfm] */
+//  ControlWord highDriver() const;
+
+/** configure as simple digital output */
+  void DO(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const {
+    output(0, slew, openDrain);
+  }
+
+/** configure pin as alt function output*/
+  void FN(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const;
+
+//  /** declare your variable volatile, reads the actual pin, writing does nothing */
+//  constexpr ControlWord reader() const;
+//
+//  /** @returns reference for writing to the physical pin, reading this reads back the DESIRED output */
+//  constexpr ControlWord writer() const;
+
+/** for special cases, try to use one of the above which all call this one with well checked argument */
+  void configureAs(unsigned int code) const {
+    port.configure(bitnum, code);
+  }
+
+/** raw access convenience. @see InputPin for business logic version of a pin */
+  operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
+    return reader;
+  }
+
+/** @returns pass through @param truth after setting pin to that value.
+@see OutputPin for business logic version */
+  bool operator=(bool truth) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
+    writer = truth;
     return truth;//#don't reread the pin, nor its actual, keep this as a pass through
   }
-
 };
 
 /** base class for InputPin and OutputPin that adds polarity at construction time.
  //not templated as we want to be able to pass Pin's around. not a hierarchy as we don't want the runtime cost of virtual table lookup. */
 class LogicalPin {
 protected:
-  const ControlWord bitbanger;
+  const Pin &pin;
   /** the level that is deemed active  */
   const bool active;
-  bool polarized(bool operand)const{
-    return active!=operand;
+
+  bool polarized(bool operand) const {
+    return active != operand;
   }
 
-  explicit LogicalPin(Address registerAddress,bool active=true);
+//
+//  explicit constexpr LogicalPin(Address registerAddress, bool active = true) :
+//    bitbanger(registerAddress),
+//    active(active) {
+//    /*empty*/
+//  }
+  explicit constexpr LogicalPin(const Pin &pin, bool active = true) :
+    pin(pin),
+    active(active) {
+    /*empty*/
+  }
+
 public:
 
   /** @returns for outputs REQUESTED state of pin, for inputs the actual pin */
-  operator bool()const{ // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
-    return polarized(bitbanger);
+  operator bool() const { // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
+    return polarized(pin);
   }
 };
 
 /**
 hide the volatile and * etc that I sometimes forget.
 */
-class InputPin :public LogicalPin {
+class InputPin : public LogicalPin {
 
 public:
-  explicit InputPin(const Pin &pin, char UDF = 'D', bool active=1);
-  explicit InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
+  explicit constexpr InputPin(const Pin &pin, char UDF = 'D', bool active = true);
+
+  explicit constexpr InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
   //maydo: add method to change pullup/pulldown bias while running
 
 };
@@ -181,34 +251,35 @@ public:
 a digital output made to look like a simple boolean.
 Note that these objects can be const while still manipulating the pin.
 */
-class OutputPin :public LogicalPin {
-
+class OutputPin : public LogicalPin {
 public:
-  explicit OutputPin(const Pin &pin, bool active=true, Portcode::Slew slew=Portcode::Slew::slow, bool openDrain = false);
+  explicit constexpr OutputPin(const Pin &pin, bool active = true, Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) :
+    LogicalPin(pin, active) {
+    pin.DO(slew, openDrain);
+  }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "misc-unconventional-assign-operator"
   /** @returns pass through @param truth after setting pin to that value */
-  bool operator = (bool truth)const{ // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
-    bitbanger=polarized(truth);
+  bool operator=(bool truth) const { // NOLINT (cppcoreguidelines-c-copy-assignment-signature)
+    pin = polarized(truth);
     return truth;//don't reread the pin, nor its actual, keep this as a pass through
   }
-#pragma clang diagnostic pop
 
   /** set to given value, @returns whether a change actually occurred.*/
-  bool changed(bool truth) const{
-    truth=polarized(truth);
-    if(bitbanger!=truth){
-      bitbanger=truth;
+  bool changed(bool truth) const {
+    truth = polarized(truth);
+    if (pin != truth) {
+      pin = truth;
       return true;
     }
     return false;
   }
 
   bool actual() const {//todo:00 see if this survived ControlWord class.
-    return polarized((&bitbanger)[-32]);//idr is register preceding odr, hence 32 bits lower in address
+    return polarized((&pin.writer)[-32]);//idr is register preceding odr, hence 32 bits lower in address
   }
 
   /** actually invert the present state of the pin */
-  void toggle();
+  void toggle() const;
 };
+
+#pragma clang diagnostic pop

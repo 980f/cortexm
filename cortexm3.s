@@ -23,7 +23,7 @@ Cfunction log2Exponent
   bx lr
 
 
-  Cfunction  flog2
+Cfunction  flog2
   //todo:2 push temps
   mov r1,r0  //r1 is unshifted mantissa
   bl log2Exponent //ro is integer part
@@ -35,7 +35,7 @@ Cfunction log2Exponent
 
 
 //this routine will fail if the product of first two operands exceeds 2^32.
-  Cfunction muldivide
+Cfunction muldivide
   umull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same
   lsr r1,r2,#1       //add 1/2 denom, only unsigned denoms are supported
   add r0,r0,r1       //to get a rounded quotient.
@@ -43,15 +43,15 @@ Cfunction log2Exponent
   bx lr
 
 
-  //u16 fractionallyScale(u16 number,u16 fraction,u16 numbits)
-  Cfunction fractionallyScale
+//u16 fractionallyScale(u16 number,u16 fraction,u16 numbits)
+Cfunction fractionallyScale
   umull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same
   //shift ms part right by r2 and return that.
   lsr r0,r2
   bx lr
 
 
-  CFunction shiftScale //float (float eff,int pow2){
+CFunction shiftScale //float (float eff,int pow2){
   lsl r1,r1,#23
   sub r0,r0,r1
   bx lr

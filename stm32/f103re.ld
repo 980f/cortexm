@@ -5,7 +5,7 @@ for stm32F1xx we have a choice between 128M and 0 for rom start.
 */
 
 MEMORY {
-  UNPLACED_SECTIONS (wx) : ORIGIN = 0x100000000, LENGTH = 0
+  UNPLACED_SECTIONS (wx) : ORIGIN = 1024M, LENGTH = 0
   SRAM (wx) : ORIGIN = 512M , LENGTH = 32K
-  FLASH (rx) : ORIGIN = 0, LENGTH = 512K
+  FLASH (rx) : ORIGIN = 128M, LENGTH = 512K
 }

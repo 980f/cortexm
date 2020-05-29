@@ -1,14 +1,12 @@
 #include "cruntime.h" //to validate it, herein lay default implementations of it.
 
-/*CMSIS uses this function for doing things that must precede C init, such as turning on IO ports so that configuration commands in constructors function.
+/* CMSIS uses this function for doing things that must precede C init, such as turning on IO ports so that configuration commands in constructors function.
 You can't use any static *object* but you can use static initialized plain old data */
-void SystemInit(void); // __USE_CMSIS __USE_LPCOPEN
+void SystemInit(); // __USE_CMSIS __USE_LPCOPEN
 
 #pragma GCC diagnostic ignored "-Wmain"
-int main(void); // entry point
 
-/* my approach to dealing with errors is to start over. If you don't like that then use 'atExit' functionality to do a while(1) to prevent a restart */
-extern void generateHardReset(void); // doesn't return! supplied by nvic.cpp as that is where reset hardware happens to reside.
+int main(); // entry point
 
 //the linker script creates and initializes these constant structures, used by cstartup()
 const extern RamInitBlock __data_segment__;//name coordinated with cortexm.ld
@@ -20,22 +18,22 @@ const extern InitRoutine __init_table__[];//name coordinated with cortexm.ld
 const extern InitRoutine __exit_table__[];//name coordinated with cortexm.ld
 
 /** this implementation trusts the linker script to null terminate the table */
-void run_table( const InitRoutine * table){
-  while(InitRoutine routine=*table++){
+void run_table(const InitRoutine *table) {
+  while (InitRoutine routine = *table++) {
     (*routine)();
   }
 }
 
 // instead of tracking #defined symbols just dummy up the optional routines:
-[[gnu::weak,gnu::optimize(3)]] void SystemInit(void) {
-  return;
+[[gnu::weak, gnu::optimize(3)]] void SystemInit() {
+//  return;
 }
 
 /** Reset entry point. The chip itself has set up the stack pointer to top of ram, and then the PC to this. It has not set up a frame pointer.
  */
 extern "C" //to make it easy to pass this to linker sanity checker.
-[[gnu::naked,noreturn]] //we don't need no stinking stack frame (no params, no locals)
-void cstartup(void){
+[[gnu::naked, noreturn]] //we don't need no stinking stack frame (no params, no locals)
+void cstartup(void) {
   // initialize static variables
   __data_segment__.go();
   // Zero other static variables.
@@ -53,16 +51,16 @@ void cstartup(void){
 }
 
 // stack pointer is set to end of ram via linker script, gets followed by:
-void (*resetVector)(void) __attribute__((section(".vectors.1"))) = cstartup;
+void (*resetVector)() __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix
 
 //todo: separate out stackFault into its own file, for those who won't use it nor wtf.
 #include "wtf.h"  //error routine, a place to share a breakpoint for trouble.
 
 extern unsigned const __stack_limit__;//created in linker script
-void stackFault(){
+void stackFault() {
   unsigned here;
-  if(&here <= &__stack_limit__){//todo: should add a few so that we can call wtf without risk
+  if (&here <= &__stack_limit__) {//todo: should add a few so that we can call wtf without risk
     wtf(99999999);
     generateHardReset();
   }

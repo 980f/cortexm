@@ -1,15 +1,19 @@
 #pragma once
+
 #include "eztypes.h"
 
 /* stm family common stuff */
 #include "peripheraltypes.h" //stm32 specific peripheral construction aids.
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnusedGlobalDeclarationInspection"
+
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
-constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | bus2 << 16 | slot << 10); }
+constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | bus2 << 16u | slot << 10u); }
 
-constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBand | bus2 << 21 | slot << 15); }
+constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBand | bus2 << 21u | slot << 15u); }
 
-const Address RCCBASE(0x40021000);
+const Address RCCBASE(0x40021000u);
 
 /** each peripheral's reset pin, clock enable, and bus address are computable from 2 simple numbers.
 working our way up to a template. */
@@ -25,31 +29,38 @@ struct APBdevice {
 
 protected:
   /** @return bit address given the register address of the apb2 group*/
-  unsigned rccBit(unsigned basereg) const {
+  Address rccBit(Address basereg) const {
     return bandFor(rccBitter | bandShift(basereg));
   }
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
-  APBdevice(const APBdevice &other) = default;
+  constexpr APBdevice(const APBdevice &other) = default;
 
 public:
   /** @param bus and slot are per st documentation, hence a minus 1.*/
-  APBdevice(unsigned int stbus, unsigned int slot);
+  constexpr APBdevice(unsigned int stbus, unsigned int slot):
+    bus2(stbus - 1),
+    slot(slot),
+    blockAddress(APB_Block(bus2, slot)),
+    bandAddress(APB_Band(bus2, slot)),
+    //a ternary generated a test and branch around a pair of load via PC
+    rccBitter(bandFor(RCCBASE | ((1u-bus2)<<2u),slot)) //bus 2 is the first of a pair of which bus1 is the second. ST doesn't like consistency.
+  {}
   /** activate and release the module reset */
-  void reset(void) const;
+  void reset() const;
   /** control the clock, off reduces chip power */
   void setClockEnable(bool on = true) const;
   /** @returns whether clock is on */
-  bool isEnabled(void) const;
+  bool isEnabled() const;
   /** reset and enable clock */
-  void init(void) const;
+  void init() const;
   /** get base clock for this module */
-  u32 getClockRate(void) const;
+  u32 getClockRate() const;
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
-  Address registerAddress(unsigned offset) const {
+  constexpr Address registerAddress(unsigned offset) const {
     return blockAddress + offset;
   }
   /** @returns bit band address of bit of a register, @param offset is value from st's manual (byte address) */
-  ControlWord bit(Address offset, unsigned bit) const {
+  constexpr ControlWord bit(Address offset, unsigned bit) const {
     return ControlWord(bandAddress + bandFor(offset, bit));
   }
 };
@@ -67,26 +78,28 @@ struct APBperiph {
     rccBitat = bandFor(RCCBASE | ((1 - bus2) << 2), slot),
   };
   /** @return bit address given the register address of the apb2 group*/
-  constexpr unsigned rccBit(unsigned basereg) const {
+  constexpr static Address rccBit(unsigned basereg) {
     return bandFor(rccBitat | bandShift(basereg));
   }
 
-  constexpr unsigned rccWord(unsigned basereg) const {
+  constexpr static Address rccWord(unsigned basereg) {
     return RCCBASE | ((1 - bus2) << 2) + basereg;
   }
 
+  //creates compile time complaints versus its lack creating IDE warnings __unused  //write only hardware field.
   const SFRbandbit<rccWord(0x0C), slot> resetter;
   const SFRbandbit<rccWord(0x18), slot> clocker;
+#pragma clang diagnostic pop
 
   /** reset and enable clock */
-  void init(void) const {
+  void init() const {
     resetter = 1;
     resetter = 0; //manual is ambiguous as to whether reset is a command or a state.
     clocker = 1;
   }
 
   /** activate and release the module reset */
-  void reset(void) const {
+  void reset() const {
     //  ControlWord resetter(rccBit(0x0C));
     resetter = 1;
     resetter = 0; //manual is ambiguous as to whether reset is a command or a state.
@@ -100,12 +113,12 @@ struct APBperiph {
   }
 
   /** @returns whether clock is on */
-  bool isEnabled(void) const {
+  bool isEnabled() const {
     return clocker;
   }
 
   /** get base clock for this module */
-  u32 getClockRate(void) const {
+  u32 getClockRate() const {
     return clockRate(bus2 + 1);
   }
 };
