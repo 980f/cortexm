@@ -64,10 +64,10 @@ const Pin &Pin::AI() const {
   return *this;
 }
 
-void Pin::DI(char UDF) const { // default Down as that is what meters will do.
+const Pin & Pin::DI(char UDF) const { // default Down as that is what meters will do.
   writer = bitFrom(UDF, 0); // ODR determines whether a pullup else a pulldown is connected ... this takes advantage of the ascii codes for U and D differing in the lsb.
   // NB: if the pin is already an output then the above line pulses current into it a moment before the next line turns off the driver. This is typically a good thing.
-  configureAs((UDF == 'F') ? 4 : 8); // ... this determines if the pin actually gets pulled.
+  return configureAs((UDF == 'F') ? 4 : 8); // ... this determines if the pin actually gets pulled.
 }
 
 //ControlWord Pin::highDriver() const {
@@ -79,8 +79,8 @@ void Pin::DI(char UDF) const { // default Down as that is what meters will do.
 
 
 
-void Pin::FN(Portcode::Slew slew, bool openDrain) const {
-  output(8, slew, openDrain);
+const Pin& Pin::FN(Portcode::Slew slew, bool openDrain) const {
+  return output(8, slew, openDrain);
 }
 
 

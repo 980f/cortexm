@@ -137,7 +137,7 @@ struct Pin /*Manager*/ {
   const ControlField confword;
 
   /** configure as output using given options */
-  void output(unsigned int code, Portcode::Slew slew, bool openDrain) const {
+  const Pin & output(unsigned int code, Portcode::Slew slew, bool openDrain) const {
     code |= openDrain << 2;
     switch (slew) {
     default: // on any errors be a slow output
@@ -152,6 +152,7 @@ struct Pin /*Manager*/ {
       break;
     }
     configureAs(code);
+    return *this;
   }
 
   constexpr Pin(const Port &port, unsigned bitnum) :
@@ -165,18 +166,18 @@ struct Pin /*Manager*/ {
   const Pin &AI() const;
 
 /** @returns bitband address for input after configuring as digital input, pull <u>U</u>p, pull <u>D</u>own, or leave <u>F</u>loating*/
-  void DI(char UDF = 'D') const;
+  const Pin &DI(char UDF = 'D') const;
 
 ///** @returns bitband address for controlling high drive capability [rtfm] */
 //  ControlWord highDriver() const;
 
 /** configure as simple digital output */
-  void DO(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const {
-    output(0, slew, openDrain);
+  const Pin &DO(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const {
+    return output(0, slew, openDrain);
   }
 
 /** configure pin as alt function output*/
-  void FN(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const;
+  const Pin &FN(Portcode::Slew slew = Portcode::Slew::slow, bool openDrain = false) const;
 
 //  /** declare your variable volatile, reads the actual pin, writing does nothing */
 //  constexpr ControlWord reader() const;
@@ -185,8 +186,9 @@ struct Pin /*Manager*/ {
 //  constexpr ControlWord writer() const;
 
 /** for special cases, try to use one of the above which all call this one with well checked argument */
-  void configureAs(unsigned int code) const {
+  const Pin &configureAs(unsigned int code) const {
     port.configure(bitnum, code);
+    return *this;
   }
 
 /** raw access convenience. @see InputPin for business logic version of a pin */

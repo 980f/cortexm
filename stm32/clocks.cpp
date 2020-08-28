@@ -9,6 +9,12 @@
 //stm32 has an internal RC oscillator:
 #define HSI_Hz 8000000
 
+#ifndef EXTERNAL_HERTZ
+#ifdef EXT_MHz
+#define EXTERNAL_HERTZ (EXT_MHz*1000000)
+#endif
+#endif
+
 struct ClockControl {
   unsigned int HSIon : 1;
   volatile unsigned int HSIRDY : 1;

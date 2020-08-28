@@ -1,3 +1,7 @@
+#ifndef DEVICE
+#error "you must define DEVICE to something like 103 or 407"
+#endif
+
 #include "uart.h"
 #include "minimath.h"
 #include "afio.h"
@@ -81,13 +85,23 @@ void Uart::init(unsigned int baud, char parityNEO, unsigned int numbits){
   irq.enable(); //the reconfigure disables all interrupt sources, so enabling interrupts here won't cause any.
 }
 
-//uart1 is on bus2, others on bus 1    slot is 14 for uart1  15+luno for others
-Uart::Uart(unsigned int stluno, unsigned int alt): APBdevice(stluno>1 ? 1: 2, stluno>1 ? (stluno + 15): 14),
-  b  (*reinterpret_cast <volatile UartBand *> (bandAddress)),
-  dcb (*reinterpret_cast <volatile USART_DCB *> (blockAddress)),
-  irq((stluno <= 3 ? 36: 48) + stluno), //37,38,39, 54,53 ...
-  stluno(stluno),
-  altpins(alt){
+/*
+F103: U1 = 1:14, others on 2:luno+15
+F407: U1 = 2:  U2..5 = 1:lu+15   U6=2:
+*/
+
+Uart::Uart(unsigned int stluno, unsigned int alt): 
+#if DEVICE==103
+  APBdevice(stluno>1 ? 1: 2, stluno>1 ? (stluno + 15): 14)
+#elif DEVICE==407
+  APBdevice( (stluno==1 || stluno==6) ? 2: 1, (stluno==1 ? 4: stluno==6? 5 : (stluno + 15)) )
+#endif
+  ,b  (*reinterpret_cast <volatile UartBand *> (bandAddress))
+  , dcb (*reinterpret_cast <volatile USART_DCB *> (blockAddress))
+//the irq's are the same for the same luno, just needed to add uart6 for F407:
+  , irq((stluno <= 3 ? 36: stluno <= 5? 48: 65) + stluno) //37,38,39  52,53 71
+  ,stluno(stluno)
+  ,altpins(alt){
   //not grabbing pins quite yet as we may be using a spare uart internally as a funky timer.
 }
 
@@ -107,7 +121,7 @@ static void grabInput(const Port &PX,int bn, char udf) {
 #define pinMux(stnum) theAfioManager.remap.uart##stnum=altpins;theAfioManager.remap.update()
 
 void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
-  int rxtxSpeedRange=bitsPerSecond()>460e3?10:2;//pin speed codes, 2Mhz rounded off signal too much past 460kbaud
+  Portcode::Slew rxtxSpeedRange=bitsPerSecond()>460e3?Portcode::Slew::fast:Portcode::Slew::slow;//pin speed codes, 2Mhz rounded off signal too much past 460kbaud
 
   switch(stluno) {
   case 1:
