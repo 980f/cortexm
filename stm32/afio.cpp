@@ -1,5 +1,7 @@
 #include "afio.h"
-//#include "bitbanger.h"
+/**
+this file should only be included with F103 and similar devices.
+*/
 
 AfioManager theAfioManager InitStep(InitHardware-1); //just before ports and pins
 
