@@ -15,7 +15,7 @@ const Port PE InitStep(InitHardware)('E');
 // todo:3 use device define to add ports up to G.
 
 constexpr Port::Field::Field(const Port &port, unsigned lsb, unsigned msb) :
-  odr(port.registerAddress(12)),
+  odr(port.registerAddress(0x0C)),
   at(port.registerAddress(0x10)),
   lsb(lsb),
   mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16),
