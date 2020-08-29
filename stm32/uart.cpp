@@ -105,6 +105,7 @@ Uart::Uart(unsigned int stluno, unsigned int alt):
   //not grabbing pins quite yet as we may be using a spare uart internally as a funky timer.
 }
 
+#if DEVICE==103
 /**
 rx's are coded as floating inputs as RX is presumed to always be driven
 hsin's are coded as pulled up inputs in case the pin is left unconnected, although really someone
@@ -221,4 +222,30 @@ void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
   //... would only dynamically play with this for single wire half duplexing as in some SPI modes, better to use a transceiver and
   //... a gpio pin than to play with the chip's own pin.
 } /* takePins */
+#endif
+
+#if DEVICE==407
+//pin has selector for its function and selecting the function takes care of other aspects of it.
+#define makeTxPin(P,b) Pin(P, b).FN(rxtxSpeedRange)
+#define makeRxPin(P,b) Pin(P, b).FN(rxtxSpeedRange)
+void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
+ // Portcode::Slew rxtxSpeedRange=bitsPerSecond()>460e3?Portcode::Slew::fast:Portcode::Slew::slow;//pin speed codes, 2Mhz rounded off signal too much past 460kbaud
+  switch(stluno) {
+  case 1:
+    if(tx) {
+      if(altpins==1){
+
+      } else {
+      }
+    }
+    if(rx) {
+
+    }
+break;
+case 2:
+break;
+}
+}
+
+#endif
 //End of file
