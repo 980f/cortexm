@@ -5,13 +5,14 @@
 //F4 has significantly different GPIO configuration than F1
 
 #include "gpiof4.h"
-#include "peripheralband.h" //deprecated bandFor
+#include "peripheralband.h"  //deprecated bandFor
 #include "bitbanger.h"
 
 // priority must be such that these get created before any application objects
-#define DefinePort(letter) const Port P##letter InitStep(InitHardware)('##letter##');
+#define DefinePort(letter) const Port P##letter InitStep(InitHardware)(*#letter)
+//the above macro is why people hate C. The '*' picks out the first letter of the string made by # letter, since the preprocessor insisted on honoring single ticks while parsing the #defined text.
 
-DefinePort(a);
+DefinePort(A);
 DefinePort(B);
 DefinePort(C);
 DefinePort(D);
@@ -22,18 +23,18 @@ DefinePort(H);
 DefinePort(I);
 DefinePort(J);
 
-constexpr Port::Field::Field(const Port &port, unsigned lsb, unsigned msb) :
-  odr(port.registerAddress(0x14)),
-  at(port.registerAddress(0x18)), //bssr
-  lsb(lsb),
-  mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16),
-  port(port) {
+constexpr Port::Field::Field(const Port& port, unsigned lsb, unsigned msb)
+  : odr(port.registerAddress(0x14)),
+    at(port.registerAddress(0x18)),  //bssr
+    lsb(lsb),
+    mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16),
+    port(port) {
   /* empty */
 }
 
-void Port::Field::operator=(unsigned value) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
+void Port::Field::operator=(unsigned value) const {  // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
   ControlWord field(at);
-  field = mask & (((((~value) << 16) | value)) << lsb); // read the stm32 manual for this.
+  field = mask & (((((~value) << 16) | value)) << lsb);  // read the stm32 manual for this.
 }
 
 Port::Field::operator u16() const {
@@ -41,83 +42,57 @@ Port::Field::operator u16() const {
 }
 
 void Port::Field::operator^=(unsigned value) const {
-  return *this = (value ^ *this); // uses operator = and operator cast u16.
+  return *this = (value ^ *this);  // uses operator = and operator cast u16.
 }
 
 u16 Port::Field::actual() const {
-  u16 actually = (&odr)[-2]; // idr precedes odr, -2 is for 2 u16's.
+  u16 actually = (&odr)[-2];  // idr precedes odr, -2 is for 2 u16's.
 
   return (actually & mask) >> lsb;
 }
 
-///////////////////////////
-//
-//void Pin::configureAs(unsigned int code) const {
-//  port.configure(bitnum, code);
-//}
-
-//constexpr void Pin::output(unsigned int code, Portcode::Slew  slew, bool openDrain) const {
-//  code |= openDrain << 2;
-//  switch(slew) {
-//  default: // on any errors be a slow output
-//  case Portcode::Slew::slow: code |= 2; break;
-//  case Portcode::Slew::medium: code |= 1; break;
-//  case Portcode::Slew::fast: code |= 3; break;
-//  }
-//  configureAs(code);
-//}
-
-const Pin &Pin::AI() const {
-     port.configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, 'F'));
-    return *this;
+const Pin& Pin::AI() const {
+  port.configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, 'F'));
+  return *this;
 }
 
-const Pin & Pin::DI(char UDF) const { // default Down as that is what meters will do.
-     port.configure(bitnum, PinOptions(PinOptions::input, PinOptions::Slew::slow, UDF));
-    return *this;
+const Pin& Pin::DI(char UDF) const {  // default Down as that is what meters will do.
+  port.configure(bitnum, PinOptions(PinOptions::input, PinOptions::Slew::slow, UDF));
+  return *this;
 }
 
 /** configure pin as alt function output*/
-  const Pin &Pin::FN(PinOptions::Slew slew , char UDFO) const{
-    port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO));
-    return *this;
-  }
+const Pin& Pin::FN(PinOptions::Slew slew, char UDFO) const {
+  port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO));
+  return *this;
+}
 
-  /** set the alt feature, */
-  const Pin &Pin::Alt(unsigned nibble) const {
-    
-  }
+/** set the alt feature, */
+const Pin& Pin::Alt(unsigned nibble) const {
+  //todo:F407
+}
 //////////////////////////////////
 
-constexpr InputPin::InputPin(const Pin &pin, char UDF, bool lowactive) : LogicalPin(pin, lowactive) {
+constexpr InputPin::InputPin(const Pin& pin, char UDF, bool lowactive): LogicalPin(pin, lowactive) {
   pin.DI(UDF);
 }
 
-constexpr InputPin::InputPin(const Pin &pin, bool lowactive) : InputPin(pin, lowactive ? 'U' : 'D', lowactive) {
+constexpr InputPin::InputPin(const Pin& pin, bool lowactive) : InputPin(pin, lowactive ? 'U' : 'D', lowactive) {
   /*empty*/
 }
 
 //////////////////////////////////
 
-
 void OutputPin::toggle() const {
-  pin = 1 - pin;//we can ignore polarity stuff :)
+  pin = 1 - pin;  //we can ignore polarity stuff :)
 }
 
 /////////////////////////////////
-//
-//bool Port::isOutput(unsigned pincode) {
-//  return (pincode & 3U) != 0;//if so then code is Alt/Open
-//}
 
-constexpr Port::Port(char letter) : APBdevice(2, 2 + unsigned(letter - 'A')) {}
+constexpr unsigned gpiobase(unsigned Ais0){
+  return 0x40020000+0x400*Ais0;
+}
 
-//constexpr void Port::configure(unsigned bitnum, unsigned code) const {
-//  if(! isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
-//    init(); // must have the whole port running before we can modify a config of any pin.
-//  }
-//  ControlField confword(registerAddress(bitnum & 8 ? 4 : 0), (bitnum & 7) << 2, 4);// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
-//  confword= code;
-//}
+constexpr Port::Port(char letter) : APBdevice(1, 2 + unsigned(letter - 'A'),gpiobase(letter - 'A')) {}
 
 #pragma clang diagnostic pop
