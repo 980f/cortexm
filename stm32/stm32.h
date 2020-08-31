@@ -73,7 +73,7 @@ public:
 
 /** AHB devices  @param bus and slot are per st documentation */
   constexpr APBdevice(unsigned int stbus, unsigned int slot, unsigned rawAddress):
-    rbus(rccBus(stbus,false)),
+    rbus(rccBus(stbus,true)),
     slot(slot),
     blockAddress(rawAddress),
     bandAddress(bandFor(rawAddress, slot)),
