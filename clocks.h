@@ -7,7 +7,7 @@
 /**
 instantiate this in a project specific file:
 */
-extern const u32 EXTERNAL_HERTZ;
+extern const unsigned EXTERNAL_HERTZ;
 
 //clock rate:
 /** @returns a clock rate selected by @param which, which depends upon processor family although many are common

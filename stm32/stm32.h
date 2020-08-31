@@ -8,31 +8,35 @@
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnusedGlobalDeclarationInspection"
 
+
+#if DEVICE==103
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
 constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | bus2 << 16u | slot << 10u); }
 
 constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBand | bus2 << 21u | slot << 15u); }
 
-
-
-
-#if DEVICE==103
 const Address RCCBASE(0x40021000U);//0th offset.
 const unsigned resetOffset=0x0C;
 const unsigned clockOffset=0x18;
 #elif DEVICE==407
+/** peripheral base addresses are computable from their indexes into the clock control registers: */
+constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | (bus2-3) << 16u | slot << 10u); }
+
+constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBand | (bus2-3) << 21u | slot << 15u); }
+
 const Address RCCBASE(0x40023800U);//0th offset.
 const unsigned resetOffset=0x10;
 const unsigned clockOffset=0x30;
 //todo: low power mode.
 #endif
 
+/** index used for rcc bit offset calculations */
 constexpr unsigned rccBus(unsigned stnum,bool ahb){
 #if DEVICE==103
 //ahb not yet supported, each device copies code from this module.
   return 1-stnum; //bus 2 is the first of a pair of which bus1 is the second. ST doesn't like consistency.
 #elif DEVICE==407
-  return ahb? stnum-1: stnum+2;//3 ahb's,followed by 2 apb's
+  return ahb? stnum-1: stnum+3;//3 ahb's,skip one,followed by 2 apb's
 #endif
 }
 
@@ -52,7 +56,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   Address rccBit(Address basereg) const {
-    return bandFor(rccBitter | bandShift(basereg));
+    return rccBitter + bandShift(basereg);
   }
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
   constexpr APBdevice(const APBdevice &other) = default;
