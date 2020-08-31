@@ -4,7 +4,12 @@
 
 #include "uart.h"
 #include "minimath.h"
-#include "afio.h"
+#if DEVICE==103
+#include "gpio.h"
+#elif DEVICE==407
+#include "gpiof4.h"
+#endif
+
 void Uart::setBaudrate(unsigned int desired){
   //note: the ST manuals are chocked full of nonsense with respect to baud rate setting.
   // just take the input clock rate and divide by the baud rate, round to the nearest integer, and put that value into the 16 bit BRR as if it were a simple integer.
@@ -226,20 +231,26 @@ void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
 
 #if DEVICE==407
 //pin has selector for its function and selecting the function takes care of other aspects of it.
-#define makeTxPin(P,b) Pin(P, b).FN(rxtxSpeedRange)
-#define makeRxPin(P,b) Pin(P, b).FN(rxtxSpeedRange)
+#define makeTxPin(P,b) Pin(P, b).FN(7,rxtxSpeedRange,'F')
+#define makeRxPin(P,b) Pin(P, b).FN(7,rxtxSpeedRange,'U')
 void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
- // Portcode::Slew rxtxSpeedRange=bitsPerSecond()>460e3?Portcode::Slew::fast:Portcode::Slew::slow;//pin speed codes, 2Mhz rounded off signal too much past 460kbaud
+  PinOptions::Slew rxtxSpeedRange = bitsPerSecond() > 460e3 ? PinOptions::Slew::fast : PinOptions::Slew::slow;  //pin speed codes, 2Mhz rounded off signal too much past 460kbaud
   switch(stluno) {
   case 1:
     if(tx) {
       if(altpins==1){
-
+        makeTxPin(PB,6);
       } else {
+        const Pin pen(PA, 9);
+        pen.FN(7,rxtxSpeedRange,'F');
       }
     }
     if(rx) {
-
+      if(altpins==1){
+        makeRxPin(PB,7);
+      } else {
+        Pin(PA,10).FN(7,rxtxSpeedRange,'U');
+      }
     }
 break;
 case 2:

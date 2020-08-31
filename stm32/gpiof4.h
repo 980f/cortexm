@@ -8,13 +8,13 @@
 struct PinOptions {
  
   enum Dir {
-    input,output,function,analog
+    input=0,output,function,analog  //#value is for control register
   };
 
   Dir dir; 
 
  enum Slew {
-    slow=0, medium , fast , fastest
+    slow=0, medium , fast , fastest //#value is for control register
   };
 
   Slew slew;
@@ -51,16 +51,7 @@ struct Port /*Manager*/ : public APBdevice {
     * configure the given pin.
     todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
     */
-  void configure(unsigned bitnum, const PinOptions &c) const {
-    if (!isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
-      init(); // must have the whole port running before we can modify a config of any pin.
-    }
-    //todo: 2 bits from dir into offset 0
-    //todo: 1 bit "is open drain" into offset 4 from UDFO=='O'
-    //todo: 2 bits from slew into offset 8
-    //todo: 2 bits from UDFO into offset 12  F:0 U:1 D:2  (O goes to OD and we pull up here)  F=0x46 U=0x85 D=0x44 o=0x79
-    //FYI alt function select is at offset 32, 4 bits each.
-  }
+  void configure(unsigned bitnum, const PinOptions &c) const ;
 
   /** a contiguous set of bits in a a single Port */
   struct Field {
@@ -128,7 +119,7 @@ struct Pin /*Manager*/ {
   const ControlWord writer;
 
   Pin(const Port &port, unsigned bitnum) :
-    bitnum(bitnum), port(port), reader(port.registerAddress(8), bitnum), writer(port.registerAddress(12), bitnum){
+    bitnum(bitnum), port(port), reader(port.registerAddress(0x10), bitnum), writer(port.registerAddress(0x14), bitnum){
     //#nada
   }
 
@@ -145,10 +136,7 @@ struct Pin /*Manager*/ {
   }
 
 /** configure pin as alt function output*/
-  const Pin &FN(PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') const;
-
-  /** set the alt feature, */
-  const Pin &Alt(unsigned nibble) const;
+  const Pin &FN(unsigned nibble,PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') const;
 
 /** raw access convenience. @see InputPin for business logic version of a pin */
   operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
@@ -190,15 +178,18 @@ public:
 };
 
 /**
-hide the volatile and * etc that I sometimes forget.
+A pin configured and handy to use for logical input, IE the polarity of "1" is set by the declaration not by each point of use.
 */
 class InputPin : public LogicalPin {
 
 public:
-  explicit constexpr InputPin(const Pin &pin, char UDF = 'D', bool active = true);
-
-  explicit constexpr InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
-  //maydo: add method to change pullup/pulldown bias while running
+  explicit constexpr InputPin(const Pin &pin, char UDF = 'D', bool active = true): LogicalPin(pin, active) {
+    pin.DI(UDF);
+  }
+  /** pull the opposite way of the 'active' level. */
+  explicit constexpr InputPin(const Pin &pin, bool active):InputPin(pin, active ? 'D' : 'U', active) {
+    //#nada
+  }
 
 };
 
