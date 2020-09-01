@@ -241,19 +241,33 @@ void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
       if(altpins==1){
         makeTxPin(PB,6);
       } else {
-        const Pin pen(PA, 9);
-        pen.FN(7,rxtxSpeedRange,'F');
+        makeTxPin(PA,9);
       }
     }
     if(rx) {
       if(altpins==1){
         makeRxPin(PB,7);
       } else {
-        Pin(PA,10).FN(7,rxtxSpeedRange,'U');
+        makeRxPin(PA,10);
       }
     }
 break;
 case 2:
+    if(tx) {
+      if(altpins==1){
+        makeTxPin(PD,5);
+      } else {
+        makeTxPin(PA,2);
+      }
+    }
+    if(rx) {
+      if(altpins==1){
+        makeRxPin(PD,6);
+      } else {
+        makeRxPin(PA,3);
+      }
+    }
+
 break;
 }
 }
