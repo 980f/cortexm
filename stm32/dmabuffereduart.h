@@ -38,7 +38,7 @@ class DmaBufferedUart : public Uart {
   DmaChannel tx;
   DmaChannel rx;
 public:
-  DmaBufferedUart(int luno): Uart(luno)
+  DmaBufferedUart(int luno,unsigned int alt=0): Uart(luno,alt)
     , tx(DmaChannel::forUart(luno, true), true)
     , rx(DmaChannel::forUart(luno, false), false){
     /* empty braces*/

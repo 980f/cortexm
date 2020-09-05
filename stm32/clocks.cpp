@@ -1,4 +1,5 @@
-#pragma clang diagnostic push
+//todo: this is the F1 clock stuff, need an F4 variant.
+
 #pragma ide diagnostic ignored "hicpp-signed-bitwise"
 #include "clocks.h"
 #include "peripheral.h"
@@ -9,11 +10,11 @@
 //stm32 has an internal RC oscillator:
 #define HSI_Hz 8000000
 
-#ifndef EXTERNAL_HERTZ
-#ifdef EXT_MHz
-#define EXTERNAL_HERTZ (EXT_MHz*1000000)
-#endif
-#endif
+//#ifndef EXTERNAL_HERTZ
+//#ifdef EXT_MHz
+//#define EXTERNAL_HERTZ (EXT_MHz*1000000)
+//#endif
+//#endif
 
 struct ClockControl {
   unsigned int HSIon : 1;
@@ -192,12 +193,9 @@ void setMCO(unsigned int mode){
   Pin MCO(PA, 8); //depends on mcu family ...
 
   if(mode >= 4) { //bit 2 is 'enable'
-    MCO.FN(Portcode::fast); //else we round off the signal.
+    MCO.FN(PinOptions::fastest); //else we round off the signal.
   } else {
-    MCO.configureAs(4);//set to floating input
+    MCO.DI('F');//set to floating input
   }
   theClockControl.MCOselection = mode;
 }
-
-
-#pragma clang diagnostic pop

@@ -32,7 +32,7 @@ void run_table(const InitRoutine *table) {
 /** Reset entry point. The chip itself has set up the stack pointer to top of ram, and then the PC to this. It has not set up a frame pointer.
  */
 extern "C" //to make it easy to pass this to linker sanity checker.
-[[gnu::naked, noreturn]] //we don't need no stinking stack frame (no params, no locals)
+[[noreturn]] //we don't need no stinking stack frame (no params, no locals) gnu::naked generates a warning, so we dropped it even though it causes a few useless instructions to be emitted.
 void cstartup(void) {
   // initialize static variables
   __data_segment__.go();

@@ -20,9 +20,9 @@ const unsigned resetOffset=0x0C;
 const unsigned clockOffset=0x18;
 #elif DEVICE==407
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
-constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | (bus2-3) << 16u | slot << 10u); }
+constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | (bus2-4) << 16u | slot << 10u); }
 
-constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBand | (bus2-3) << 21u | slot << 15u); }
+constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBand | (bus2-4) << 21u | slot << 15u); }
 
 const Address RCCBASE(0x40023800U);//0th offset.
 const unsigned resetOffset=0x10;
