@@ -1,5 +1,4 @@
-#ifndef timerH
-#define timerH
+#pragma once
 
 /**
   *
@@ -11,6 +10,7 @@
   * This is a comprehensively 16 bit peripheral, only the low half of any 32 bit control word
   * has any functioning.
   *
+  * F407: for some timers some registers are 32 bit instead of 16. We can template that point.
   */
 
 #include "stm32.h"
@@ -150,6 +150,10 @@ struct Timer {
 
   bool isAdvanced(void) const {
     return luno == 1 || luno == 8;
+  }
+
+  bool is32bit(void) const {
+    return luno == 2 || luno == 5;
   }
 
   Timer(unsigned stLuno);
@@ -344,4 +348,3 @@ struct PulseCounter : public Timer {
 
 };
 
-#endif /* ifndef timerH */

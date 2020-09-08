@@ -16,6 +16,7 @@ struct TimerConstant {
 
 //todo: make #defined symbol for IRQ numbers for ObjectInterrupt macro. Need it as text, not const value.
 static const TimerConstant T[] = {
+#if DEVICE==103
   { 0, 0, 27, Timer1Stop }, //spacer so that we can textually use st's 1-based labels.
   { 2, 11, 25, Timer1Stop },
   { 1, 0, 28, Timer2Stop },
@@ -25,6 +26,18 @@ static const TimerConstant T[] = {
   { 1, 4, 54, Timer6Stop },
   { 1, 5, 55, Timer7Stop },
   { 2, 13, 44, Timer8Stop },
+#elif DEVICE==407
+  { 0, 0, 27, Timer1Stop }, //spacer so that we can textually use st's 1-based labels.
+  { 2, 0, 25, Timer1Stop }, //update and global, also 10
+  { 1, 0, 28, Timer2Stop },
+  { 1, 1, 29, Timer3Stop },
+  { 1, 2, 30, Timer4Stop },
+  { 1, 3, 50, Timer5Stop },
+  { 1, 4, 54, Timer6Stop },//shared with DAC
+  { 1, 5, 55, Timer7Stop },
+  { 2, 1, 44, Timer8Stop },//also 12,13,14
+  //... add other timers are overlapped on the above with no rhyme nor reason.
+#endif
 };
 
 Timer::Timer(unsigned stLuno): apb(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq){
@@ -118,12 +131,17 @@ CCUnit::CCUnit (const Timer&_timer, unsigned _ccluno): timer(_timer), zluno(_ccl
   //nothing to do here
 }
 
+bool CCUnit::amDual() const {
+  return timer.isAdvanced() && zluno < 3; //3 channels of advanced timers are dual output
+}
+
+#if DEVICE==103
 Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
   switch(timer.luno) {
   case 1:
     if(complementaryOutput) {
       //todo:3 ignoring alt for a bit:
-      return Pin(PB, 13 + zluno);
+      return {PB, 13 + zluno};
     } else {
       return alt == 3 ? Pin(PE, 9 + 2 * zluno) : Pin(PA, 8 + zluno); //todo:3 alt formula fails for zlun0==3
     }
@@ -140,12 +158,10 @@ Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
     return alt ? Pin(PD, 10 + zluno) : Pin(PB, 4 + zluno);
     //no timer 5,6,7, or 8 in parts of immediate interest.
   } /* switch */
-  return Pin(Port('Z'), 0); //should blow royally
+  return {Port('Z'), 0}; //should blow royally
 } /* pin */
 
-bool CCUnit::amDual(void) const {
-  return timer.isAdvanced() && zluno < 3; //3 channels of advanced timers are dual output
-}
+
 //set polarity
 //force on or off using cc config rather than gpio.
 //if timer is #1 or #8 then there are more bits:
@@ -173,6 +189,25 @@ void CCUnit::takePin(unsigned alt,bool inverted) const { //todo:3 options to onl
   myccer.Enabled = 1;
   myccer.Inverted = inverted;
 } /* takePin */
+#elif DEVICE==407   //fucking hopeless, might try a table of tables of ... tables . Add instances as you get to them.
+Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
+  switch (timer.luno) {
+  case 1://PA8..11
+  case 2://PA0..3  ?/PB3/PB10/PB11
+  case 3:// PB4/PB5/PB0/PB1
+  case 4:// PB6..9
+  case 5://
+  break;
+  }
+  return {PH,9};
+}
+void CCUnit::takePin(unsigned alt,bool inverted) const { //todo:3 options to only take one of a pair.
+  CCER &myccer = ccer();
+
+  switch (timer.luno) {
+  }
+}
+#endif
 
 void CCUnit::setmode(u8 cc) const {
   u16&pair(timer.dcb[12 + (2 * (zluno >= 2))]); //damned 16 bit access is painful

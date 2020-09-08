@@ -3,10 +3,41 @@
 #include "timer.h" //a dedicated hardware timer is used for each stepper for precise operation
 #include "stm32.h"
 #include "steppercontrol.h"
-//#include "pulseinput.h"
+#include "pulseinput.h"
 #include "twiddler.h"
+#include "gpio.h"
 
-#include "positionersettings.h"
+//replace with functional once STLP quits being cranky
+class Mechanism {
+public:
+  /** true step in positive direction else step in negative. */
+  virtual void operator ()(bool positive)=0;
+  /** true: power up, false: power down */
+  virtual void operator =(bool enabled)=0;
+  /** @returns state of poweredness */
+  virtual operator bool() const=0;
+};
+
+class TwoPinMechanism : public Mechanism {
+  const OutputPin &stepPos;
+  const OutputPin &stepNeg;
+  const OutputPin &powerPin;
+
+public:
+  TwoPinMechanism(const OutputPin &stepPos,const OutputPin &stepNeg,const OutputPin &powerPin);
+  /** true step in positive direction else step in negative. */
+   void operator ()(bool positive) {
+     if(positive) stepPos=1; else stepNeg=1; //todo: we need a pulse width
+   };
+  /** true: power up, false: power down */
+   void operator =(bool enabled){
+     powerPin=enabled;
+   }
+  /** @returns state of poweredness */
+   operator bool() const{
+     return powerPin.actual();
+   };
+};
 
 /** stepper motor driver
  * TODO: pipeline the step computation so that the ISR just loads a value and sets a flag to tell the main loop to compute another one.
@@ -37,6 +68,7 @@ struct Motion {
   }
 };
 
+/** this controls the step rate dynamically while moving */
 struct Ramper {
   int stepsRemaining;//temporarily negative at times.
   u32 stepticks; //timer reload value, for each step
@@ -59,6 +91,7 @@ struct Ramper {
   bool apply(StepAccess &free, Timer&timer);
 };
 
+/** the homing process */
 struct Homage {
   bool hasHomed;
   enum Stages {
@@ -71,34 +104,33 @@ struct Homage {
   }
 };
 
-class Positioner : public PeriodicInterrupter {
+class Stepper : public PeriodicInterrupter {
 public:
   bool suppressedForDebug;
 protected:
-  PositionerSettings &s;
+//  PositionerSettings &s;
   Ramper r;
-  StepperControl &c;
+  StepperControl c;
   Motion m;
   Homage h;//formerly part of StepperControl, needed pure separation of control and status.
   /** cached value of s.g.stepsPercycle */
   int circularity; //must be signed for proper math, although value will always be positive or 0.
-  bool sizing;//finding the home mark.
-  bool zeroing;//a special move that doesn't update the index logic
+
   void startZeroing(int someIndex);
 private:
-  Port::Field output; //the bss+bsr of the port
-  unsigned phasor;//separate from m.actualstep since the cycle length might be odd, in which case changing m.actualstep when we home might lose a step.
+
 public: //public for diagnostic access.
   PulseInput &mark;
-  SimpleDO powerPin; //todo:M implement wrapper with polarity control.
+  Mechanism &stepper;
+
 public://public for isr linkage, do not call directly!
   void onDone(void) ISRISH ;//mingw compiler segfaults optimizing this method! Note: blank defines apparently define to '1'
 private://routines exclusively called by isr
   bool nextStep() ISRISH;
   inline void pulse(/*int direction,u32 speed*/)ISRISH;
   void moveCompleted()ISRISH;
-  void bumpIndex(int direction);
-  int circularize(int &step)ISRISH;
+
+  int circularize(int &step) const ISRISH;
   void killProcedures();
 protected:
   /** idiot check then cache as it is frequently referenced in ISR's*/
@@ -107,19 +139,17 @@ protected:
   void hfailed(bool powered);
   void calFailed();
   void power(bool beon);
+
 public:
-  int lastKnownIndex;//int rather than unsigned to allow for "negative means unknown"
-  Position loc[1 + MaxIndexerPositions]; //a scratchpad for homing, 1:0 is special
-public:
-  void report(PositionerReport &r);
+//  void report(PositionerReport &r);
   void reportMore(MotorReport &report);
 protected:  /** called in an ISR*/
   bool onMotionCompleted(bool normal /*else homed*/);
   void onMark(/*int direction,*/bool entered) ISRISH;//#implements Demon
   void onSizingComplete();
-  void startCentering();
+
 public:
-  Positioner(PositionerSettings &s,const Port &port, unsigned lsbit, unsigned timerLuno, const Pin * pdpin,PulseInput&index);
+  Stepper(unsigned timerLuno , Mechanism &&pins, PulseInput &&index);
   void init(void);
   void doLogic();
 public:
@@ -131,13 +161,9 @@ public:
   inline bool inMotion(void)ISRISH{
     return m.active(); //direction should always be non-zero when braking is non-zero.
   }
-  inline bool calibrating(){
-    return sizing||zeroing;
-  }
 
   /** target and whether to rehome when you get there*/
   void absmoveto(int desired)ISRISH;
   void relmoveto(int desired)ISRISH;
 };
 
-#endif // Positioner_H

@@ -1,5 +1,5 @@
-#include "positioner.h"
-
+#include "stepper.h"
+#include "wtf.h"
 #ifdef DebugStepper
 #include "debugio.h"
 #endif
@@ -18,28 +18,23 @@ void trace(Motion&m){
 #endif
 //end debug.
 
-void Positioner::power(bool beon){
-  if(powerPin.changed(!beon) && beon) { //#hard coded as low active pin
-    //if the below is more than a mike or two then we need to do this wait via state machine.
-    nanoSpin(400); //worst case of worst device's power up, belongs in art.h
-  }
+void Stepper::power(bool beon){
+  stepper=beon;
 }
 
-static const unsigned phaseTable[] = { 0b1001, 0b0101, 0b0110, 0b1010 }; //see schematic
-
-void Positioner::pulse(/*int direction, u32 speed*/){
-  phasor+=m.direction;
-  output = phaseTable[phasor& 3];//actually touch the motor
+void Stepper::pulse(/*int direction, u32 speed*/){
+  stepper(m.direction);
   restart(r.stepped());
+  //todo: set flag for pipelined "compute next step"
 }
 
-void Positioner::hfailed(bool powered){
+void Stepper::hfailed(bool powered){
   h.oming = Homage::HomingFailed; //make sure we stay that way.
   h.hasHomed=false;
   power(powered);
 }
 
-bool Positioner::nextStep(){ //a fragment of the ISR
+bool Stepper::nextStep(){ //a fragment of the ISR
   int dirWas = m.direction; //remember for ramp logic
   int stepsWere=r.stepsRemaining;
   if(stepsWere<0){
@@ -48,7 +43,7 @@ bool Positioner::nextStep(){ //a fragment of the ISR
   r.stepsRemaining = m.desiredStep - m.actualStep;
   int dirNew=signabs(r.stepsRemaining);
 
-  bool optimal=sizing|| (r.stepsRemaining <= circularity / 2);
+  bool optimal= (r.stepsRemaining <= circularity / 2);
   if(!optimal){
     r.stepsRemaining = circularity-r.stepsRemaining;
     if(r.stepsRemaining<0){
@@ -71,9 +66,7 @@ bool Positioner::nextStep(){ //a fragment of the ISR
 
   if(m.direction!=0){
     m.actualStep+=m.direction;
-    if(!sizing){//need to do more than a half rev
-      circularize(m.actualStep);
-    }
+    circularize(m.actualStep);
     pulse();
     return true;
   } else {
@@ -82,132 +75,11 @@ bool Positioner::nextStep(){ //a fragment of the ISR
 } /* recomputeMotion */
 
 
-void Positioner::bumpIndex(int direction){
-  lastKnownIndex+=direction;
-  if(!calibrating()){ //need to verify number of indexes
-    if(lastKnownIndex>=int(s.g.numIndexes)){
-      lastKnownIndex=1;
-    }
-    if(lastKnownIndex<=0){
-      lastKnownIndex=s.g.numIndexes;
-    }
-  }
+bool Stepper::onMotionCompleted(bool normal /*else homed*/){//#ISR stepper motor's
+  //a hook to trigger a followup motion.
 }
 
-void Positioner::onMark(bool entered){
-  if(m.direction){//then moving
-    if(entered){
-      if(!h.oming){
-        //todo:1 somehow detect glitch, not sure how to figure out distance since last mark, loc[] isn't validated yet as always being useful.
-        bumpIndex(m.direction);
-      }
-    } else {//record width and center on exit of mark
-      int width=mark.width(m.direction>0);
-      //todo:1 somehow detect glitch, not sure how to figure out distance since last mark
-      loc[lastKnownIndex].center=mark.center(m.direction>0);
-      loc[lastKnownIndex].markWidth=width;
-    }
-  }
-}
-
-void Positioner::calFailed(){
-  wtf(888);
-  power(false);//don't want to burn up motor on failure
-  beRunning(0);//no tray installed
-}
-
-void Positioner::startZeroing(int someIndex){
-  zeroing=true;
-  absmoveto(loc[someIndex].center);//don't worry about offset here.
-}
-
-void Positioner::onSizingComplete(){
-  m.desiredStep=circularize(m.actualStep);
-  if(lastKnownIndex<1){//if no mark found
-    calFailed();
-  }
-  if(s.simpleHome()){
-    startZeroing(lastKnownIndex);
-  } else {
-    int width=s.g.widthPer;//filter out single sample glitches
-    int index=-1;
-    for(int scan=lastKnownIndex;scan>0;--scan){//don't trust first (in time order) element
-      if(width<loc[scan].markWidth){//prefer the higher index if two match
-        width=loc[scan].markWidth;
-        index=scan;
-      }
-    }
-    if(index>0){
-      startZeroing(index);
-    } else {//no reasonably sized mark found
-      calFailed();
-    }
-  }
-}
-
-void Positioner::startCentering(){
-  if(mark.isActive()){
-    //we might have first edge, might not.... until we figure that out (which we can)
-    h.oming=Homage::Backward2Start;
-    relmoveto(-c.h.widest);//across must include total windup+hysteresis
-  } else {
-    if(s.hasMark()){
-      if(lastKnownIndex!=s.desiredIndex){
-        //we fell short of the mark if going forward, or past it if going backward, either way we need both edges of interest
-        h.oming=Homage::Forward2Fall;
-        relmoveto(c.h.widest);
-      } else {
-        h.oming=Homage::Backward2Start;
-        relmoveto(-c.h.widest);//across must include total windup+hysteresis
-      }
-    }
-  }
-}
-
-bool Positioner::onMotionCompleted(bool normal /*else homed*/){//#ISR stepper motor's
-  if(s.desiredIndex==-1){//if in diagnostic mode
-    killProcedures();//else we quit looking for the commands that get us going again.
-    return false;//do nothing
-  }
-
-  if(flagged(sizing)){
-    onSizingComplete();
-    return false;//there will be a move that will get us back here
-  }
-
-  if(flagged(zeroing)){
-    lastKnownIndex=s.simpleHome()?1:s.g.numIndexes;
-    //    s.setDesiredIndex(lastKnownIndex);
-    m.setLocation(s.g.stepFor(lastKnownIndex));
-    startCentering();
-    return false;//confirm centered after what often is a full rotation.
-  }
-
-  if(normal){//return whether to center on mark
-    if(s.hasMark()){
-      startCentering();
-      return false;//not done yet
-    } else {
-      return true;
-    }
-  } else {//just centered, return whether motion is really completed
-    if(s.hasMark()){//exclude some diagnostic cases
-      if(s.simpleHome()){
-        m.setLocation(0);//filter wheel
-      }
-#if TrustMarks
-      int width=motor.mark.netwidth();
-      int skew=motor.mark.netskew();
-      lastKnownIndex= s.g.indexFor(width);//compute index from mark's width
-      loc[lastKnownIndex].step=motor.m.actualStep;
-      loc[lastKnownIndex].markWidth=width;
-#endif
-    }
-    return true;
-  }
-}
-
-void Positioner::moveCompleted(){
+void Stepper::moveCompleted(){
   if(h.inProgress()) {
     if(h.oming==Homage::Center){//last stage of homing
       h.oming=Homage::NotHoming;
@@ -223,7 +95,7 @@ void Positioner::moveCompleted(){
 }
 
 /** ISR called at end of each step pulse */
-void Positioner::onDone(void){ // on step done
+void Stepper::onDone(){ // on step done
   //this is the isr, no locking needed.
   if(flagged(b->updateHappened)) {
     if(suppressedForDebug){
@@ -237,7 +109,7 @@ void Positioner::onDone(void){ // on step done
     if(m.direction != 0) {//we took a step, else just watching index input
       if(mark.check(m.direction == 1, m.actualStep)) {
         bool inslot=mark.isActive();
-        onMark(/*m.direction,*/inslot);
+//        onMark(/*m.direction,*/inslot);
         if(!inslot){
           if(h.inProgress()){
             switch(h.oming) {
@@ -282,7 +154,7 @@ void Positioner::onDone(void){ // on step done
 } /* onDone */
 
 
-void Ramper::start(void){ //called from ISR
+void Ramper::start(){ //called from ISR
   stepticks = startticks;
 }
 
@@ -329,15 +201,15 @@ bool Ramper::apply(StepAccess &a, Timer&timer){
   }
 }
 
-int Positioner::circularize(int &step){
+int Stepper::circularize(int &step) const{
   return step=modulus(step,circularity);
 }
 
-void Positioner::absmoveto(int desired){//#ISR as well as not.
+void Stepper::absmoveto(int desired){//#ISR as well as not.
   if(desired<0){
     desired+=circularity;//but don't do full modulus as that interferes with the initial full scan.
   }
-  if(!sizing && desired>circularity){
+  if(desired>circularity){
     desired-=circularity;
   }
   IRQLOCK(irq); //changes things the isr references.
@@ -348,21 +220,20 @@ void Positioner::absmoveto(int desired){//#ISR as well as not.
   beRunning(1);//# this is needed to unfreeze us after a calFailed.
 }
 
-void Positioner::relmoveto(int desired){
+void Stepper::relmoveto(int desired){
   absmoveto(m.actualStep+desired);
 }
 
-void Positioner::killProcedures(){
-  sizing=zeroing=0;
+void Stepper::killProcedures(){
   h.oming=Homage::NotHoming;
 }
 
 /** redefine where we are, but don't move*/
-void Positioner::setLocation(int arg){
+void Stepper::setLocation(int arg){
   m.setLocation(arg);
 }
 
-void Positioner::setCircularity(unsigned cyclelength){
+void Stepper::setCircularity(unsigned cyclelength){
   if(cyclelength<=2){//2 allows us to use stepper as a relay drive.
     wtf(4100);
     return;
@@ -372,7 +243,7 @@ void Positioner::setCircularity(unsigned cyclelength){
 }
 
 /**any time a control might have changed ... or any interrupt which includes system timer tick*/
-void Positioner::doLogic( ){
+void Stepper::doLogic( ){
   if(suppressedForDebug){
     return;
   }
@@ -382,9 +253,7 @@ void Positioner::doLogic( ){
   if(!c.v.isValid()){
     return;
   }
-  if(calibrating()){
-    return; //command processing trashes these
-  }
+
   if(h.inProgress(false)){//if actively homing
     return; //command processing trashes centering
   }
@@ -392,33 +261,6 @@ void Positioner::doLogic( ){
 
   if(c.v.wasModified()){
     r.apply(c.v, *this);//convert Hz info ticks per step.
-  }
-
-  if(s.g.wasModified()){//tray geometry
-    setCircularity(s.g.stepsPerCycle);//cache runtime expensive access
-    killProcedures();
-    lastKnownIndex=0;//which means we don't know where we are at all.
-    setLocation(0);//want to move forward during sizing to match centering's direction
-    EraseThing(loc);//for ease of debug
-
-    if(s.g.isViable(true)){//tray installed
-      sizing=true;
-      absmoveto(s.g.stepsPerCycle+c.h.widest);//once around and a mark's worth for windup.
-      //beRunning(1);
-    } else {//not installed or not configured
-      calFailed();//includes turning off isr
-      output = 0b1111;//all coils freely spinning, but remember physical phase to reduce jerk when power is restored.
-    }
-    return;//4ezdebug
-  }
-
-  if(s.g.isViable() && s.wasModified()){//index position changed
-    if(s.desiredIndex>0){
-      absmoveto(s.desiredStep());
-    } else if(s.desiredIndex==0){//diags feature
-      absmoveto(0); //not necessarily the same as index position 1, but usually so.
-      c.retrigger(1);//do a recentering even if already at 0.
-    } //else ignore s, so that low level diagnostics prevail.
   }
 
   if(c.wasModified()){//diagnostic access
@@ -435,59 +277,37 @@ void Positioner::doLogic( ){
   }
 
   if(c.h.wasModified()) {//for diags/setup, normal use won't trigger this.
-    if(s.g.isViable(false/*want to run when in diagnostics*/)){
-      if(!inMotion()&& mark.isActive()){//if in a slot
-        startCentering();//re-center, to deal with change of offset parameter.
-        return;
-      }
-    }
+    //do nothing
   }
 
 } /* doLogic */
 
-bool Positioner::atLocation(u32 step){
+bool Stepper::atLocation(u32 step){
   return !inMotion()&&h.hasHomed&& u32(m.actualStep)==step;
 }
 
-Positioner::Positioner(PositionerSettings &s,const Port&port, unsigned lsbit, unsigned timerLuno, const Pin *pin,PulseInput &index): //
-  PeriodicInterrupter(timerLuno),
-  s(s), //
-  c(s.c), //
-  output(2/*gp2MHz*/,port, lsbit, lsbit + 3), //
-  mark(index),//
-  powerPin(pin){
-  beRunning(0); //coz debugger doesn't do a clean start.
-  //don't need to lock as construction is static.
-  suppressedForDebug=false;//only settable via a debugger
-  phasor=0;
-  lastKnownIndex = 0;
-  circularity = 0;
-  killProcedures();
-  power(0); //power down ASAP.
-  output = 0b1111;//all coils freely spinning.
-}
 
-void Positioner::init(void){
+
+void Stepper::init(){
   setPrescaleFor(50000); //divisor needed to get the slowness we may need while still having nice decimal roundoff on values.
   m.init();
-  output = phaseTable[phasor=0];//puts coils in known state.
   //leave isr dead until we have some live configuration.
 }
 
-void Positioner::report(PositionerReport &r){
-  r.motionState=  inMotion()?1:(h.hasHomed?2:(irq.isEnabled()?0:-1));
-  r.lastPosition=lastKnownIndex;
-  r.targetPosition=s.desiredIndex;
+
+void Stepper::reportMore(MotorReport &mr){
+  IRQLOCK(irq); //to ensure coherence
+  mr.motionCode= h.inProgress(false)?2:(inMotion()?1:0);
+  mr.homingStage=h.oming;
+  mr.hasHomed=h.hasHomed;
+  mr.location= m.actualStep;
+  mr.target= m.desiredStep;
+  mark.markReport(mr.markReport);
 }
 
-void Positioner::reportMore(MotorReport &r){
-  IRQLOCK(irq); //to ensure coherence
-  r.motionCode= h.inProgress(0)?2:(inMotion()?1:0);
-  r.homingStage=h.oming;
-  r.hasHomed=h.hasHomed;
-  r.location= m.actualStep;
-  r.target= m.desiredStep;
-  mark.markReport(r.markReport);
-}
+//////////////////////
+TwoPinMechanism::TwoPinMechanism(const OutputPin &stepPos,const OutputPin &stepNeg,const OutputPin &powerPin):stepPos(stepPos),stepNeg(stepNeg),powerPin(powerPin){}
+
+Stepper::Stepper(unsigned timerLuno , Mechanism &&pins, PulseInput &&index):PeriodicInterrupter(timerLuno),stepper(pins),mark(index){}
 
 //end of file
