@@ -1,13 +1,17 @@
-#ifndef Positioner_H
-#define Positioner_H
+#pragma once
 
-#include "timer.h"
+#include "timer.h" //a dedicated hardware timer is used for each stepper for precise operation
 #include "stm32.h"
 #include "steppercontrol.h"
-#include "pulseinput.h"
+//#include "pulseinput.h"
 #include "twiddler.h"
 
-#include"positionersettings.h"
+#include "positionersettings.h"
+
+/** stepper motor driver
+ * TODO: pipeline the step computation so that the ISR just loads a value and sets a flag to tell the main loop to compute another one.
+ *  if the "need new value" is set when the ISR begins we do a simple restart wtihout reload and increment an error counter.
+ * */
 
 struct Motion {
   int desiredStep; //where we are going to stop.
@@ -88,9 +92,9 @@ public: //public for diagnostic access.
   PulseInput &mark;
   SimpleDO powerPin; //todo:M implement wrapper with polarity control.
 public://public for isr linkage, do not call directly!
-  void onDone(void) ALSOISR ;//mingw compiler segfaults optimizing this method! Note: blank defines apparently define to '1'
+  void onDone(void) ISRISH ;//mingw compiler segfaults optimizing this method! Note: blank defines apparently define to '1'
 private://routines exclusively called by isr
-  bool nextStep()ISRISH;
+  bool nextStep() ISRISH;
   inline void pulse(/*int direction,u32 speed*/)ISRISH;
   void moveCompleted()ISRISH;
   void bumpIndex(int direction);

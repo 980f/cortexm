@@ -60,7 +60,7 @@ struct SysTicker {
     return hack; //just to ensure optimizer doesn't eliminate read of rolledOver
   } /* start */
 
-  u32 ticksPerSecond(void){
+  u32 ticksPerSecond() const{
     u32 effectiveDivider = reload + 1;
 
     if(!fullspeed) {
@@ -69,15 +69,15 @@ struct SysTicker {
     return rate(clockRate(-1), effectiveDivider);
   }
 
-  u32 ticksForMicros(u32 us){
+  u32 ticksForMicros(u32 us) const{
     return (us * ticksPerSecond()) / 1000000;
   }
 
-  u32 ticksForMillis(u32 ms){
+  u32 ticksForMillis(u32 ms) const{
     return (ms * ticksPerSecond()) / 1000;
   }
 
-  u32 ticksForHertz(float hz){
+  u32 ticksForHertz(float hz) const{
     return ratio(ticksPerSecond(), hz);
   }
 
@@ -133,11 +133,11 @@ u32 ticksForHertz(float hz){
 }
 
 /** time since last rollover, must look at clock configuration to know what the unit is. */
-u32 snapTime(void){
+u32 snapTime(){
   return theSysTicker.reload - theSysTicker.value; //'tis a downcounter, want time since reload.
 }
 
-u32 snapTickTime(void){
+u32 snapTickTime(){
   //#some of the superficially gratuitous stuff in here exists to minimize the clocks spent with counting disabled.
   u32 snapms;
   u32 snaptick;
@@ -151,7 +151,7 @@ u32 snapTickTime(void){
   return ((snapms + 1) * (theSysTicker.reload + 1)) - snaptick;
 }
 
-u64 snapLongTime(void){//this presumes little endian 64 bit integer.
+u64 snapLongTime(){//this presumes little endian 64 bit integer.
   theSysTicker.enableCounting = 0; //can't use bitlock on a field in a struct :(
   u64 retval=milliTime |(u64(macroTime)<<32);//need a hack to get compiler to be efficient here.
   theSysTicker.enableCounting = 1; //todo:3 add some to systick to compensate for the dead time of this routine.
