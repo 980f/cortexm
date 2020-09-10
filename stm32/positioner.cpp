@@ -282,7 +282,7 @@ void Positioner::onDone(void){ // on step done
 } /* onDone */
 
 
-void Ramper::start(void){ //called from ISR
+void Ramper::start(void){
   stepticks = startticks;
 }
 

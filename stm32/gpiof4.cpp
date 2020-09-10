@@ -6,7 +6,7 @@
 
 #include "gpiof4.h"
 #include "peripheralband.h"  //deprecated bandFor
-#include "bitbanger.h"
+#include "bitbasher.h"
 
 // priority must be such that these get created before any application objects
 #define DefinePort(letter) const Port P##letter InitStep(InitHardware)(*#letter)

@@ -2,12 +2,12 @@
 
 #include "timer.h" //a dedicated hardware timer is used for each stepper for precise operation
 #include "stm32.h"
-#include "steppercontrol.h"
-#include "pulseinput.h"
-#include "twiddler.h"
-#include "gpio.h"
+#include "steppercontrol.h" //commands and config
+#include "pulseinput.h" //home sensor type is misnamed
+#include "twiddler.h"  //smooth transitions
+#include "gpio.h"  //used by physical interface.
 
-//replace with functional once STLP quits being cranky
+//might replace with functional once STLP quits being cranky
 class Mechanism {
 public:
   /** true step in positive direction else step in negative. */
@@ -22,6 +22,7 @@ class TwoPinMechanism : public Mechanism {
   const OutputPin &stepPos;
   const OutputPin &stepNeg;
   const OutputPin &powerPin;
+  //todo: own sub timer for pulse width.
 
 public:
   TwoPinMechanism(const OutputPin &stepPos,const OutputPin &stepNeg,const OutputPin &powerPin);
@@ -40,13 +41,23 @@ public:
 };
 
 /** stepper motor driver
- * TODO: pipeline the step computation so that the ISR just loads a value and sets a flag to tell the main loop to compute another one.
+ * biggest change from the past: pipeline the step computation so that the ISR just loads a value and sets a flag to tell the main loop to compute another one.
  *  if the "need new value" is set when the ISR begins we do a simple restart wtihout reload and increment an error counter.
  * */
 
+/** defining type used for interface for all positions. Can be negative near home. */
+using Step = int;
+/** defining type used for speed logic */
+using StepTick = unsigned ;
+
 struct Motion {
-  int desiredStep; //where we are going to stop.
-  int actualStep; //updated when step is complete, not when issued.
+  Step desiredStep; //where we are going to stop.
+  /** incremented by isr when it has triggered a step.
+  * polled by the main loop, compared to desiredstep target value and if different then a new step width is computed.
+  * it can be the 'actual step' value, no reason for it not to be other than the hassle of checking direction.
+  * doint it as counter+=direction makes that hassle trivial.
+  */
+  Step actualStep; //updated when step is complete, not when issued.
   int direction; //+1,0,-1
   bool completed; //covers timing gaps where 'direction' is 0 but we expect to move on the next tick.
   void init(void){
@@ -55,7 +66,7 @@ struct Motion {
     completed = true;
   }
 
-  bool active(void){
+  bool active(void) const{
     return direction != 0 || !completed;
   }
 
@@ -63,7 +74,8 @@ struct Motion {
     init();
   }
 
-  void setLocation(int arg){
+  /** declare the present physical location to be the given value */
+  void setLocation(Step arg){
     actualStep= desiredStep= arg;
   }
 };
@@ -71,24 +83,29 @@ struct Motion {
 /** this controls the step rate dynamically while moving */
 struct Ramper {
   int stepsRemaining;//temporarily negative at times.
-  u32 stepticks; //timer reload value, for each step
+  /** present speed, loaded into timer for next step. */
+  StepTick stepticks; //timer reload value, for each step
   //can't afford to use floating point in code that runs from ISR, and don't want to gate off an interrupt so code that shares ISR variables also should not use floating point.
   //... so we convert float into float-via-averaging-integers
-  u32 startticks;
-  u32 endticks;
-  u32 numSteps; //ramp tracker
-  //subtract or add this amount per tick for accel/decel respectively
+  /** unstick/initial/crawling speed */
+  StepTick startticks;
+  /** maximum/cruise speed */
+  StepTick endticks;
+  /** from acceleration we compute number of ticks to get from startticks to endticks */
+  unsigned numSteps; //ramp tracker
+  /** subtract or add this amount per tick for accel/decel respectively */
   PwmModulator dither; //delta ticks inside here.
   /** adjust step time for step about to be initiated, return that time*/
-  inline u32 stepped(bool suppress=false)ISRISH;//#ISR
-  inline void start(void);//#ISR
+  inline StepTick stepped(bool suppress=false);
+  inline void start(void);
   /**@return whether we are at a speed where we can change direction or start or stop.*/
-  inline bool crawling() ISRISH {//#ISR
+  inline bool crawling(){
     return stepticks>=startticks;//'>' deals with non-atomic change in velocity settings
   }
-  /**convert doubles to integers for isr use.*/
-  void apply(GasPedal&v, Timer&timer);//NOT called in the ISR
-  bool apply(StepAccess &free, Timer&timer);
+  /** apply configuration values, convert doubles to integers for isr use.*/
+  void apply(GasPedal&v, const Timer&timer);//NOT called in the ISR
+  /** apply diagonstic access */
+  bool apply(StepAccess &free, const Timer&timer);
 };
 
 /** the homing process */
@@ -107,17 +124,14 @@ struct Homage {
 class Stepper : public PeriodicInterrupter {
 public:
   bool suppressedForDebug;
-protected:
-//  PositionerSettings &s;
+protected://to be extended by an indexed positioner.
+  Step target;
   Ramper r;
   StepperControl c;
   Motion m;
   Homage h;//formerly part of StepperControl, needed pure separation of control and status.
-  /** cached value of s.g.stepsPercycle */
-  int circularity; //must be signed for proper math, although value will always be positive or 0.
-
-  void startZeroing(int someIndex);
-private:
+  /** for circular devices this is the steps per revolution. Set to 0 for non-circular mechanisms */
+  Step circularity; //must be signed for proper math, although value will always be positive or 0.
 
 public: //public for diagnostic access.
   PulseInput &mark;
@@ -125,45 +139,47 @@ public: //public for diagnostic access.
 
 public://public for isr linkage, do not call directly!
   void onDone(void) ISRISH ;//mingw compiler segfaults optimizing this method! Note: blank defines apparently define to '1'
-private://routines exclusively called by isr
-  bool nextStep() ISRISH;
-  inline void pulse(/*int direction,u32 speed*/)ISRISH;
-  void moveCompleted()ISRISH;
+  /** fires off a step and sets the timer for the next interrupt using Ramper current value */
+  inline void pulse() ISRISH;
+private:
+  /** carefully slowdown from where we are, decelerating so that we don't lose track of steps */
+  void gentleHalt();
+  /** see if we are done, if not adjust speed */
+  void nextStep() ;
+  /** keep parameters within bounds, but allow moves past home */
+  Step circularize(Step &step) const;
 
-  int circularize(int &step) const ISRISH;
-  void killProcedures();
 protected:
   /** idiot check then cache as it is frequently referenced in ISR's*/
   void setCircularity(unsigned cyclelength);
-  void setLocation(int locationNow);
+  /** redefine where we are, but don't move*/
+  void setLocation(Step locationNow);
+  /** called when homing gives up */
   void hfailed(bool powered);
-  void calFailed();
+  /** interface power. Normally you turn it on and leave it on. We turn it off when homing fails so that a person can wiggle the device to see why the home sensor isn't working. */
   void power(bool beon);
 
 public:
-//  void report(PositionerReport &r);
-  void reportMore(MotorReport &report);
-protected:  /** called in an ISR*/
-  bool onMotionCompleted(bool normal /*else homed*/);
-  void onMark(/*int direction,*/bool entered) ISRISH;//#implements Demon
-  void onSizingComplete();
-
-public:
   Stepper(unsigned timerLuno , Mechanism &&pins, PulseInput &&index);
-  void init(void);
+  void init();
+  /** must be called when the step might have completed, and when any configuration might have changed.
+   * so we do it in the main loop. */
   void doLogic();
-public:
-  int location(void){
+
+  Step location(){
     return m.actualStep;
   }
-  bool atLocation(u32 step);
+  bool atLocation(Step step) const;
   /** @return whether motor is or <i>is about to be</i> stepping*/
-  inline bool inMotion(void)ISRISH{
+  inline bool inMotion() const{
     return m.active(); //direction should always be non-zero when braking is non-zero.
   }
+  void reportMore(MotorReport &report);
 
+  /** drop present home status and start finding it all over again */
+  void home();
   /** target and whether to rehome when you get there*/
-  void absmoveto(int desired)ISRISH;
-  void relmoveto(int desired)ISRISH;
+  void absmoveto(Step desired);
+  void relmoveto(Step desired);
 };
 
