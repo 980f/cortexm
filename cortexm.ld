@@ -104,7 +104,14 @@ __exit_table__ = LOADADDR(.exit);
   .bss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
     *(SORT(.bss.*))
     *(.bss)
+/* tbss added for F407+ st's hal use, just for errno! Once we understand it we might be able to get rid of it  */
+    *(SORT(.tbss.*))
+    *(.tbss)
     /* shouldn't be getting these: .gnu.linkonce.b.*) *(COMMON)*/
+  } >SRAM
+
+ .tbss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
+    
   } >SRAM
 
   .startupClear : {/* the following initializes an instance of what cstartup.cpp calls 'struct RamBlock' */

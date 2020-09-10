@@ -23,6 +23,12 @@ read and write like an unsigned.
   void operator=(unsigned stacktop)const {\
     __asm volatile("MSR " #regname ", %0\n" : : "r" (stacktop));\
   }\
+  void operator|=(unsigned stacktop)const {\
+    *this= unsigned(*this)|stacktop;\
+  }\
+  void operator&=(unsigned stacktop)const {\
+    *this= unsigned(*this)&stacktop;\
+  }\
 }
 
 
@@ -88,12 +94,33 @@ extern const MREG(faultmask) FAULTMASK;
 #endif /* (__CORTEX_M >= 3) */
 
 
-#if (__CORTEX_M == 4)
+#if __CORTEX_M == 4
+
+
 
 #if __FPU_PRESENT == 1
-extern const MREG(fpsr) FPSR;
+#define FPUREG(regname) struct FPUREG_##regname {\
+  operator unsigned () const {\
+    unsigned  result;\
+  __asm volatile("VMRS %0, " #regname "\n" : "=r" (result));\
+    return result;\
+  }\
+  void operator=(unsigned stacktop)const {\
+    __asm volatile("VMSR " #regname ", %0\n" : : "r" (stacktop));\
+  }\
+    void operator|=(unsigned stacktop)const {\
+    *this= unsigned(*this)|stacktop;\
+  }\
+  void operator&=(unsigned stacktop)const {\
+    *this= unsigned(*this)&stacktop;\
+  }\
+}
+
+extern const MREG(fpsr) FPSR;//normal space
+extern const FPUREG(fpscr) FPSCR;
 #else
 extern unsigned FPSR;
+extern unsigned FPSCR
 #endif
 
 #endif /* (__CORTEX_M == 4) */

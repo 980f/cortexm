@@ -120,6 +120,15 @@ public:
     item = value;
   }
 
+  void operator|=(unsigned value) const {// NOLINT
+    item |= value;
+  }
+
+  void operator&=(unsigned value) const {// NOLINT
+    item &= value;
+  }
+
+
   /** mostly exists to appease compiler complaint about ambiguity of assignment. */
   void operator=(const ControlWord &other) const {// NOLINT
     item = other;
