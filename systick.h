@@ -11,28 +11,44 @@ void SystemTickServer();
 which will get called FROM AN ISR periodically.
 
 */
+
+//time that isn't forever, but good for any one action's duration.
+using SysTicks = uint32_t;
+//time that won't roll over
+using SysTime = uint64_t;
+//functions to call on the SystemTick
+using SystemTicker = void (*)();
+
 namespace SystemTimer {
+
 /** start ticking at the given rate.
   * presumes system clock is already programmed and that it is the clock source*/
-void startPeriodicTimer(u32 persecond);
+  void startPeriodicTimer(unsigned persecond);
 
 /** time since last rollover (<1 ms if 1kHz, even shorter at higher sysfreq), only suitable for spinning in place for a short time.
 NB: this is NOT in ticks, it is in probably 8MHz increments, but that may differ for some clock configurations.*/
-u32 snapTime(void);
+  SysTicks snapTime();
+
 /** much longer time range but an expensive call, in units of system tick, call secondsForTicks()*/
-u32 snapTickTime(void);
+  SysTicks snapTickTime();
+
 /** much much longer time range, with a range greater than the life of the instrument., call secondsForLongTime()*/
-u64 snapLongTime(void);
+  SysTime snapLongTime();
 
-double secondsForTicks(u32 ticks);
-double secondsForLongTime(u64 ticks);
+  double secondsForTicks(SysTicks ticks);
 
-/** ticks necessary to get a delay of @param sec seconds*/
-u32 ticksForSeconds(float sec);
-u32 ticksForMillis(int ms);
-u32 ticksForMicros(int us);
+  double secondsForLongTime(SysTime ticks);
+
+/** ticks necessary to get a delay of @param sec seconds, 0 if sec is negative */
+  SysTicks ticksForSeconds(float sec);
+
+/** ticks, but if ms is negative then you get 0 */
+  SysTicks ticksForMillis(int ms);
+
+/** ticks, but is us is negative then you get 0 */
+  SysTicks ticksForMicros(int us);
+
 /** ticks necessary to get a periodic interrupt at the @param hz rate*/
-u32 ticksForHertz(float hz); //approximate since we know a divide is required.
+  SysTicks ticksForHertz(float hz); //approximate since we know a divide is required.
 }
-//functions to call on the SystemTick
-typedef void (*SystemTicker)();
+

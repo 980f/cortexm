@@ -199,7 +199,7 @@ Note that these objects can be const while still manipulating the pin.
 */
 class OutputPin : public LogicalPin {
 public:
-  explicit constexpr OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
+  constexpr OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
     LogicalPin(pin, active) {
     pin.DO(slew, openDrain);
   }
