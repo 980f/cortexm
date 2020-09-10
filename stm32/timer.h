@@ -159,17 +159,18 @@ struct Timer {
   Timer(unsigned stLuno);
   /** input to timer's 16 bit counter in integer Hz,
     * appears to truncate rather than round.*/
-  u32 baseRate(void) const;
+  unsigned baseRate(void) const;
 
   /** sets the prescalar to generate the given hz.*/
   void setPrescaleFor(double hz) const;
   /** set cycle length in units determined by baseRate and prescale:*/
-  void setCycler(u32 ticks) const;
-  u32 getCycler(void) const;
+  void setCycler(unsigned ticks) const;
+  unsigned getCycler(void) const;
   double getHz(void) const;
-  u32 ticksForMillis(u32 ms) const;
-  u32 ticksForHz(double Hz) const;
-  double secondsInTicks(u32 ticks)const;
+  unsigned ticksForMillis(unsigned ms) const;
+  unsigned ticksForMicros(unsigned us) const;
+  unsigned ticksForHz(double Hz) const;
+  double secondsInTicks(unsigned ticks)const;
   enum ExternalInputOption { Xor, CH1, CH2 };
 
   /**
@@ -178,11 +179,11 @@ struct Timer {
   void configureCountExternalInput(enum ExternalInputOption, unsigned filter = 0) const;
 
   /** most uses will have to turn on some of the interrupts before calling this function.*/
-  void beRunning(bool on = true) const {
+  /*virtual*/ void beRunning(bool on = true) const {
     b->enabled = on;
   }
 
-  void clearEvents(void) const {
+  inline void clearEvents(void) const {
     dcb[8] = 0;
   }
 
@@ -194,22 +195,23 @@ struct Timer {
   }
 
   /** clear the counter and any flags then enable counting */
-  void startRunning(void) const {
-    b->enabled = 0; //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
+  inline void startRunning(void) const {
+    beRunning(false); //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
     *counter() = 0;
     clearEvents();
     beRunning(true);
   }
 
-  void UIE(bool on) const {
+  inline void UIE(bool on) const {
     b->updateIE = on;
   }
 
-  void Interrupts(bool on){
+  inline void Interrupts(bool on){
     if(on) {
       irq.enable();
     } else {
       irq.disable();
+      irq.clear();//and clear any pending (hoepfully cures a stepper control issue of not freewheeling on de-configuration)
     }
   }
 };
@@ -273,11 +275,11 @@ public:
 /** uses ARR register to divide clock and give an interrupt at a periodic rate*/
 class PeriodicInterrupter : public Timer {
 public:
-  PeriodicInterrupter(unsigned stLuno) : Timer(stLuno){}
+  PeriodicInterrupter(unsigned stLuno);
   /** @overload sets the interrupts then chains */
   void beRunning(bool on = true); //can't const as interrupts are manipulated
   /** @overload */
-  void restart(u32 ticks); //can't const as interrupts are manipulated
+  void restart(unsigned ticks); //can't const as interrupts are manipulated
   void restartHz(double hz); //can't const as interrupts are manipulated //todo:L pull up hierarchy
 };
 
@@ -299,6 +301,20 @@ struct DelayTimer : public Timer {
     startRunning(); //as long as this clears all possible interrupt sources then our retrigger can use it.
   }
 
+};
+
+/** NB: you have to declare an interrupt handler to be associated with any instance of this class.
+ that isr should call onDone() else you might as well be a PeriodicInterrupter */
+class Monostable : public Timer {
+public:
+  Monostable(unsigned stLuno);
+  void setPulseWidth(unsigned ticks);
+  void setPulseMicros(unsigned microseconds);
+public:
+  void retrigger();
+  void onDone(){//making this virtual would be expensive, and usually will be called from an isr with the explicit implemenation handy.
+    beRunning(false);
+  }
 };
 
 

@@ -70,6 +70,10 @@ u32 Timer::ticksForMillis(u32 ms) const {
   return quanta(ms * baseRate(), 1000 * (1 + PSC));
 }
 
+u32 Timer::ticksForMicros(u32 us) const {
+  return quanta(us * baseRate(), 1000000 * (1 + PSC));
+}
+
 u32 Timer::ticksForHz(double Hz) const {
   return quanta(baseRate(), Hz * (1 + PSC));
 }
@@ -97,8 +101,14 @@ double Timer::getHz()const {
   return secondsInTicks(getCycler());
 }
 
+
+////////////////////////////
+PeriodicInterrupter::PeriodicInterrupter(unsigned stLuno) : Timer(stLuno){
+  beRunning(0);//for soft reset to match hard reset.
+}
+
 void PeriodicInterrupter::beRunning(bool on){ //can't const as interrupts are manipulated
-  Interrupts(on); //raw interrupt is always on, UIP interrupt is only mask we twiddle.
+  Interrupts(on); //raw interrupt is always on, UIE interrupt is only mask we twiddle.
   UIE(on);
   Timer::beRunning(on);
 }
@@ -160,6 +170,7 @@ Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
   } /* switch */
   return {Port('Z'), 0}; //should blow royally
 } /* pin */
+
 
 
 //set polarity
