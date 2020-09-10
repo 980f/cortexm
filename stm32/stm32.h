@@ -63,7 +63,7 @@ protected:
 
 public:
   /** Actual APB devices  @param bus and slot are per st documentation */
-  constexpr APBdevice(unsigned int stbus, unsigned int slot):
+  constexpr APBdevice(unsigned stbus, unsigned slot):
     rbus(rccBus(stbus,false)),
     slot(slot),
     blockAddress(APB_Block(rbus, slot)),
@@ -72,7 +72,7 @@ public:
   {}
 
 /** AHB devices  @param bus and slot are per st documentation */
-  constexpr APBdevice(unsigned int stbus, unsigned int slot, unsigned rawAddress):
+  constexpr APBdevice(unsigned stbus, unsigned slot, unsigned rawAddress):
     rbus(rccBus(stbus,true)),
     slot(slot),
     blockAddress(rawAddress),
@@ -89,7 +89,7 @@ public:
   /** reset and enable clock */
   void init() const;
   /** get base clock for this module */
-  u32 getClockRate() const;
+  unsigned getClockRate() const;
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
   constexpr Address registerAddress(unsigned offset) const {
     return blockAddress + offset;

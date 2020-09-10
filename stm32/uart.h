@@ -164,26 +164,26 @@ struct Uart:public APBdevice {
   /** use this if you are changing the rate while the program is running, else @see setParams
     *  this will disable the uart if the baud rate is changed, you must re-enable it after you have finished other configuration actions.
     */
-  void setBaudrate(unsigned int desired);
+  void setBaudrate(unsigned desired);
   /**use this one for initial setup.
     * this will disable the uart, you must re-enable it after you have finished other configuration actions.
     * longStop adds a stop bit,
     * shortStop removes half of one.
     * NEO is the parity control: None Even Odd.
     */
-  void setParams(unsigned int baud = 19200U, unsigned int numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false); //19200,n,8,1
+  void setParams(unsigned baud = 19200U, unsigned numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false); //19200,n,8,1
 
   /** hard reset then setParams*/
-  void reconfigure(unsigned int baud = 19200U, unsigned int numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false); //19200,n,8,1
+  void reconfigure(unsigned baud = 19200U, unsigned numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false); //19200,n,8,1
 
-  void init(unsigned int baud = 19200U, char parityNEO = 'N', unsigned int numbits = 8);
+  void init(unsigned baud = 19200U, char parityNEO = 'N', unsigned  numbits = 8);
 
   /** part of char time calculation, includes stop and start and parity, not just payload bits */
-  u32 bitsPerByte(void) const;
+  unsigned bitsPerByte(void) const;
   /** bits per second, actual not what you last set :)*/
-  u32 bitsPerSecond(void) const;
+  unsigned bitsPerSecond(void) const;
   /** timer ticks required to move the given number of chars. Involves numbits and baud etc.*/
-  u32 ticksForChars(unsigned charcount) const;
+  unsigned ticksForChars(unsigned charcount) const;
 
   void beReceiving(bool yes = true);
 

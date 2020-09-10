@@ -59,26 +59,26 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
   dcb[12] |= filter << (which == CH2 ? 12 : 4);
 } /* configureCountExternalInput */
 
-u32 Timer::baseRate(void) const {
-  u32 apbRate = apb.getClockRate();
-  u32 ahbRate = clockRate(0);
+unsigned  Timer::baseRate(void) const {
+  unsigned  apbRate = apb.getClockRate();
+  unsigned  ahbRate = clockRate(0);
 
   return (ahbRate == apbRate) ? apbRate : apbRate *= 2;
 }
 
-u32 Timer::ticksForMillis(u32 ms) const {
+unsigned  Timer::ticksForMillis(unsigned  ms) const {
   return quanta(ms * baseRate(), 1000 * (1 + PSC));
 }
 
-u32 Timer::ticksForMicros(u32 us) const {
+unsigned  Timer::ticksForMicros(unsigned  us) const {
   return quanta(us * baseRate(), 1000000 * (1 + PSC));
 }
 
-u32 Timer::ticksForHz(double Hz) const {
+unsigned  Timer::ticksForHz(double Hz) const {
   return quanta(baseRate(), Hz * (1 + PSC));
 }
 
-double Timer::secondsInTicks(u32 ticks) const{
+double Timer::secondsInTicks(unsigned  ticks) const{
   return ratio(double(baseRate()),ticks*(1+PSC));
 }
 
@@ -89,12 +89,12 @@ void Timer::setPrescaleFor(double hz) const {
   b->fake_update = 1; //UG: an auto clearing bit.  UEV
 }
 
-void Timer::setCycler(u32 ticks) const {
+void Timer::setCycler(unsigned  ticks) const {
   ARR = ticks - 1;//
 }
 
-u32 Timer:: getCycler() const {
-  return u32(ARR) + 1; //#cast required
+unsigned  Timer:: getCycler() const {
+  return unsigned (ARR) + 1; //#cast required
 }
 
 double Timer::getHz()const {
@@ -113,7 +113,7 @@ void PeriodicInterrupter::beRunning(bool on){ //can't const as interrupts are ma
   Timer::beRunning(on);
 }
 
-void PeriodicInterrupter::restart(u32 ticks){ //can't const as interrupts are manipulated
+void PeriodicInterrupter::restart(unsigned  ticks){ //can't const as interrupts are manipulated
   setCycler(ticks);
   beRunning(true);
 }
@@ -229,5 +229,27 @@ void CCUnit::setmode(u8 cc) const {
     pair = (pair & ~0xFF) | cc;
   }
 }
+
+Monostable::Monostable(unsigned stLuno):Timer(stLuno){
+  beRunning(0); //just in case someone fools with the base class
+  Interrupts(1);
+  UIE(1);
+}
+
+void Monostable::setPulseWidth(unsigned ticks){
+  Timer::setCycler(ticks);  
+}
+
+void Monostable::setPulseMicros(unsigned micros){
+  if(micros <= 0){
+    micros=1;  //we do not know if zero will pulse here
+  }
+  setPulseWidth(Timer::ticksForMicros(micros));
+}
+
+void Monostable::retrigger(){
+  startRunning();
+}
+
 
 //end of file
