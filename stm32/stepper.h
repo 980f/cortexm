@@ -8,35 +8,39 @@
 #include "gpio.h"  //used by physical interface.
 
 //might replace with functional once STLP quits being cranky
-class Mechanism {
+class StepperInterface {
 public:
   /** true step in positive direction else step in negative. */
   virtual void operator ()(bool positive)=0;
   /** true: power up, false: power down */
-  virtual void operator =(bool enabled)=0;
+  virtual void operator =(bool enabled)=0;  //was freeWheel for =0, =1 done in step or init
   /** @returns state of poweredness */
   virtual operator bool() const=0;
 };
 
-class TwoPinMechanism : public Mechanism {
-  const OutputPin &stepPos;
-  const OutputPin &stepNeg;
-  const OutputPin &powerPin;
+/** pair of CW and CCW pulses, power is enabled when that pin is low */
+class PulseStepper : public StepperInterface {
+  const OutputPin &forward;
+  const OutputPin &backward;
+  const OutputPin &power;//todo: config low active
   //todo: own sub timer for pulse width.
+  /** used to make the control outputs pulses rather than DC levels, not to be confused with motion timer. */
+  Monostable timer;
 
 public:
-  TwoPinMechanism(const OutputPin &stepPos,const OutputPin &stepNeg,const OutputPin &powerPin);
+  PulseStepper(const OutputPin &stepPos,const OutputPin &stepNeg,const OutputPin &powerPin);
   /** true step in positive direction else step in negative. */
    void operator ()(bool positive) {
-     if(positive) stepPos=1; else stepNeg=1; //todo: we need a pulse width
+     if(positive) forward=1; else backward=1;
+     timer.retrigger();
    };
   /** true: power up, false: power down */
    void operator =(bool enabled){
-     powerPin=enabled;
+    power=enabled;
    }
   /** @returns state of poweredness */
    operator bool() const{
-     return powerPin.actual();
+     return power.actual();
    };
 };
 
@@ -135,7 +139,7 @@ protected://to be extended by an indexed positioner.
 
 public: //public for diagnostic access.
   PulseInput &mark;
-  Mechanism &stepper;
+  StepperInterface &stepper;
 
 public://public for isr linkage, do not call directly!
   void onDone(void) ISRISH ;//mingw compiler segfaults optimizing this method! Note: blank defines apparently define to '1'
@@ -160,7 +164,7 @@ protected:
   void power(bool beon);
 
 public:
-  Stepper(unsigned timerLuno , Mechanism &&pins, PulseInput &&index);
+  Stepper(unsigned timerLuno , StepperInterface &&pins, PulseInput &&index);
   void init();
   /** must be called when the step might have completed, and when any configuration might have changed.
    * so we do it in the main loop. */
