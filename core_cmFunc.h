@@ -116,6 +116,8 @@ extern const MREG(faultmask) FAULTMASK;
   }\
 }
 
+#define CFPUREG(regname) const FPUREG_##regname
+
 extern const MREG(fpsr) FPSR;//normal space
 extern const FPUREG(fpscr) FPSCR;
 #else

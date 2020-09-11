@@ -1,6 +1,6 @@
 //core_cm4 needs a particular device defined first:
-#include "stm32f407xx.h"
-#include "core_cm4.h" //cmsis special ops
+#include DeviceHeaderFile
+//#include "core_cm4.h" //cmsis special ops
 #include "fpu.h"
 #include "peripheraltypes.h"
 #include "core_cmFunc.h"
@@ -36,7 +36,7 @@ void fpu_enable(){
 void fpu_noisr() {
 //if we never use FP hardware in isr's then we can clear two bits:
   ControlField(0xE000EF34, 30, 2) = 0;//don't preserve FPU state on interrupts
-  CONTROL &= ~(1 << 2);//on't preserve FPU state on interrupt, why it has to be in two places is beyond me. Plus rowley startup sets it to unconditionally do the stacking
+  CONTROL &= ~(1 << 2);//don't preserve FPU state on interrupt, why it has to be in two places is beyond me. Note: rowley startup sets it to unconditionally do the stacking
 }
 
 void fpu_init(){
