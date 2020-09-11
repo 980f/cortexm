@@ -183,14 +183,16 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  explicit constexpr InputPin(const Pin &pin, char UDF = 'D', bool active = true): LogicalPin(pin, active) {
+  explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true): LogicalPin(pin, active) {
     pin.DI(UDF);
   }
   /** pull the opposite way of the 'active' level. */
-  explicit constexpr InputPin(const Pin &pin, bool active):InputPin(pin, active ? 'D' : 'U', active) {
+  InputPin(const Pin &pin, bool active):InputPin(pin, active ? 'D' : 'U', active) {
     //#nada
   }
 
+//  InputPin(InputPin &&copyme)=default;
+  InputPin(const InputPin &copyme)=default;
 };
 
 /**
