@@ -9,12 +9,14 @@ instantiate this in a project specific file:
 */
 extern const unsigned EXTERNAL_HERTZ;
 
+using Hertz=unsigned;
+
 //clock rate:
 /** @returns a clock rate selected by @param which, which depends upon processor family although many are common
  * stm32: bus is: -1:sysclock; 0:ahb/core; 1:apb1; 2:apb2; 3:adc;
  * lpc13xx: -1:sysclock; 0:core; 1:ahb 2:uart 3 spi 
 */
-u32 clockRate(int which);
+Hertz clockRate(int which);
 
 /**set system clocks to the fastest possible*/
 void warp9(bool internal);
@@ -27,10 +29,10 @@ void warp9(bool internal);
 */
 struct ClockStarter {
   const bool intosc;//hs oscillator selection
-  const u32 coreHertz;
-  const u32 sysHertz;
+  const Hertz coreHertz;
+  const Hertz sysHertz;
   /** by declaring an explicit constructor the compiler arranges for it to be called even if we use {} initializer */
-  ClockStarter(bool intosc,u32 coreHertz,u32 sysHertz);
+  ClockStarter(bool intosc,Hertz coreHertz,Hertz sysHertz);
 };
 
 /** MCO pin configuration (to snoop on internal clock).

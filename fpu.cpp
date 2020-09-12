@@ -39,8 +39,15 @@ void fpu_noisr() {
   CONTROL &= ~(1 << 2);//don't preserve FPU state on interrupt, why it has to be in two places is beyond me. Note: rowley startup sets it to unconditionally do the stacking
 }
 
-void fpu_init(){
+
+struct FpuOptions{
+FpuOptions(bool dontStack,bool ieeePerfect){
   fpu_enable();
+  if(dontStack)
   fpu_noisr();
+  if(!ieeePerfect)
   fpu_fast();
 }
+};
+
+InitStep(InitHardware) FpuOptions fpuopts{true,false};

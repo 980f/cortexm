@@ -22,21 +22,6 @@ I am working on replacing *'s with &'s, its a statistical thing herein as to whi
  we want these classes to appear to be normal program variables, so that we can replace instances of them with normal program variables to disable them with only changing the declaration.
 
 */
-
-//inline void setBit(unsigned  address, unsigned bit){
-//  *atAddress(address)|= 1<<bit;
-//}
-
-//inline void clearBit(unsigned  address, unsigned  bit){
-//  *atAddress(address) &= 1<<bit;
-//}
-
-///** ensure a 0:1 transition occurs on given bit. */
-//inline void raiseBit(unsigned  address, unsigned  bit){
-//  clearBit(address, bit);
-//  setBit(address, bit);
-//}
-
 /** for a private single instance block */
 #define soliton(type, address) type& the##type = *reinterpret_cast<type*>(address);
 
@@ -58,10 +43,6 @@ template<typename Scalar> constexpr Scalar&Ref(Address address){
   return *static_cast<Scalar *>(pun.pointer);
 }
 
-/** most cortex devices follow arm's suggestion of using this block for peripherals */
-const Address PeripheralBase{0x40000000};  //1<<30
-
-const Address PeripheralBand{0x42000000};
 
 /** many, but not all, cortex devices put peripheral control registers in the 0x4000 space, and bitband all of that to 0x4200.
  * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
@@ -82,21 +63,6 @@ constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
   //bit to lsbs of address |  byteaddress shifted up far enough for address space to go away | restore address space | bitband indicator.
   return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & 0xE0000000U) | 0x02000000U};
 }
-
-///** @return bitband address for given bit (default 0) of @param byte address.
-//this assumes that the byte address ends in 00, which all of the ones in the st manual do.
-//*/
-//constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0){
-//  return bandit(byteAddress,bitnum);
-//}
-
-///** @return bitband address for given bit (default 0) of @param byte address.
-//this assumes that the byte address ends in 00, which all of the ones in the st manual do.
-//*/
-//constexpr Address bandAddress(Address byteAddress, unsigned bitnum = 0){
-//  return bandFor(byteAddress,bitnum);
-//}
-
 /** when you don't know the address at compile time use one of these, else use an SFRxxx. */
 class ControlWord {
   volatile unsigned &item;
@@ -305,3 +271,8 @@ struct SFRbandbit : public BoolishRef {
     return value;
   }
 };
+
+/** most cortex devices follow arm's suggestion of using this block for peripherals */
+const Address PeripheralBase{0x40000000};  //1<<30
+
+const Address PeripheralBand{0x42000000};//bandFor(PeripheralBase)

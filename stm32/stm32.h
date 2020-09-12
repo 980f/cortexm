@@ -25,6 +25,7 @@ constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBa
 constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBand | (bus2-4) << 21u | slot << 15u); }
 
 const Address RCCBASE(0x40023800U);//0th offset.
+
 const unsigned resetOffset=0x10;
 const unsigned clockOffset=0x30;
 //todo: low power mode.

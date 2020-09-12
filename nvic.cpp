@@ -115,6 +115,20 @@ struct InterruptController {
  */
 soliton(InterruptController, 0xE000ED04);
 
+
+//#if 0 //hal version
+//uint32_t reg_value;
+//  uint32_t PriorityGroupTmp = (PriorityGroup & (uint32_t)0x07UL);
+//
+//  reg_value = ((SCB_Type *) ((0xE000E000UL) + 0x0D00UL) )->AIRCR;
+//  reg_value &= ~((uint32_t)((0xFFFFUL << 16U) | (7UL << 8U)));
+//  reg_value = (reg_value |
+//                ((uint32_t)0x5FAUL << 16U) |
+//                (PriorityGroupTmp << 8U) );
+//  ((SCB_Type *) ((0xE000E000UL) + 0x0D00UL) )->AIRCR = reg_value;
+//
+//#endif
+
 void configurePriorityGrouping(unsigned code){
   ControlWord(0xE000ED0C)= ((code & 7) << 8) | (0x05FA<<16); //5FA is a guard against random writes.
 }
