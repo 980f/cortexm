@@ -112,10 +112,10 @@ void OutputPin::toggle() const {
 
 /////////////////////////////////
 
-constexpr unsigned gpiobase(unsigned Ais0){
-  return 0x40020000+0x400*Ais0;
-}
+//constexpr unsigned gpiobase(unsigned Ais0){
+//  return 0x40020000+0x400*Ais0;
+//}
 
-constexpr Port::Port(char letter) : APBdevice(1, unsigned(letter - 'A'),gpiobase(letter - 'A')) {}
+//constexpr Port::Port(char letter) : APBdevice(1, unsigned(letter - 'A'),gpiobase(letter - 'A')) {}
 
 #pragma clang diagnostic pop
