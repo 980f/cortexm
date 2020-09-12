@@ -5,13 +5,7 @@
 #include "uart.h"
 #include "minimath.h"
 
-#if DEVICE == 103
-#include "gpio.h"
-#elif DEVICE == 407
-
-#include "gpiof4.h"
-
-#endif
+//#include "gpio.h"
 
 void Uart::setBaudrate(unsigned desired) {
   //note: the ST manuals are chocked full of nonsense with respect to baud rate setting.
@@ -89,7 +83,7 @@ void Uart::reconfigure(unsigned baud, unsigned numbits, char parityNEO, bool lon
 
 void Uart::init(unsigned baud, char parityNEO, unsigned numbits) {
   reconfigure(baud, numbits, parityNEO);
-  takePins(true, true); //after reconfigure as that reset's all usart settings including the ones this fiddles with.
+ // takePins(true, true); //after reconfigure as that reset's all usart settings including the ones this fiddles with.
   irq.enable(); //the reconfigure disables all interrupt sources, so enabling interrupts here won't cause any.
 }
 
@@ -111,168 +105,5 @@ Uart::Uart(unsigned stluno, unsigned alt) :
   //not grabbing pins quite yet as we may be using a spare uart internally as a funky timer.
 }
 
-#if DEVICE == 103
-/**
-rx's are coded as floating inputs as RX is presumed to always be driven
-hsin's are coded as pulled up inputs in case the pin is left unconnected, although really someone
-should actively configure the pin's presence and not rely upon our weak pullup.
-*/
-//got tired of finesse:
-#define makeTxPin(P,b) Pin(P, b).FN(rxtxSpeedRange)
 
-static void grabInput(const Port &PX,int bn, char udf) {
-//assignment is to get compiler to not prune the code (although it kindly warned us that it did).
-  Pin(PX, bn).DI(udf)=1;
-}
-
-#define pinMux(stnum) theAfioManager.remap.uart##stnum=altpins;theAfioManager.remap.update()
-
-void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin){
-  Portcode::Slew rxtxSpeedRange=bitsPerSecond()>460e3?Portcode::Slew::fast:Portcode::Slew::slow;//pin speed codes, 2Mhz rounded off signal too much past 460kbaud
-
-  switch(stluno) {
-  case 1:
-    pinMux(1);
-    if(hsin) {
-      grabInput(PA, 11,'U');
-    }
-    if(hsout) {
-      Pin(PA, 12).FN();
-    }
-    switch(altpins) {
-    case 0 :
-      if(tx) {
-        makeTxPin(PA, 9);
-      }
-      if(rx) {
-        grabInput(PA, 10,'F');
-      }
-      break;
-    case 1 :
-      if(tx) {
-        makeTxPin(PB, 6);
-      }
-      if(rx) {
-        grabInput(PB, 7,'F');
-      }
-      break;
-    } /* switch */
-    break;
-  case 2:
-    pinMux(2);
-    switch(altpins) {
-    case 0:
-      if(tx) {
-        makeTxPin(PA, 2);
-      }
-      if(rx) {
-        grabInput(PA, 3,'F');
-      }
-      if(hsin) {
-        grabInput(PA, 0,'U');
-      }
-      if(hsout) {
-        Pin(PA, 1).FN();
-      }
-      break;
-    case 1:
-      //todo:3 set the AFIO remap field
-      if(tx) {
-        makeTxPin(PD, 5);
-      }
-      if(rx) {
-        grabInput(PD, 6,'F');
-      }
-      if(hsin) {
-        grabInput(PD, 3,'U');
-      }
-      if(hsout) {
-        Pin(PD, 4).FN();
-      }
-      break;
-    } /* switch */
-    break;
-  case 3:
-    pinMux(3);
-    //todo:3 add hs lines
-    switch(altpins) {
-    case 0:
-      if(tx) {
-        makeTxPin(PB, 10);
-      }
-      if(rx) {
-        grabInput(PB, 11,'F');
-      }
-      break;
-    case 1:
-      if(tx) {
-        makeTxPin(PC, 10);
-      }
-      if(rx) {
-        grabInput(PC, 11,'F');
-      }
-      break;
-    case 3:
-      if(tx) {
-        makeTxPin(PD, 8);
-      }
-      if(rx) {
-        grabInput(PD, 9,'F');
-      }
-      break;
-    } /* switch */
-    break;
-    //todo:3 uarts 4 and 5, which don't suffer from remap options.
-  } /* switch */
-  b.enableTransmitter = tx; //else the tx pin floats!
-  //... would only dynamically play with this for single wire half duplexing as in some SPI modes, better to use a transceiver and
-  //... a gpio pin than to play with the chip's own pin.
-} /* takePins */
-#endif
-
-#if DEVICE == 407
-//pin has selector for its function and selecting the function takes care of other aspects of it.
-#define makeTxPin(P, b) Pin(P, b).FN(7,rxtxSpeedRange,'F')
-#define makeRxPin(P, b) Pin(P, b).FN(7,rxtxSpeedRange,'U')
-
-void Uart::takePins(bool tx, bool rx, bool hsout, bool hsin) {
-  PinOptions::Slew rxtxSpeedRange = bitsPerSecond() > 460e3 ? PinOptions::Slew::fast : PinOptions::Slew::slow;  //pin speed codes, 2Mhz rounded off signal too much past 460kbaud
-  switch (stluno) {
-  case 1:
-    if (tx) {
-      if (altpins == 1) {
-        makeTxPin(PB, 6);
-      } else {
-        makeTxPin(PA, 9);
-      }
-    }
-    if (rx) {
-      if (altpins == 1) {
-        makeRxPin(PB, 7);
-      } else {
-        makeRxPin(PA, 10);
-      }
-    }
-    break;
-  case 2:
-    if (tx) {
-      if (altpins == 1) {
-        makeTxPin(PD, 5);
-      } else {
-        makeTxPin(PA, 2);
-      }
-    }
-    if (rx) {
-      if (altpins == 1) {
-        makeRxPin(PD, 6);
-      } else {
-        makeRxPin(PA, 3);
-      }
-    }
-
-    break;
-  }
-}
-
-#endif
 //End of file
