@@ -60,12 +60,12 @@ struct SysTicker {
   } /* start */
 
   SysTicks ticksPerSecond() const {
-    u32 effectiveDivider = reload + 1;
+    unsigned effectiveDivider = reload + 1;
 
     if (!fullspeed) {
       effectiveDivider *= 8;
     }
-    return rate(clockRate(-1), effectiveDivider);
+    return rate(clockRate(~0U), effectiveDivider);
   }
 
   SysTicks ticksForMicros(unsigned us) const {
@@ -93,7 +93,7 @@ namespace SystemTimer {
 //  if(!theSysTicker.fullspeed) {//!! stm32 specific (although others copy it)
 //    persecond *= 8; // times 8 here instead of /8 in the rate computation.
 //  }
-    unsigned num = clockRate(theSysTicker.fullspeed ? 0 : -1);
+    Hertz num = clockRate(theSysTicker.fullspeed ? 0U : ~0U);
     theSysTicker.start(rate(num, persecond));
   }
 

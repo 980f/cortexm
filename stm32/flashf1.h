@@ -2,8 +2,7 @@
 #define flashControlH
 #include "eztypes.h"
 
-//flash control functions
-void setFlash4Clockrate(unsigned int hz);
+
 
 /**
   * option bytes, 16 bytes of nv that won't get overwritten by code programming

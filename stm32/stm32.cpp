@@ -24,7 +24,7 @@ void APBdevice::init() const { //frequently used combination of reset then enabl
   setClockEnable();
 }
 
-unsigned APBdevice::getClockRate() const {
+Hertz APBdevice::getClockRate() const {
   return clockRate(rbus + 1);
 }
 

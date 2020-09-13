@@ -5,13 +5,11 @@
 #include "uart.h"
 #include "minimath.h"
 
-//#include "gpio.h"
-
 void Uart::setBaudrate(unsigned desired) {
   //note: the ST manuals are chocked full of nonsense with respect to baud rate setting.
   // just take the input clock rate and divide by the baud rate, round to the nearest integer, and put that value into the 16 bit BRR as if it were a simple integer.
   // you can ignore all the jabber about fractional baudrate and all the dicing and splicing, which under close inspection of ST's code does absolutely nothing.
-  unsigned osc = getClockRate();
+  Hertz osc = getClockRate();
   unsigned newbaud = rate(osc, desired);
 
   if (newbaud != dcb.BRR) {

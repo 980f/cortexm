@@ -4,7 +4,7 @@
 
 /* stm family common stuff */
 #include "peripheraltypes.h" //stm32 specific peripheral construction aids.
-
+#include "clocks.h" //for clock data type
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnusedGlobalDeclarationInspection"
 
@@ -90,7 +90,7 @@ public:
   /** reset and enable clock */
   void init() const;
   /** get base clock for this module */
-  unsigned getClockRate() const;
+  Hertz getClockRate() const;
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
   constexpr Address registerAddress(unsigned offset) const {
     return blockAddress + offset;

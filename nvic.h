@@ -18,16 +18,18 @@
 
 #define HandleFault(faultIndex) void FaultName(faultIndex) (void)
 
-/** @return previous setting while inserting new one*/
-u8 setInterruptPriorityFor(unsigned irqnum, u8 newvalue);
+/** @return previous setting while inserting new one.
+the exception number for an irq is irqnumber+16!
+*/
+u8 setInterruptPriorityFor(unsigned exceptionnumber, u8 newvalue);
 
-/** e.g. SysTick to lowest: setFaultHandlerPriority(15,255);*/
-void setFaultHandlerPriority(int faultIndex, u8 level);
+///** e.g. SysTick to lowest: setFaultHandlerPriority(15,255);*/
+//u8 setFaultHandlerPriority(unsigned faultIndex, u8 level);
 
 extern "C" void disableInterrupt(unsigned irqnum);
 
-/** value to put into PRIGROUP field, see arm tech ref manual.
- * 0: maximum nesting; 7: totally flat; 2<sup>7-code</sup> is number of different levels
+/** #of levels for grouping priorities, max 7
+ * <sup>7-code</sup> is what actually goes into the hardare register (==~code)
  * stm32F10x only implements the 4 msbs of the logic so values 3,2,1 are same as 0*/
 void configurePriorityGrouping(unsigned code);
 
@@ -78,7 +80,7 @@ public:
   }
 
   u8 setPriority(u8 newvalue) const {
-    return setInterruptPriorityFor(number, newvalue);
+    return setInterruptPriorityFor(number+16, newvalue);//seems like this was wrong for many years due to lack of +16.
   }
 
   /** @returns whether the source of the request is active */

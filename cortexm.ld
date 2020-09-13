@@ -100,26 +100,6 @@ __exit_table__ = LOADADDR(.exit);
     /* shouldn't be getting these, want to know if we do:  .gnu.linkonce.r.* */
   } >FLASH
 
-/* zero initialized data */
-  .bss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
-    *(SORT(.bss.*))
-    *(.bss)
-/* tbss added for F407+ st's hal use, just for errno! Once we understand it we might be able to get rid of it  */
-    *(SORT(.tbss.*))
-    *(.tbss)
-    /* shouldn't be getting these: .gnu.linkonce.b.*) *(COMMON)*/
-  } >SRAM
-
- .tbss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
-    
-  } >SRAM
-
-  .startupClear : {/* the following initializes an instance of what cstartup.cpp calls 'struct RamBlock' */
-    LONG(ADDR(.bss))
-    LONG((SIZEOF(.bss)+3)>>2)  /* word count instead of bytes, startup takes advantage of compiler forced alignment to do 4 bytes per cycle. */
-  } >FLASH
-  __bss_segment__ = LOADADDR(.startupClear);
-
 /* data with constant initializers */
   .data :{
     *(SORT(.data.*))
@@ -133,6 +113,23 @@ __exit_table__ = LOADADDR(.exit);
     LONG((SIZEOF(.data)+3)>>2)
   } >FLASH
   __data_segment__ = LOADADDR(.startupCopy);
+
+/* zero initialized data */
+  .bss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
+    *(SORT(.bss.*))
+    *(.bss)
+/* tbss added for F407+ st's hal use, just for errno! Once we understand it we might be able to get rid of it  */
+    *(SORT(.tbss.*))
+    *(.tbss)
+    /* shouldn't be getting these: .gnu.linkonce.b.*) *(COMMON)*/
+  } >SRAM
+
+  .startupClear : {/* the following initializes an instance of what cstartup.cpp calls 'struct RamBlock' */
+    LONG(ADDR(.bss))
+    LONG((SIZEOF(.bss)+3)>>2)  /* word count instead of bytes, startup takes advantage of compiler forced alignment to do 4 bytes per cycle. */
+  } >FLASH
+  __bss_segment__ = LOADADDR(.startupClear);
+
 
 /* diagnostic, or feed into a runtime stack check routine */
   .findEnd :{ /* cute trick to get the total SRAM used. This trick keeps us from having to move the __stack_limit__ assignment into whichever ram block becomes the last.*/

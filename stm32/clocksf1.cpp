@@ -159,8 +159,8 @@ struct ClockControl {
     }
   }
 
-  u32 clockRate(unsigned int bus){
-    u32 rate = sysClock(SWactual);
+  Hertz clockRate(unsigned int bus){
+    Hertz rate = sysClock(SWactual);
 
     switch(bus) {
     case ~0U: return rate;
@@ -184,7 +184,7 @@ void warp9(bool internal){
   theClockControl.maxit(internal);
 }
 
-u32 clockRate(int which){
+Hertz clockRate(unsigned which){
   return theClockControl.clockRate(which);
 }
 

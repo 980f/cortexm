@@ -53,7 +53,7 @@ struct FlashController {
 
 soliton(FlashController, 0x40022000);
 
-void setFlash4Clockrate(unsigned int hz){
+void setFlash4Clockrate(Hertz hz){
   int waits = 0;
 
   if(hz > 48000000) {

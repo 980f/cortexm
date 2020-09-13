@@ -26,12 +26,12 @@ I am working on replacing *'s with &'s, its a statistical thing herein as to whi
 #define soliton(type, address) type& the##type = *reinterpret_cast<type*>(address);
 
 /** the following are mostly markers, but often it is tedious to insert the 'volatile' and dangerous to leave it out. */
-using SFR = volatile u32;
+//using SFR = volatile unsigned;
 /** marker for non-occupied memory location */
-using SKIPPED = const u32;
+using SKIPPED = const unsigned;
 
 /** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
-using Address = u32;//address space of this device.
+using Address = unsigned;//address space of this device.
 
 union AddressCaster {
    unsigned number;
@@ -142,7 +142,7 @@ public:
     return operator unsigned();
   }
 
-
+  /** increment seems unlikely, someone add a use case else we might make this go away. */
   unsigned operator+=(unsigned value) const {
     operator=(unsigned() + value);
     return operator unsigned();
@@ -168,19 +168,18 @@ struct ControlBit : public BoolishRef {
 };
 
 /** a datum at a known absolute address */
-template<typename Inttype, unsigned & sfraddress>
+template<typename Inttype, Address sfraddress>
 struct SFRint {
-  SFRint() = default;
+  constexpr SFRint() = default;
 
-  // read. If you assign this to an unsigned rather than Inttype you will incur a uxtb instruction.
+  // read.
   operator Inttype() const {// NOLINT
-    return sfraddress;
+    return Ref<Inttype>(sfraddress);
   }
 
   // write
-  Inttype operator=(unsigned value) const {// NOLINT
-    sfraddress = value;
-    return operator Inttype();
+  void operator=(unsigned value) const {// NOLINT
+    Ref<Inttype>(sfraddress) = value;
   }
 
 };
@@ -205,7 +204,7 @@ class SFRfield {
 public:
   SFRfield(const SFRfield &other) = delete;
 
-  SFRfield() = default;  //this constructor is needed due to use of explicit on the other constructor
+  constexpr SFRfield() = default;  //this constructor is needed due to use of explicit on the other constructor
 
   /** this constructor is intended to be used for setting a value into a register which has no reference other than the assignment, but it is not easy to debug its use when something goes horribly wrong. */
   explicit SFRfield(unsigned initlizer) {
@@ -235,7 +234,7 @@ class SFRbit : public BoolishRef {
     mask = bitMask(pos)
   };
 public:
-  SFRbit() = default;
+  constexpr SFRbit() = default;
 
   // read
   inline operator bool() const override {  // NOLINT

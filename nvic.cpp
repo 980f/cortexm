@@ -16,9 +16,6 @@ u8 setInterruptPriorityFor(unsigned number,u8 newvalue) { // one byte each, ofte
 
 /////////////////////////////////
 
-
-/////////////////////////////////
-
 struct InterruptController {
   // ICSR
   volatile unsigned int active : 9; // isr we are within
@@ -130,7 +127,7 @@ soliton(InterruptController, 0xE000ED04);
 //#endif
 
 void configurePriorityGrouping(unsigned code){
-  ControlWord(0xE000ED0C)= ((code & 7) << 8) | (0x05FA<<16); //5FA is a guard against random writes.
+  SFRint<unsigned,0xE000ED0C>()= ((~code & 7) << 8) | (0x05FA<<16); //5FA is a guard against random writes.
 }
 
 extern "C" { // to keep names simple for "alias" processor
@@ -235,6 +232,7 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
 
 //used by nvicTable.link
 #define stub(irq) void IRQ ## irq(void) __attribute__((weak, alias("unhandledInterruptHandler")))
+
 //if the following table doesn't exist use mkIrqs to build it for your processor
 #include "nvicTable.link" //table in parent directory as it is project specific.
 /* I've named the above .link as I am prebuilding tables for various processors and using a soft link to pick one.
@@ -254,7 +252,7 @@ void generateHardReset(){
   unsigned pattern=0x5FA0005U | (theInterruptController.airc & bitMask(8,3));//retain priority group setting, JIC we don't reset that during startup
   do {//keep on hitting the bit until we reset.
     theInterruptController.airc=pattern;
-    //probably should try 5 above in case different vendors misread the arm spec differently.
+    //probably should try 5 instead of bit 3 above in case different vendors misread the arm spec differently.
   } while (true);
 }
 #pragma clang diagnostic pop

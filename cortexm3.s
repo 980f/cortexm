@@ -34,6 +34,19 @@ Cfunction  flog2
   bx lr
 
 
+Cfunction splitteru2
+  //r0 is address of 64 bit number
+  //we are only going to accept 32 bit returns, could write another version for 65 bits.
+ 
+  push r0
+  ldm r0,{r2,r3} //r2 is lower bits, r3 is higher
+  //todo: clear the sign bit before the shift
+  lsr r1,r3,#20  //r1 is sign and exponent, we are presuming the sign bit is 0 for now
+  
+  subs r1,#1075   // -1023 for the bias, -52 as that is where integers begin, a negative value means we have to remove some mantissa bits from the integer we are producing.
+  
+  bx lr
+
 //this routine will fail if the product of first two operands exceeds 2^32.
 Cfunction muldivide
   umull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same

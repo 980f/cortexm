@@ -1,6 +1,6 @@
 #include "timer.h"
 #include "minimath.h"
-#include "afio.h"
+
 #include "clocks.h"
 
 #define PSC dcb[20]
@@ -11,32 +11,38 @@ struct TimerConstant {
   int apb;
   int slot;
   int irq;
-  enum DebugControlBit stopper;
+//  enum DebugControlBit stopper;
 };
 
-//todo: make #defined symbol for IRQ numbers for ObjectInterrupt macro. Need it as text, not const value.
 static const TimerConstant T[] = {
+  { 0, 0, 0 }, //spacer so that we can textually use st's 1-based labels.
 #if DEVICE==103
-  { 0, 0, 27, Timer1Stop }, //spacer so that we can textually use st's 1-based labels.
-  { 2, 11, 25, Timer1Stop },
-  { 1, 0, 28, Timer2Stop },
-  { 1, 1, 29, Timer3Stop },
-  { 1, 2, 30, Timer4Stop },
-  { 1, 3, 50, Timer5Stop },
-  { 1, 4, 54, Timer6Stop },
-  { 1, 5, 55, Timer7Stop },
-  { 2, 13, 44, Timer8Stop },
+
+  { 2, 11, 27 }, //CC, see also 25,26 ...
+  { 1, 0, 28 },
+  { 1, 1, 29 },
+  { 1, 2, 30 },
+  { 1, 3, 50 },
+  { 1, 4, 54 },
+  { 1, 5, 55 },
+  { 2, 13, 44 },
 #elif DEVICE==407
-  { 0, 0, 27, Timer1Stop }, //spacer so that we can textually use st's 1-based labels.
-  { 2, 0, 25, Timer1Stop }, //update and global, also 10
-  { 1, 0, 28, Timer2Stop },
-  { 1, 1, 29, Timer3Stop },
-  { 1, 2, 30, Timer4Stop },
-  { 1, 3, 50, Timer5Stop },
-  { 1, 4, 54, Timer6Stop },//shared with DAC
-  { 1, 5, 55, Timer7Stop },
-  { 2, 1, 44, Timer8Stop },//also 12,13,14
-  //... add other timers are overlapped on the above with no rhyme nor reason.
+//stop bit is apb*32+slot
+  { 2, 0, 27 }, //just CC
+  { 1, 0, 28 },
+  { 1, 1, 29 },
+  { 1, 2, 30 },
+  { 1, 3, 50 },
+  { 1, 4, 54 },//shared with DAC
+  { 1, 5, 55 },
+  { 2, 1, 46 },//just cc
+
+  { 2, 16, 24 },//#9 and T1 break
+  { 2, 17, 25 },//#10 and T1 update
+  { 2, 18, 26 },//#11 and T1 trigger
+  { 1, 6, 43 },//#12 and T8 break
+  { 1, 7, 44 },//#13 and T8 update
+  { 1, 8, 45 },//#14 and T8 trigger
 #endif
 };
 
@@ -60,10 +66,10 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
 } /* configureCountExternalInput */
 
 unsigned  Timer::baseRate(void) const {
-  unsigned  apbRate = apb.getClockRate();
-  unsigned  ahbRate = clockRate(0);
+  Hertz  apbRate = apb.getClockRate();
+  Hertz  ahbRate = clockRate(0);
 
-  return (ahbRate == apbRate) ? apbRate : apbRate *= 2;
+  return (ahbRate == apbRate) ? apbRate : apbRate *= 2;//#?F4?
 }
 
 unsigned  Timer::ticksForMillis(unsigned  ms) const {
@@ -144,81 +150,6 @@ CCUnit::CCUnit (const Timer&_timer, unsigned _ccluno): timer(_timer), zluno(_ccl
 bool CCUnit::amDual() const {
   return timer.isAdvanced() && zluno < 3; //3 channels of advanced timers are dual output
 }
-
-#if DEVICE==103
-Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
-  switch(timer.luno) {
-  case 1:
-    if(complementaryOutput) {
-      //todo:3 ignoring alt for a bit:
-      return {PB, 13 + zluno};
-    } else {
-      return alt == 3 ? Pin(PE, 9 + 2 * zluno) : Pin(PA, 8 + zluno); //todo:3 alt formula fails for zlun0==3
-    }
-  case 2:
-    switch(zluno){
-    case 0: return Pin(PA,bitFrom(alt,0)?15:0);
-    case 1: return bitFrom(alt,0)?Pin(PB,3):Pin(PA,1);
-    case 2: return bitFrom(alt,1)?Pin(PB,10):Pin(PA,2);
-    case 3: return bitFrom(alt,1)?Pin(PB,11):Pin(PA,3);
-    } break;
-  case 3:   //todo:3 ignoring alt for a bit:
-    return zluno < 2 ? Pin(PA, 4 + zluno) : Pin(PB, zluno - 2);
-  case 4:
-    return alt ? Pin(PD, 10 + zluno) : Pin(PB, 4 + zluno);
-    //no timer 5,6,7, or 8 in parts of immediate interest.
-  } /* switch */
-  return {Port('Z'), 0}; //should blow royally
-} /* pin */
-
-
-
-//set polarity
-//force on or off using cc config rather than gpio.
-//if timer is #1 or #8 then there are more bits:
-void CCUnit::takePin(unsigned alt,bool inverted) const { //todo:3 options to only take one of a pair.
-  CCER&myccer = ccer();
-
-  switch(timer.luno){
-  case 1:theAfioManager.remap.tim1=alt; break;
-  case 2:theAfioManager.remap.tim2=alt; break;
-  case 3:theAfioManager.remap.tim3=alt; break;
-  case 4:theAfioManager.remap.tim4=alt; break;
-  case 5:theAfioManager.remap.tim5=alt; break;
-    //no remaps for other timers, could wtf if alt!=0
-  }
-  theAfioManager.remap.update();
-
-  pin(alt, 0).FN();
-  if(amDual()) { //todo:3 'and Take complementary pin as well'
-    pin(alt, 1).FN();
-    myccer.NE = 0; //+adv 1..3
-    myccer.NP = 0; //+adv 1..3
-    timer.b->MOE = 1;
-    //don't care about idle state...
-  }
-  myccer.Enabled = 1;
-  myccer.Inverted = inverted;
-} /* takePin */
-#elif DEVICE==407   //fucking hopeless, might try a table of tables of ... tables . Add instances as you get to them.
-Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
-  switch (timer.luno) {
-  case 1://PA8..11
-  case 2://PA0..3  ?/PB3/PB10/PB11
-  case 3:// PB4/PB5/PB0/PB1
-  case 4:// PB6..9
-  case 5://
-  break;
-  }
-  return {PH,9};
-}
-void CCUnit::takePin(unsigned alt,bool inverted) const { //todo:3 options to only take one of a pair.
-  CCER &myccer = ccer();
-
-  switch (timer.luno) {
-  }
-}
-#endif
 
 void CCUnit::setmode(u8 cc) const {
   u16&pair(timer.dcb[12 + (2 * (zluno >= 2))]); //damned 16 bit access is painful

@@ -1,28 +1,28 @@
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "hicpp-signed-bitwise"
+
 #include "clocks.h"
 #include "stm32.h"
-#include "peripheral.h"
+#include "peripheraltypes.h"
 #include "gpiof4.h"
-#include "flashcontrol.h"
+
 #include "systick.h"  //so that we can start it.
 
 //stm32F4 internal RC oscillator:
 #define HSI_Hz 16000000
 //the following wasn't getting linked when in main.cpp
-const unsigned EXTERNAL_HERTZ=1000000*EXT_MHz;
-const unsigned MAX_HERTZ=168000000;
-
+const unsigned EXTERNAL_HERTZ = 1000000 * EXT_MHz;
+const unsigned MAX_HERTZ = 168000000;
 
 struct OscControl {
   ControlBit on;
   ControlBit ready;
 
-  OscControl(unsigned bitnum):on(RCCBASE,bitnum),ready(RCCBASE,bitnum+1){}
+  OscControl(unsigned bitnum) : on(RCCBASE, bitnum), ready(RCCBASE, bitnum + 1) {}
 
-  bool operator =(bool beOn){
-    on=beOn;
-    while(!ready){
+  bool operator=(bool beOn) {
+    on = beOn;
+    while (!ready) {
       //use an interrupt to deal with clock failure!
     }
     return true;
@@ -34,51 +34,56 @@ OscControl HSE(16);
 OscControl PLL(24);
 
 #define PLLCFGR RCCBASE+4
-ControlField PLLM(PLLCFGR,0,6);
-ControlField PLLN(PLLCFGR,6,14+~6);
-ControlField PLLP(PLLCFGR,16,2);
-ControlBit PLLsource(PLLCFGR,22);
-ControlField PLLQ(PLLCFGR,24,4);
+ControlField PLLM(PLLCFGR, 0, 6);
+ControlField PLLN(PLLCFGR, 6, 14 + ~6);
+ControlField PLLP(PLLCFGR, 16, 2);
+ControlBit PLLsource(PLLCFGR, 22);
+ControlField PLLQ(PLLCFGR, 24, 4);
 
 #define RCCCC RCCBASE+8
-ControlField selector(RCCCC,0,2);
-ControlField selected(RCCCC,2,2);
+ControlField selector(RCCCC, 0, 2);
+ControlField selected(RCCCC, 2, 2);
 
-void waitForClockSwitchToComplete(){
-  while(selected != selected) {
+void waitForClockSwitchToComplete() {
+  while (selected != selected) {
     //could check for hopeless failures,
     //or maybe toggle an otherwise unused I/O pin.
   }
 }
 
-void switchClockTo(unsigned code){
-  selected=code;
-  while(selected != code) {
+void switchClockTo(unsigned code) {
+  selected = code;
+  while (selected != code) {
     //could check for hopeless failures,
     //or maybe toggle an otherwise unused I/O pin.
   }
 }
 
-
-ControlField ahbPrescale(RCCCC,4,4);
-ControlField apb1Prescale(RCCCC,10,3);
-ControlField apb2Prescale(RCCCC,13,3);
+ControlField ahbPrescale(RCCCC, 4, 4);
+ControlField apb1Prescale(RCCCC, 10, 3);
+ControlField apb2Prescale(RCCCC, 13, 3);
 //more as needed
 
-void switchToInteral(){
+
+//flash control functions for F40x parts
+void setFlash4Clockrate(Hertz hz){
+  ControlField(0x40023C00,0,3)=hz/30000000;//full voltage. For lesser voltage change the denominator
+}
+
+void switchToInteral() {
   HSI = 1;
   switchClockTo(0);
 }
 
-void switchToExternal(bool crystal){
-  if(crystal) {
+void switchToExternal(bool crystal) {
+  if (crystal) {
     HSE = 1;
   }
   //not this guy's job to turn the HSE off.
   switchClockTo(1);
 }
 
-void switchToPll(){
+void switchToPll() {
   PLL = 1;
   switchClockTo(2);
 }
@@ -123,40 +128,46 @@ void switchToPll(){
 //  } /* maxit */
 
 
-unsigned sysClock(unsigned int SWcode){
-    switch(SWcode) {
-    case 0: return HSI_Hz ; //HSI
-    case 1: return EXTERNAL_HERTZ;  //HSE, might be 0 if there is none
-    case 2:{
-      float whatamess=PLLsource ? EXTERNAL_HERTZ : HSI_Hz;
-      whatamess/=PLLM;
-      whatamess*=PLLN;
-      whatamess/=(2+2*PLLP);
-      return whatamess;
-    }
-    default:
-      return 0; //defective call argument
-    }
+Hertz sysClock(unsigned int SWcode) {
+  switch (SWcode) {
+  case 0:
+    return HSI_Hz; //HSI
+  case 1:
+    return EXTERNAL_HERTZ;  //HSE, might be 0 if there is none
+  case 2: {
+    float whatamess = PLLsource ? EXTERNAL_HERTZ : HSI_Hz;
+    whatamess /= PLLM;
+    whatamess *= PLLN;
+    whatamess /= (2 + 2 * PLLP);
+    return whatamess;
   }
+  default:
+    return 0; //defective call argument
+  }
+}
 
-  u32 clockRate(unsigned int rbus){//
-    u32 rate = sysClock(selected);
 
-    switch(rbus) {
-    case ~0U: return rate;
-    case 0: return rate >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));//!same as for F103!
-    case 1: return rate >> (apb1Prescale >= 4 ? (apb1Prescale - 3) : 0);
-    case 2: return rate >> (apb2Prescale >= 4 ? (apb2Prescale - 3) : 0);
-//    case 3: return clockRate(2) / 2 * (adcPrescale + 1);
-    default:
-      return 0; //should blow up on user.
-    }
-  } /* clockRate */
+Hertz clockRate(unsigned rbus) {//
+  u32 rate = sysClock(selected);
+
+  switch (rbus) {
+  case ~0U:
+    return rate;
+  case 0:case 1: case 2: //3 AHB's share the same clock
+    return rate >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));//!same as for F103!
+  case 4: case 5:
+    return rate >> (apb1Prescale >= 4 ? (apb1Prescale - 3) : 0);
+  case 6:
+    return rate >> (apb2Prescale >= 4 ? (apb2Prescale - 3) : 0);
+  default:
+    return 0; //should blow up on user.
+  }
+} /* clockRate */
 
 
 
 /** stm32 has a feature to post its own clock on a pin, for reference or use by other devices. */
-void setMCO(unsigned int mode){
+void setMCO(unsigned int mode) {
 //todo: implement F4 version
   Pin MCO(PA, 8); //depends on mcu family ... same for both 103 and 407
   //PC,9 is a second one.
@@ -168,6 +179,5 @@ void setMCO(unsigned int mode){
 //  }
 //  theClockControl.MCOselection = mode;
 }
-
 
 #pragma clang diagnostic pop

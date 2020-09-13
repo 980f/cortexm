@@ -5,7 +5,6 @@
 //F4 has significantly different GPIO configuration than F1
 
 #include "gpiof4.h"
-#include "peripheralband.h"  //deprecated bandFor
 #include "bitbasher.h"
 
 // priority must be such that these get created before any application objects
