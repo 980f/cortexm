@@ -9,8 +9,7 @@ void APBdevice::reset() const {
 }
 
 void APBdevice::setClockEnable(bool on) const {
-  ControlWord clocker(rccBit(clockOffset));
-  clocker = on;
+  ControlWord (rccBit(clockOffset)) = on;
 }
 
 bool APBdevice::isEnabled() const {
