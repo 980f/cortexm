@@ -35,6 +35,7 @@ static const TimerConstant T[] = {
   { 1, 3, 50 },
   { 1, 4, 54 },//shared with DAC
   { 1, 5, 55 },
+  //T7???
   { 2, 1, 46 },//just cc
 
   { 2, 16, 24 },//#9 and T1 break

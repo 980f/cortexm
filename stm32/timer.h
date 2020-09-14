@@ -262,8 +262,6 @@ public:
     return *ticker();
   }
 
-  /** @return physical pin configuration object for this unit*/
-  Pin pin(unsigned alt = 0, bool complementaryOutput = false) const;
   //some cc units have complementary outputs:
   bool amDual(void) const;
   //set polarity
@@ -354,9 +352,9 @@ struct PulseCounter : public Timer {
     beRunning(0);
     count += *counter();
   }
-  /**configure pin as pulled-down input and enable interrupts for rollover.*/
+  /** enable interrupts for rollover.*/
   void configure(u8 priority) const {
-    cc.pin().DI('D'); //pulling down as these are usually low
+//    cc.pin().DI('D'); //pulling down as these are usually low
     UIE(1);
     cc.IE(1);
     irq.setPriority(priority);
@@ -364,3 +362,33 @@ struct PulseCounter : public Timer {
 
 };
 
+#define TimerIrq(luno)  Timer##luno##_irq
+
+//#define AdvTimer ...
+#define  TIM1_BRK_TIM9_irq 24
+#define  TIM1_UP_TIM10_irq  25
+#define  TIM1_TRG_COM_TIM11_irq 26
+#define  TIM1_CC_irq  27
+
+#define  TIM2_irq  28
+#define  TIM3_irq  29
+#define  TIM4_irq  30
+#define  TIM5_irq 50
+//T6 conflicts with DAC
+#define  TIM6_irq 54
+#define  TIM7_irq 55
+
+#define  TIM8_BRK_TIM12_irq 43
+#define  TIM8_UP_TIM13_irq  44
+#define  TIM8_TRG_COM_TIM14_irq  45
+#define  TIM8_CC_irq  46
+
+//conflict with T1, if you are using both you will have to be very explicit about handling the conflict.
+#define  TIM9_irq  24
+#define  TIM10_irq  25
+#define  TIM11_irq  26
+
+//conflict with T8
+#define  TIM12_irq  43
+#define  TIM13_irq  44
+#define  TIM14_irq  45

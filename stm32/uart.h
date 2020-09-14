@@ -190,3 +190,12 @@ struct Uart:public APBdevice {
   void beTransmitting(bool yes = true);
 };
 
+//use the following where a decimal number of the interrupt request is expected.
+#define UartIrq(luno) ResolveIrq(USART##luno##_irq)
+
+#define  USART1_irq  37
+#define  USART2_irq  38
+#define  USART3_irq  39
+#define  UART4_irq  52
+#define  UART5_irq  53
+#define  USART6_irq  71
