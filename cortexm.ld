@@ -55,7 +55,7 @@ The cmake makefiles mess with working directory, so I had to add '-L parent-dire
 SECTIONS {
 /* interrupt table.   Needs KEEP directive as these functions will only be referenced by this table. */
   .vectors ORIGIN(FLASH):{
-    LONG( ORIGIN(SRAM)+LENGTH(SRAM))         /* set initial stack pointer to top of sram */
+    LONG( DEFINED(STACKINCCM) ? (ORIGIN(CCM)+LENGTH(CCM)):(ORIGIN( SRAM)+LENGTH(SRAM)) )         /* set initial stack pointer to top of ccm or sram */
     KEEP (*( SORT(.vectors.*)  .vectors))    /* followed by reset and other handlers */
   } >FLASH
 
