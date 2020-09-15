@@ -50,5 +50,8 @@ NB: this is NOT in ticks, it is in probably 8MHz increments, but that may differ
 
 /** ticks necessary to get a periodic interrupt at the @param hz rate*/
   SysTicks ticksForHertz(float hz); //approximate since we know a divide is required.
+
+  /** @returns the number of rollovers of the systick, typically units of millisecond or thereabouts */
+  unsigned tocks();
 }
 

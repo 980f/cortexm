@@ -155,6 +155,10 @@ namespace SystemTimer {
     theSysTicker.enableCounting = 1; //todo:3 add some to systick to compensate for the dead time of this routine.
     return retval;
   }
+
+  unsigned tocks() {
+    return milliTime;
+  }
 }
 
 //end of file
