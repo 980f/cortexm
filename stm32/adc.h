@@ -106,12 +106,12 @@ struct ADC_Band {
   unsigned int enableRefandTemp; //TSVREFE
 };
 
-class ADC : public APBdevice {
+class ADCdev : public APBdevice {
 public:
   ADC_DCB &dcb;
   ADC_Band &band;
 
-  ADC(int luno);
+  ADCdev(int luno);
   void init(void);
 
   void convertChannel(int channelcode);

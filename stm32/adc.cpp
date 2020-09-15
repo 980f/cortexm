@@ -4,13 +4,13 @@
 #include "gpio.h"
 
 //this constructor only supports ADC1 and 2
-ADC::ADC(int luno) :
+ADCdev::ADCdev(int luno) :
   APBdevice(2, 8 + luno),
   dcb(*reinterpret_cast<ADC_DCB *>(blockAddress)), //
   band(*reinterpret_cast<ADC_Band *>(bandAddress)) {
 }
 
-void ADC::init(void) {
+void ADCdev::init(void) {
   APBdevice::init(); //makes registers accessible, following code only need mention things that differ from reset values
   dcb.cr2.sequenceTrigger = 7;
   dcb.cr2.dmaEnabled = 0;
@@ -32,7 +32,7 @@ void ADC::init(void) {
   }
 } /* init */
 
-void ADC::convertChannel(int channelcode) {
+void ADCdev::convertChannel(int channelcode) {
   //conveniently all bits other than the channel code in seq3 can be zero
   dcb.seq3 = channelcode;
   band.startSequence = 1; //a trigger
@@ -45,7 +45,7 @@ void ADC::convertChannel(int channelcode) {
  * temperature ch16
  * vref17
  */
-void ADC::configureInput(unsigned int channel) {
+void ADCdev::configureInput(unsigned int channel) {
   if (channel < 8) {
     Pin(PA, channel).AI();
   } else if (channel < 10) {
@@ -57,15 +57,15 @@ void ADC::configureInput(unsigned int channel) {
   }
 } /* configureInput */
 
-float ADC::milliVolts(u16 reading, u16 vrefReading, float vrefmV) {
+float ADCdev::milliVolts(u16 reading, u16 vrefReading, float vrefmV) {
   return vrefmV * ratio(float(reading), float(vrefReading));
 }
 
-ADC::TrefCalibration::TrefCalibration(float Tcal, float mvAtTcal, float TpermV) :
+ADCdev::TrefCalibration::TrefCalibration(float Tcal, float mvAtTcal, float TpermV) :
   Tcal(Tcal), mvAtTcal(mvAtTcal), TpermV(TpermV) {
 }
 
-float ADC::TrefCalibration::celsius(float millis) {
+float ADCdev::TrefCalibration::celsius(float millis) {
   return Tcal - TpermV * (millis - mvAtTcal); //negative tempco.
 }
 
