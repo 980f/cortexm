@@ -14,6 +14,7 @@ refs gpio port so that enabling an interrupt reconfigures the pin to be an input
 
 #include "gpio.h"
 #include "nvic.h" //return irq reference
+
 class Exti :public APBdevice {
   static const Irq irqsome[];
 public: //
