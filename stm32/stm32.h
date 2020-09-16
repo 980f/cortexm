@@ -101,6 +101,7 @@ public:
   }
 };
 
+/** for items which only have a single instance, or for which the luno is a compile time constant and you need speed over code space use this instead of APBdevice.*/
 template <unsigned stbus, unsigned slot>
 struct APBperiph {
   enum {
