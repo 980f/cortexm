@@ -43,6 +43,15 @@ template<typename Scalar> constexpr Scalar&Ref(Address address){
   return *static_cast<Scalar *>(pun.pointer);
 }
 
+//e.g. poke(0xE000ED08,__CCM_Vectors__.ram.address)
+//[[naked]]
+//inline void poke(unsigned address,unsigned value)ISRISH;
+inline void poke(unsigned address,unsigned value){
+  __asm volatile("str r1,[r0]  \n");
+}
+
+
+
 
 /** many, but not all, cortex devices put peripheral control registers in the 0x4000 space, and bitband all of that to 0x4200.
  * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
@@ -173,12 +182,12 @@ struct SFRint {
   constexpr SFRint() = default;
 
   // read.
-  operator Inttype() const {// NOLINT
+  inline operator Inttype() const {
     return Ref<Inttype>(sfraddress);
   }
 
   // write
-  void operator=(unsigned value) const {// NOLINT
+  inline void operator=(Inttype value) const {
     Ref<Inttype>(sfraddress) = value;
   }
 
@@ -270,6 +279,7 @@ struct SFRbandbit : public BoolishRef {
     return value;
   }
 };
+
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
 const Address PeripheralBase{0x40000000};  //1<<30
