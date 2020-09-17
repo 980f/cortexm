@@ -87,7 +87,7 @@ SECTIONS {
     *(SORT(.fini_array.*))  /* particular exit stuff, 980f thinks this should precede the plane fini_array */
     LONG(0)                 /* mark end of table, instead of having code for decrementing a count */
   } >FLASH
-__exit_table__ = LOADADDR(.exit);
+ __exit_table__ = LOADADDR(.exit);
 
 /* fully const'ed data, note that some things declared const end up in .data despite valiant attempts to compile time compute values. */
   .rodata :{
@@ -97,7 +97,7 @@ __exit_table__ = LOADADDR(.exit);
     KEEP( *(SORT(.table.*)))
     *(SORT(.rodata.*))
     *(.rodata)
-    /* shouldn't be getting these, want to know if we do:  .gnu.linkonce.r.* */
+    /* shouldn't be getting these on a cortexM, want to know if we do:  .gnu.linkonce.r.* */
   } >FLASH
 
 /* data with constant initializers */
@@ -139,6 +139,8 @@ __exit_table__ = LOADADDR(.exit);
   /* value to someday feed into start of data segment should we ever figure out how to put the stack first so that we get a fault instead of wild behavior */
   __stack_max__ = LENGTH(SRAM) - (__stack_limit__ - ORIGIN(SRAM));
 
+
+
 /* theoretically one can have a memory declaration for each peripheral,
   in C code declare an object for each as extern,
   have a section name for each and an attribute in front of data declaration
@@ -160,4 +162,10 @@ __exit_table__ = LOADADDR(.exit);
     libgcc.a ( * )
   }
 */
+}
+
+SECTIONS {
+
+INCLUDE cortexm/ccmfast.ld
+
 }

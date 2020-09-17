@@ -16,7 +16,6 @@ Cfunction nanoSpin
   bpl nanoSpin
   bx lr
 
-
 Cfunction log2Exponent
   clz r0,r0    //count leading zeroes
   rsb r0,#31   //we wanted position of leading '1' = 31 - number of leading zeroes

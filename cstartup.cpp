@@ -38,6 +38,14 @@ void run_table(const InitRoutine *table) {
 //  return;
 }
 
+#include "peripheraltypes.h" //
+const extern RamInitBlock __CCM_Vectors__;//name coordinated with cortexm.ld
+void vectors2ram() {
+  __CCM_Vectors__.go();
+  //SFRint<unsigned *,0xE000ED08> VTOR;
+  //VTOR=__CCM_Vectors__.ram.address;
+  SFRint<unsigned *,0xE000ED08> ()=__CCM_Vectors__.ram.address;
+}
 /** Reset entry point. The chip itself has set up the stack pointer to top of ram, and then the PC to this. It has not set up a frame pointer.
  */
 extern "C" //to make it easy to pass this to linker sanity checker.
@@ -52,6 +60,8 @@ void cstartup(void) {
 
   run_table(__init_table__);
   //incorporated by linker into our __init_table__:  __libc_init_array(); // C++ library initialization (includes constructors for static objects)
+
+  vectors2ram();
   main();
   //execute destructors for static objects and do atexit routines.
   run_table(__exit_table__);
