@@ -184,6 +184,6 @@ float ADCdev::TrefCalibration::celsius(float millis) {
 }
 
 //end of file
-u16 ADCdev::readConversion(void) {
+u16 ADCdev::readConversion() {
   return dcb.data;
 }

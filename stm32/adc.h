@@ -7,6 +7,8 @@
 struct ADC_DCB;
 struct ADC_Band;
 
+//tag for ADC value type
+using AdcValue=uint16_t ;
 /**
  * The name was changed from ADC to ADCdev due to compilation issues with STM32 Hal using a #define for ADC
  * todo: replace all the structures with ControlWord et al. and ditch the structures.
@@ -22,12 +24,12 @@ public:
 
   void convertChannel(unsigned channelcode);
 
-  inline u16 readConversion();
+  AdcValue readConversion();
 
   void configureInput(unsigned channel);
 
-  /** default vrefmV value is for the stm32 internal Vref*/
-  float milliVolts(u16 reading, u16 vrefReading, float vrefmV = 1200.0);
+  /** default vrefmV value is for the stm32 internal Vref */
+  float milliVolts(AdcValue reading, AdcValue vrefReading, float vrefmV = 1200.0);
 
   class TrefCalibration {
     float Tcal;
