@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnusedGlobalDeclarationInspection"
 #pragma once
 
 /**
@@ -24,149 +26,114 @@
   * we can't simply make a struct that represents the hardware register content.
   */
 
-typedef u16 *TIMER_DCB;
+//typedef u16 *TIMER_DCB;
 
-struct CC_BAND {
-  unsigned int mode[2]; //determines meaning of fields that follow
-  union {
-    struct {
-      unsigned int prescale[2];
-      unsigned int filter[4]; //a code, mixture of divisor and n-in-a-row logic.
-    }
-    In;
-    struct {
-      unsigned int hairTrigger;
-      unsigned int bufferPreload;
-      unsigned int compareMode[3];
-      unsigned int hardwareClearEnable;
-    }
-    Out;
-  };
-};
+//struct CC_BAND {
+//  unsigned int mode[2]; //determines meaning of fields that follow
+//  union {
+//    struct {
+//      unsigned int prescale[2];
+//      unsigned int filter[4]; //a code, mixture of divisor and n-in-a-row logic.
+//    }
+//    In;
+//    struct {
+//      unsigned int hairTrigger;
+//      unsigned int bufferPreload;
+//      unsigned int compareMode[3];
+//      unsigned int hardwareClearEnable;
+//    }
+//    Out;
+//  };
+//};
+//
+//struct CCER {
+//  unsigned int Enabled;
+//  unsigned int Inverted;
+//  unsigned int NE; //+adv 1..3
+//  unsigned int NP; //+adv 1..3
+//};
 
-struct CCER {
-  unsigned int Enabled;
-  unsigned int Inverted;
-  unsigned int NE; //+adv 1..3
-  unsigned int NP; //+adv 1..3
-};
-
-struct TIMER_BAND {
-  unsigned int enabled;
-  unsigned int updateDisable;
-  unsigned int URS;
-  unsigned int oneshot;
-  unsigned int countDown;
-  unsigned int CMS[2];
-  unsigned int bufferPreload;
-  unsigned int CKD[2];
-  unsigned int cr1unused[32 - 10];
-  //TIMx_CR2
-  unsigned int CCPC : 1; //+adv
-  unsigned int cr2unused1;
-  unsigned int CCUS; //+adv
-  unsigned int CCDS;
-  unsigned int MMS[3];
-  unsigned int in1Xored;
-  //output idle state:
-  unsigned int OIS1; //+adv
-  unsigned int OIS1N; //+adv
-  unsigned int OIS2; //+adv
-  unsigned int OIS2N; //+adv
-  unsigned int OIS3; //+adv
-  unsigned int OIS3N; //+adv
-  unsigned int OIS4; //+adv
-  unsigned int cr2unused2[32 - 15];
-  //TIMx_SMCR
-  unsigned int mode[3];
-  unsigned int smcrunused1;
-  unsigned int triggerSource[3];
-  unsigned int syncTrigger;
-  unsigned int triggerFilter[4]; //
-  unsigned int triggerPrescaler[2]; // external trigger is prescaled by 1 << this
-  unsigned int ECE;
-  unsigned int ETRactivelow;
-  unsigned int smcrunused[32 - 16];
-  //TIMx_DIER
-  unsigned int updateIE;
-  unsigned int ccIE[4]; //cc#-1
-  unsigned int comIE;
-
-  unsigned int triggerIE;
-  unsigned int brakeIE;
-  unsigned int dmaOnUpdate;
-  unsigned int dmaOncc[4]; //cc#-1
-  unsigned int dmaOnCom;
-  unsigned int dmaOnTrigger;
-  unsigned int dieunused[32 - 15];
-  //SR
-  unsigned int updateHappened;
-  unsigned int ccHappened[4];
-  unsigned int comHappened;
-  unsigned int triggerHappened;
-  unsigned int brakeHappened;
-  unsigned int srunused2;
-  unsigned int ccOverrun[4];
-  unsigned int srunused[32 - 13];
-  //TIMx_EGR
-  unsigned int fake_update; //UG
-  unsigned int fake_cc[4];
-  unsigned int fake_com;
-  unsigned int fake_trigger;
-  unsigned int fake_brake;
-  unsigned int egrunused[32 - 8];
-
-  CC_BAND cc0;
-  CC_BAND cc1;
-  unsigned int ccunused[16];
-
-  CC_BAND cc2;
-  CC_BAND cc3;
-  unsigned int ccunused2[16];
-
-
-  //TIMx_CCER
-  CCER ccer[4];
-  unsigned int ccerunused[32 - 16];
-  unsigned int skipabunch[8 * 32 + 8 + 2];
-  unsigned int OSSI; //+adv
-  unsigned int OSSR; //+adv
-  unsigned int brakeEnable; //+adv
-  unsigned int brakePolarity; //+adv
-  unsigned int AOE; //+adv
-  unsigned int MOE; //+adv
-  //rest aren't worth encoding, all are wide fields.
-
-};
 
 #include "debugger.h"
+//construction aid
+struct TimerConstant {
+  int apb;
+  int slot;
+  int irq;
+//  enum DebugControlBit stopper;
+};
 
-struct Timer {
-  TIMER_BAND *b;
-  TIMER_DCB dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
-  const APBdevice apb;
+static constexpr TimerConstant T[] = {
+  {0, 0, 0}, //spacer so that we can textually use st's 1-based labels.
+#if DEVICE == 103
+
+  { 2, 11, 27 }, //CC, see also 25,26 ...
+  { 1, 0, 28 },
+  { 1, 1, 29 },
+  { 1, 2, 30 },
+  { 1, 3, 50 },
+  { 1, 4, 54 },
+  { 1, 5, 55 },
+  { 2, 13, 44 },
+#elif DEVICE == 407
+//stop bit is apb*32+slot
+  {2, 0, 27}, //just CC
+  {1, 0, 28},
+  {1, 1, 29},
+  {1, 2, 30},
+  {1, 3, 50},
+  {1, 4, 54},//shared with DAC
+  {1, 5, 55},
+  //T7???
+  {2, 1, 46},//just cc
+
+  {2, 16, 24},//#9 and T1 break
+  {2, 17, 25},//#10 and T1 update
+  {2, 18, 26},//#11 and T1 trigger
+  {1, 6, 43},//#12 and T8 break
+  {1, 7, 44},//#13 and T8 update
+  {1, 8, 45},//#14 and T8 trigger
+#endif
+};
+
+/**
+ * stm32 hardware timers
+ The variations are simply missing pieces, so don't use them if you don't know you have them.
+ Timers 2 and 5 on the F407 have 32 bits in a few places where this class only supports 16, that is not yet accommodated.
+ What makes it hard is that the device requires 16 bit accesses when the register is only 16 bits, at least the F103 does.
+ * */
+
+struct Timer:public APBdevice {
+//  const TIMER_DCB dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
   const Irq irq;
-  unsigned luno; //handy for debug, and pin setter routine
+  const unsigned luno; //handy for debug
 
-  bool isAdvanced(void) const {
+  bool isAdvanced() const {
     return luno == 1 || luno == 8;
   }
 
-  bool is32bit(void) const {
+  bool is32bit() const {
+#if DEVICE==103
+    return false;
+#elif DEVICE==407
     return luno == 2 || luno == 5;
+#endif
   }
 
-  Timer(unsigned stLuno);
+  constexpr Timer(unsigned stLuno) : APBdevice(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq), luno(stLuno) {
+//removing this init allows the object to be const constructed  apb.init(); //for most extensions this is the only time we do the init.
+  }
+
   /** input to timer's 16 bit counter in integer Hz,
     * appears to truncate rather than round.*/
-  unsigned baseRate(void) const;
+  unsigned baseRate() const;
 
   /** sets the prescalar to generate the given hz.*/
   void setPrescaleFor(double hz) const;
   /** set cycle length in units determined by baseRate and prescale:*/
   void setCycler(unsigned ticks) const;
-  unsigned getCycler(void) const;
-  double getHz(void) const;
+  unsigned getCycler() const;
+  double getHz() const;
   unsigned ticksForMillis(unsigned ms) const;
   unsigned ticksForMicros(unsigned us) const;
   unsigned ticksForHz(double Hz) const;
@@ -179,34 +146,34 @@ struct Timer {
   void configureCountExternalInput(enum ExternalInputOption, unsigned filter = 0) const;
 
   /** most uses will have to turn on some of the interrupts before calling this function.*/
-  /*virtual*/ void beRunning(bool on = true) const {
-    b->enabled = on;
+  /*virtual deprecated due to cost, and that we don't have a generic concept of 'running' */ void beRunning(bool on = true) const {
+    bit(0,0) = on;
   }
 
   inline void clearEvents(void) const {
-    dcb[8] = 0;
+    word(0x10) = 0;
   }
 
   /**
     * access time for this guy was critical in first use.
     */
-  inline u16 *counter(void) const {
-    return &dcb[18];
+  inline u16 &counter() const {
+    return Ref<u16>(registerAddress(0x24));
   }
 
   /** clear the counter and any flags then enable counting */
-  inline void startRunning(void) const {
+  inline void startRunning() const {
     beRunning(false); //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
-    *counter() = 0;
+    counter() = 0;
     clearEvents();
     beRunning(true);
   }
 
   inline void UIE(bool on) const {
-    b->updateIE = on;
+    bit(0x0C,0) = on;
   }
 
-  inline void Interrupts(bool on){
+  inline void Interrupts(bool on) const{
     if(on) {
       irq.enable();
     } else {
@@ -214,83 +181,95 @@ struct Timer {
       irq.clear();//and clear any pending (hoepfully cures a stepper control issue of not freewheeling on de-configuration)
     }
   }
+  void update() const;
 };
+
+/** ccunit pattern for pwm with active at start of cycle */
+constexpr uint8_t PwmEarly=0b0'110'00'00;
 
 struct CCUnit {
   const Timer&timer;
   unsigned zluno;
-  CCUnit(const Timer&_timer, unsigned _ccluno);
+  constexpr CCUnit(const Timer&_timer, unsigned _ccluno): timer(_timer), zluno(_ccluno - 1) {
+    //nothing to do here
+  }
 
   /** set the mode of this capture compare unit */
   void setmode(u8 cc) const;
 
-  inline bool happened(void) const {
-    return timer.b->ccHappened[zluno];
+  inline bool happened() const {
+    return timer.bit(0x10,zluno+1);
   }
 
-  inline void clear(void) const {
-    timer.b->ccHappened[zluno] = 0;
+  inline void clear() const {
+    timer.bit(0x10,zluno+1)= 0;
   }
 
   inline void IE(bool on) const {
-    timer.b->ccIE[zluno] = on;
+    timer.bit(0x0C,zluno+1)= on;
+    //bit 0 must also be on but that is inappropriate to do here.
   }
 
-  inline CCER& ccer(void) const {
-    return timer.b->ccer[zluno];
-  }
+//replaced with takePin() and other functions to be written as needed.
+  //  inline CCER& ccer() const {
+//    return timer.b->ccer[zluno];
+//  }
 
-  int saturateTicks(int ticks) const { //todo:M replace with inline use of minimath::saturate
-    if(ticks < 0) {
-      return 0;
-    } else if(ticks > 65535) {
-      return 65535;
-    }
-    return ticks;
-  }
+//  int saturateTicks(int ticks) const { //todo:M replace with inline use of minimath::saturate
+//    if(ticks < 0) {
+//      return 0;
+//    } else if(ticks > 65535) {
+//      return 65535;
+//    }
+//    return ticks;
+//  }
 private:
-  inline u16 *ticker(void) const {
-    return &timer.dcb[2 * zluno + 26];
+  inline u16 &ticker() const {
+    return Ref<u16>(timer.registerAddress(0x34+2 * zluno));
   }
 public:
   /** unguarded tick setting, see saturateTicks() for when you can't prove your value will be legal.*/
   inline void setTicks(unsigned ticks) const {
-    *ticker() = u16(ticks);
+    ticker() = u16(ticks);
   }
 
-  inline u16 getTicks(void) const {
-    return *ticker();
+  inline u16 getTicks() const {
+    return ticker();
   }
 
   //some cc units have complementary outputs:
-  bool amDual(void) const;
-  //set polarity
+  bool amDual() const;
+  /** set output polarity, and enable feature */
+  void takePin(bool activehigh=true) const;
+
   //force on or off using cc config rather than gpio.
-  //if timer is #1 or #8 then there are more bits:
-  void takePin(unsigned alt=0,bool inverted=0) const; //todo:M remove default
+  void force(bool active)const;
 };
 
 /** uses ARR register to divide clock and give an interrupt at a periodic rate*/
 class PeriodicInterrupter : public Timer {
 public:
   PeriodicInterrupter(unsigned stLuno);
-  /** @overload sets the interrupts then chains */
-  void beRunning(bool on = true); //can't const as interrupts are manipulated
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
+  /**  sets the interrupts then chains */
+  void beRunning(bool on = true)const ;
+#pragma clang diagnostic pop
   /** @overload */
-  void restart(unsigned ticks); //can't const as interrupts are manipulated
-  void restartHz(double hz); //can't const as interrupts are manipulated //todo:L pull up hierarchy
+  void restart(unsigned ticks)const;
+  void restartHz(double hz)const; //todo:L pull up hierarchy
 };
 
 /*
-  *
-  *timer used to indicate an interval.
+
+  * timer used to indicate an interval.
   * rather than using a count down and interrupt on termination
   * we use a capture/compare unit so that we get a hardware indication
   * and can also measure the latency in dealing with it, as the counter keeps on counting.
   */
 struct DelayTimer : public Timer {
   const CCUnit cc;
-  DelayTimer(int luno, int ccluno);
+  constexpr DelayTimer(unsigned luno, unsigned ccluno) : Timer(luno), cc(*this, ccluno) {}
 
   void init(int hzResolution) const;
   const CCUnit& setDelay(int ticks) const;
@@ -305,16 +284,22 @@ struct DelayTimer : public Timer {
  that isr should call onDone() else you might as well be a PeriodicInterrupter */
 class Monostable : public Timer {
 public:
-  Monostable(unsigned stLuno);
+  constexpr Monostable(unsigned stLuno):Timer(stLuno){
+    //#nada
+  };
   void setPulseWidth(unsigned ticks);
   void setPulseMicros(unsigned microseconds);
 public:
   void retrigger();
-  void onDone(){//making this virtual would be expensive, and usually will be called from an isr with the explicit implemenation handy.
+  void onDone(){//making this virtual would be expensive, and usually will be called from an isr with the explicit implementation handy.
     beRunning(false);
   }
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
+  //stuff that was formerly done in constructor
+  void init() const;
+#pragma clang diagnostic pop
 };
-
 
 /** Timer used to count pulses.*/
 struct PulseCounter : public Timer {
@@ -350,7 +335,7 @@ struct PulseCounter : public Timer {
 
   void stop(void){
     beRunning(0);
-    count += *counter();
+    count += counter();
   }
   /** enable interrupts for rollover.*/
   void configure(u8 priority) const {
@@ -362,33 +347,35 @@ struct PulseCounter : public Timer {
 
 };
 
-#define TimerIrq(luno)  Timer##luno##_irq
+//#define TimerIrq(luno)  Timer##luno##_irq
+//
+////#define AdvTimer ...
+//#define  TIM1_BRK_TIM9_irq 24
+//#define  TIM1_UP_TIM10_irq  25
+//#define  TIM1_TRG_COM_TIM11_irq 26
+//#define  TIM1_CC_irq  27
+//
+//#define  TIM2_irq  28
+//#define  TIM3_irq  29
+//#define  TIM4_irq  30
+//#define  TIM5_irq 50
+////T6 conflicts with DAC
+//#define  TIM6_irq 54
+//#define  TIM7_irq 55
+//
+//#define  TIM8_BRK_TIM12_irq 43
+//#define  TIM8_UP_TIM13_irq  44
+//#define  TIM8_TRG_COM_TIM14_irq  45
+//#define  TIM8_CC_irq  46
+//
+////conflict with T1, if you are using both you will have to be very explicit about handling the conflict.
+//#define  TIM9_irq  24
+//#define  TIM10_irq  25
+//#define  TIM11_irq  26
+//
+////conflict with T8
+//#define  TIM12_irq  43
+//#define  TIM13_irq  44
+//#define  TIM14_irq  45
 
-//#define AdvTimer ...
-#define  TIM1_BRK_TIM9_irq 24
-#define  TIM1_UP_TIM10_irq  25
-#define  TIM1_TRG_COM_TIM11_irq 26
-#define  TIM1_CC_irq  27
-
-#define  TIM2_irq  28
-#define  TIM3_irq  29
-#define  TIM4_irq  30
-#define  TIM5_irq 50
-//T6 conflicts with DAC
-#define  TIM6_irq 54
-#define  TIM7_irq 55
-
-#define  TIM8_BRK_TIM12_irq 43
-#define  TIM8_UP_TIM13_irq  44
-#define  TIM8_TRG_COM_TIM14_irq  45
-#define  TIM8_CC_irq  46
-
-//conflict with T1, if you are using both you will have to be very explicit about handling the conflict.
-#define  TIM9_irq  24
-#define  TIM10_irq  25
-#define  TIM11_irq  26
-
-//conflict with T8
-#define  TIM12_irq  43
-#define  TIM13_irq  44
-#define  TIM14_irq  45
+#pragma clang diagnostic pop

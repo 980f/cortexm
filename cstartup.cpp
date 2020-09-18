@@ -60,7 +60,7 @@ void cstartup(void) {
 
   run_table(__init_table__);
   //incorporated by linker into our __init_table__:  __libc_init_array(); // C++ library initialization (includes constructors for static objects)
-
+//todo: add #define to control whether we do this, share with linker.
   vectors2ram();
   main();
   //execute destructors for static objects and do atexit routines.

@@ -6,15 +6,15 @@
 #include "stm32.h"
 
 struct PinOptions {
- 
+
   enum Dir {
-    input=0,output,function,analog  //#value is for control register
+    input = 0, output, function, analog  //#value is for control register
   };
 
-  Dir dir; 
+  Dir dir;
 
- enum Slew {
-    slow=0, medium , fast , fastest //#value is for control register
+  enum Slew {
+    slow = 0, medium, fast, fastest //#value is for control register
   };
 
   Slew slew;
@@ -22,19 +22,18 @@ struct PinOptions {
 //cheap enum for pullup/down/float/open_drain
   char UDFO;
 
-  constexpr PinOptions(Dir dir,Slew slew=slow,char UDFO='F'):dir(dir),slew(slew),UDFO(UDFO){
+  constexpr PinOptions(Dir dir, Slew slew = slow, char UDFO = 'F') : dir(dir), slew(slew), UDFO(UDFO) {
     //#nada
   }
 
-  static PinOptions Input(char UDFO='F') {
-    return PinOptions(input,slow,UDFO);
+  static PinOptions Input(char UDFO = 'F') {
+    return PinOptions(input, slow, UDFO);
   }
 
-  static PinOptions Output(Slew slew = slow, bool function = false, char UDFO='F') {
-    return PinOptions(function ? PinOptions::function : PinOptions::output,slew,UDFO);
+  static PinOptions Output(Slew slew = slow, bool function = false, char UDFO = 'F') {
+    return PinOptions(function ? PinOptions::function : PinOptions::output, slew, UDFO);
   }
 };
-  
 
 /** the 16 bits as a group.
   * Note well that even when the group is not enabled the port can be read from (as long as it exists).
@@ -43,19 +42,18 @@ struct PinOptions {
   */
 
 struct Port /*Manager*/ : public APBdevice {
-  static constexpr unsigned gpiobase(unsigned Ais0){
-    return 0x40020000+0x400*Ais0;
+  static constexpr unsigned gpiobase(unsigned Ais0) {
+    return 0x40020000 + 0x400 * Ais0;
   }
 
-
   /** @param letter is the uppercase character from the stm32 manual */
-  explicit constexpr Port(char letter) : APBdevice(1, unsigned(letter - 'A'),gpiobase(letter - 'A')) {}
+  explicit constexpr Port(char letter) : APBdevice(1, unsigned(letter - 'A'), gpiobase(letter - 'A')) {}
 
   /**
     * configure the given pin.
     todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
     */
-  void configure(unsigned bitnum, const PinOptions &c) const ;
+  void configure(unsigned bitnum, const PinOptions &c) const;
 
   /** a contiguous set of bits in a a single Port */
   struct Field {
@@ -68,9 +66,9 @@ struct Port /*Manager*/ : public APBdevice {
     constexpr Field(const Port &port, unsigned lsb, unsigned msb);
 
     /** @param pincode is the same as for pin class */
-    void configure(const PinOptions &portcode ){
+    void configure(const PinOptions &portcode) {
       // and actually set the pins to their types
-      for(unsigned abit = lsb; mask&(1u<<abit); ++abit) {
+      for (unsigned abit = lsb; mask & (1u << abit); ++abit) {
         port.configure(abit, portcode);
       }
     }
@@ -87,8 +85,6 @@ struct Port /*Manager*/ : public APBdevice {
   };// Port::Field
 
 };
-
-
 
 //these take up little space and it gets annoying to have copies in many places.
 extern const Port PA;
@@ -123,7 +119,7 @@ struct Pin /*Manager*/ {
   const ControlWord writer;
 
   Pin(const Port &port, unsigned bitnum) :
-    bitnum(bitnum), port(port), reader(port.registerAddress(0x10), bitnum), writer(port.registerAddress(0x14), bitnum){
+    bitnum(bitnum), port(port), reader(port.registerAddress(0x10), bitnum), writer(port.registerAddress(0x14), bitnum) {
     //#nada
   }
 
@@ -140,7 +136,7 @@ struct Pin /*Manager*/ {
   }
 
 /** configure pin as alt function output*/
-  const Pin &FN(unsigned nibble,PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') const;
+  const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') const;
 
 /** raw access convenience. @see InputPin for business logic version of a pin */
   operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
@@ -152,6 +148,20 @@ struct Pin /*Manager*/ {
   bool operator=(bool truth) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     writer = truth;
     return truth;//#don't reread the pin, nor its actual, keep this as a pass through
+  }
+};
+
+/** declare a pin used by a peripheral, one that will not get directly manipulated  */
+struct FunctionPin {
+  const ControlBit reader;
+  operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
+    return reader;
+  }
+  //cannot be constexpr as it hits the configuration registers and that takes real code.
+  FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') :
+    reader(port.registerAddress(0x10), bitnum) {
+    port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO));
+    ControlField(port.registerAddress(0x20 + ((bitnum >= 8) * 4)), (bitnum & 7) * 4, 4) = nibble;
   }
 };
 
@@ -187,16 +197,16 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true): LogicalPin(pin, active) {
+  explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true) : LogicalPin(pin, active) {
     pin.DI(UDF);
   }
   /** pull the opposite way of the 'active' level. */
-  InputPin(const Pin &pin, bool active):InputPin(pin, active ? 'D' : 'U', active) {
+  InputPin(const Pin &pin, bool active) : InputPin(pin, active ? 'D' : 'U', active) {
     //#nada
   }
 
 //  InputPin(InputPin &&copyme)=default;
-  InputPin(const InputPin &copyme)=default;
+  InputPin(const InputPin &copyme) = default;
 };
 
 /**

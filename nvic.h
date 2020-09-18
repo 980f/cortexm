@@ -59,7 +59,7 @@ public:
   /** the raw interrupt number */
   const unsigned number;
 
-  explicit Irq(unsigned number) :
+  explicit constexpr Irq(unsigned number) :
       bit(bitFor(number)), bias(biasFor(number)), mask(bitMask(bit)), number(number) {
     //#done
   }

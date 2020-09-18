@@ -99,6 +99,12 @@ public:
   constexpr ControlWord bit(Address offset, unsigned bit) const {
     return ControlWord(bandAddress + bandFor(offset, bit));
   }
+
+  /** @returns reference to a word member of the hardware object, @param offset if value from st's manual (byte address) */
+  constexpr ControlWord word(Address offset) const {
+    return ControlWord(blockAddress+offset);
+  }
+
 };
 
 /** for items which only have a single instance, or for which the luno is a compile time constant and you need speed over code space use this instead of APBdevice.*/
