@@ -85,6 +85,11 @@ soliton(SysTicker, 0xE000E010);
 
 namespace SystemTimer {
 
+  void disable(){
+    theSysTicker.enableInterrupt=false;
+  }
+
+
 /** start ticking at the given rate.*/
   void startPeriodicTimer(unsigned persecond) {
     theSysTicker.fullspeed = 1;
@@ -158,6 +163,10 @@ namespace SystemTimer {
 
   unsigned tocks() {
     return milliTime;
+  }
+
+  void setPriority(unsigned int TickPriority) {
+    setInterruptPriorityFor(15, TickPriority);
   }
 }
 

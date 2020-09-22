@@ -5,10 +5,14 @@
 /**
 system timer service (a not so fast timer)
 
-Somewhere you must declare:
-void SystemTickServer();
+there is a table created via tableofpointers.h technology 
+for routines declared to be SystemTicker's:
 
-which will get called FROM AN ISR periodically.
+#include "tableofpointers.h"
+
+MakeRef(SystemTicker, YourTickRoutine);
+
+YourTickRoutine will be called from the systick fault handler, so don't do much!
 
 */
 
@@ -20,7 +24,10 @@ using SysTime = uint64_t;
 using SystemTicker = void (*)();
 
 namespace SystemTimer {
+  void disable();
 
+  /** sometimes ticks are of middling importance, usually they are about as high as one can get. */
+  void setPriority(unsigned TickPriority);
 /** start ticking at the given rate.
   * presumes system clock is already programmed and that it is the clock source*/
   void startPeriodicTimer(unsigned persecond);

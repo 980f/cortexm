@@ -67,7 +67,7 @@ void Timer::update() const {
 
 ////////////////////////////
 PeriodicInterrupter::PeriodicInterrupter(unsigned stLuno) : Timer(stLuno) {
-  beRunning(0);//for soft reset to match hard reset.
+  //removed so that we can constexpr beRunning(0);//for soft reset to match hard reset.
 }
 
 void PeriodicInterrupter::beRunning(bool on)const {

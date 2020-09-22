@@ -51,6 +51,7 @@ void vectors2ram() {
 extern "C" //to make it easy to pass this to linker sanity checker.
 [[noreturn]] //we don't need no stinking stack frame (no params, no locals) gnu::naked generates a warning, so we dropped it even though it causes a few useless instructions to be emitted.
 void cstartup(void) {
+  //SFRint<unsigned ,0xE000E010> ()=0;// Systicker::disable();
   // initialize static variables
   __data_segment__.go();
   // Zero other static variables.

@@ -97,7 +97,7 @@ public:
   }
   /** @returns bit band address of bit of a register, @param offset is value from st's manual (byte address) */
   constexpr ControlWord bit(Address offset, unsigned bit) const {
-    return ControlWord(bandAddress + bandFor(offset, bit));
+    return ControlWord(bandFor(blockAddress+offset, bit));//bandAddress and bandFor were both setting the 0200 0000 bit.
   }
 
   /** @returns reference to a word member of the hardware object, @param offset if value from st's manual (byte address) */
