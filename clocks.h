@@ -19,8 +19,24 @@ using Hertz=unsigned;
 */
 Hertz clockRate(unsigned which);
 
+constexpr Hertz ahbRate(unsigned ahbPrescale,Hertz feed){
+  return feed  >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));
+}
+
+constexpr Hertz apbRate(unsigned apbPrescale,Hertz feed){
+  return feed >> (apbPrescale >= 4 ? (apbPrescale - 3) : 0);
+}
+
+constexpr Hertz adcRate(unsigned adcPrescale,Hertz feed){
+  return feed /((1+adcPrescale)*2);
+}
+
+
 /**set system clocks to the fastest possible*/
 void warp9(bool internal);
+
+/** if rate is zero then returns present rate, else sets the divisor as best as possible and returns actual rate*/
+Hertz adcClock(Hertz rate=0);
 
 /** this class exists to run clock setup code at a user selectable init level.
     this is done over an init function call so that it can be between construction of other initializing gizmos.

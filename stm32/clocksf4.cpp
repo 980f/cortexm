@@ -11,8 +11,8 @@
 //stm32F4 internal RC oscillator:
 #define HSI_Hz 16000000
 //the following wasn't getting linked when in main.cpp
-const unsigned EXTERNAL_HERTZ = 1000000 * EXT_MHz;
-const unsigned MAX_HERTZ = 168000000;
+constexpr unsigned EXTERNAL_HERTZ = 1000000 * EXT_MHz;
+constexpr unsigned MAX_HERTZ = 168000000;
 
 struct OscControl {
   ControlBit on;
@@ -66,8 +66,8 @@ ControlField apb2Prescale(RCCCC, 13, 3);
 
 
 //flash control functions for F40x parts
-void setFlash4Clockrate(Hertz hz){
-  ControlField(0x40023C00,0,3)=hz/30000000;//full voltage. For lesser voltage change the denominator
+void setFlash4Clockrate(Hertz hz) {
+  ControlField(0x40023C00, 0, 3) = hz / 30000000;//full voltage. For lesser voltage change the denominator
 }
 
 void switchToInteral() {
@@ -146,25 +146,46 @@ Hertz sysClock(unsigned int SWcode) {
   }
 }
 
+static const ControlField adcPrescaler{0x300+0x04+0x4001'2000,16,2};
 
 Hertz clockRate(unsigned rbus) {//
   u32 rate = sysClock(selected);
 
   switch (rbus) {
-  case ~0U:
+  case ~0U: // processor clock
     return rate;
-  case 0:case 1: case 2: //3 AHB's share the same clock
-    return rate >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));//!same as for F103!
-  case 4: case 5:
-    return rate >> (apb1Prescale >= 4 ? (apb1Prescale - 3) : 0);
+  case 0:
+  case 1:
+  case 2: //3 AHB's share the same clock
+    return ahbRate(ahbPrescale, rate);
+  case 4:
+  case 5://4 is a spacer for programming convenience, nomninally 'apb0'
+    return apbRate(apb1Prescale, rate);
   case 6:
-    return rate >> (apb2Prescale >= 4 ? (apb2Prescale - 3) : 0);
+    return apbRate(apb2Prescale, rate);
   default:
     return 0; //should blow up on user.
   }
 } /* clockRate */
 
-
+/** @returns actual rate, if @param rate is zero then sets the divisor as best as possible before returning actual rate
+ * chooses highest rate lower than asked for, but lowest if none are lower than asked for.
+ *
+ * */
+Hertz adcClock(Hertz rate){
+  Hertz feed=clockRate(6);
+  if(rate>0){
+    for(unsigned choices=0;choices<4;++choices){
+      Hertz possible=adcRate(choices,feed);
+      if(possible<=rate){
+        adcPrescaler=choices;
+        return possible;
+      }
+    }
+    adcPrescaler=3;//slow as we can
+  }
+  return adcRate(adcPrescaler,feed);
+}
 
 /** stm32 has a feature to post its own clock on a pin, for reference or use by other devices. */
 void setMCO(unsigned int mode) {

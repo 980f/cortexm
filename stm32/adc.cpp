@@ -2,6 +2,7 @@
 
 #include "minimath.h"
 #include "gpio.h"
+#include "clocks.h"
 
 struct ADC_CR1 {
   unsigned int watchChannel : 5;
@@ -186,4 +187,7 @@ float ADCdev::TrefCalibration::celsius(float millis) {
 //end of file
 u16 ADCdev::readConversion() {
   return dcb.data;
+}
+unsigned ADCdev::setClock(unsigned int hertz) {
+  return adcClock(hertz);
 }

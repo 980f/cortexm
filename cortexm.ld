@@ -164,8 +164,3 @@ SECTIONS {
 */
 }
 
-SECTIONS {
-
-INCLUDE cortexm/ccmfast.ld
-
-}

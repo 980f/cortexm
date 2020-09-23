@@ -164,9 +164,9 @@ struct ClockControl {
 
     switch(bus) {
     case ~0U: return rate;
-    case 0: return rate >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));
-    case 1: return rate >> (apb1Prescale >= 4 ? (apb1Prescale - 3) : 0);
-    case 2: return rate >> (apb2Prescale >= 4 ? (apb2Prescale - 3) : 0);
+    case 0: return ahbRate(ahbPrescale ,rate);
+    case 1: return apbRate(apb1Prescale,rate );
+    case 2: return apbRate(apb2Prescale,rate );
     case 3: return clockRate(2) / 2 * (adcPrescale + 1);
     default:
       return 0; //should blow up on user.

@@ -9,6 +9,14 @@ struct ADC_Band;
 
 //tag for ADC value type
 using AdcValue=uint16_t ;
+
+constexpr unsigned MaxAdcClock=
+#if DEVICE==103
+  14'000'000;
+#elif DEVICE==407
+  30'000'000;
+#endif
+
 /**
  * The name was changed from ADC to ADCdev due to compilation issues with STM32 Hal using a #define for ADC
  * todo: replace all the structures with ControlWord et al. and ditch the structures.
@@ -30,6 +38,9 @@ public:
 
   /** default vrefmV value is for the stm32 internal Vref */
   float milliVolts(AdcValue reading, AdcValue vrefReading, float vrefmV = 1200.0);
+
+  /** base clock, not conversion rate. 30MHz max for F407, 14MHz max for F103*/
+  unsigned setClock(unsigned hertz=MaxAdcClock);
 
   class TrefCalibration {
     float Tcal;
