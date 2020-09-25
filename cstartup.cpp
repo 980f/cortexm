@@ -49,19 +49,18 @@ void vectors2ram() {
 extern "C" //to make it easy to pass this to linker sanity checker.
 [[noreturn]] //we don't need no stinking stack frame (no params, no locals) gnu::naked generates a warning, so we dropped it even though it causes a few useless instructions to be emitted.
 void cstartup(void) {
-  //SFRint<unsigned ,0xE000E010> ()=0;// Systicker::disable();
   // initialize static variables
   __data_segment__.go();
   // Zero other static variables.
   __bss_segment__.go();
-  // a CMSIS hook: Will move to __init_table__ sorted to be first.
-  SystemInit(); // stuff that C++ construction might need, like turning on hardware modules (e.g. 980f LPC::GPIO::Init())
+  // a CMSIS hook: can move to __init_table__ sorted to be first.
+  SystemInit(); // stuff that C++ construction might need, like turning on hardware modules (e.g. GPIO group inits)
 
-  run_table(__init_table__);
-  //incorporated by linker into our __init_table__:  __libc_init_array(); // C++ library initialization (includes constructors for static objects)
+  run_table(__init_table__); //includes running constructors for static objects
+  //incorporated by linker into our __init_table__:  __libc_init_array(); // C++ library initialization 
 
   //
-#if VECTORSINCCM ==1
+#if VECTORSINRAM ==1
   vectors2ram();
 #endif
   main();
@@ -73,19 +72,7 @@ void cstartup(void) {
 
 // stack pointer is set to end of ram via linker script, gets followed by:
 void (*resetVector)() __attribute__((section(".vectors.1"))) = cstartup;
-// rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix
-
-//todo: separate out stackFault into its own file, for those who won't use it nor wtf.
-#include "wtf.h"  //error routine, a place to share a breakpoint for trouble.
-
-extern unsigned const __stack_limit__;//created in linker script
-void stackFault() {
-  unsigned here;
-  if (&here <= &__stack_limit__) {//todo: should add a few so that we can call wtf without risk
-    wtf(99999999);
-    generateHardReset();
-  }
-}
+// rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix on section name
 
 #ifdef __linux__  //for testing compiles with PC compiler etc.
 const RamInitBlock __data_segment__={0,{0,0}};
