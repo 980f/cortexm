@@ -98,12 +98,11 @@ SECTIONS {
     *(SORT(.rodata.*))
     *(.rodata)
     /* shouldn't be getting these on a cortexM, want to know if we do:  .gnu.linkonce.r.* */
-      . = ALIGN(4);
+      . = ALIGN(4); /* alignment padding for startupCopy disappeared spontaneously, causing an elf file load error- shifting bytes to boundary.
+        apparently we have been lucky for years that the segments naturally aligned. */
   } >FLASH
 
-/* alignment padding here disappeared spontaneously, causing a load error shifting bytes to boundary */
-
-/* data with constant initializers */
+/* data with non-zero initializers */
   .data :{
     *(SORT(.data.*))
     *(.data)
@@ -152,9 +151,10 @@ SECTIONS {
   That also entails laying out a struct to match the hardware and given the number of 16 bit wide peripherals that can be quite a pain.
   Without automated code generation that is all quite painful and error prone, and the code isn't any faster or smaller than using constexpr
   address calculation code (when the compiler is allowed to inline it).
+  Another reason to dislike that is that it hardcodes names for things, like the 'traditional' vector managment code does.
 
-  Nonetheless, if one wanted to do all that segment magic one could include a file here with the section per peripheral stuff,
-  and likewise have an include in the device.ld  declaring all the peripheral blocks.
+  Nonetheless, if one wanted to do all that segment magic one could have the file that includes this one
+  include files for with a section per each peripheral.
 */
 
 }
