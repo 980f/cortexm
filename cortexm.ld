@@ -118,10 +118,12 @@ SECTIONS {
   .bss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
     *(SORT(.bss.*))
     *(.bss)
-/* tbss added for F407+ st's hal use, just for errno! Once we understand it we might be able to get rid of it  */
+
     *(SORT(.tbss.*))
-    *(.tbss)
-    /* shouldn't be getting these: .gnu.linkonce.b.*) *(COMMON)*/
+    *(.tbss)  /* tbss added for F407+ st's hal use, just for errno! Once we understand it we might be able to get rid of it, 'til then we lose a big chunk of code without a linker error if we omit it */
+
+    /* .gnu.linkonce.b.*)   /* C++ doesn't use these, if C does remove the leading comment marker */
+    /* *(COMMON)    /* C++ doesn't use these, if C does remove the leading comment marker */
   } >SRAM
 
   .startupClear : {/* the following initializes an instance of what cstartup.cpp calls 'struct RamBlock' */
@@ -140,7 +142,6 @@ SECTIONS {
   __stack_max__ = LENGTH(SRAM) - (__stack_limit__ - ORIGIN(SRAM));
 
 
-
 /* theoretically one can have a memory declaration for each peripheral,
   in C code declare an object for each as extern,
   have a section name for each and an attribute in front of data declaration
@@ -153,14 +154,5 @@ SECTIONS {
   and likewise have an include in the device.ld  declaring all the peripheral blocks.
 */
 
-/* The following fragment is copied from the AC6 auto generated ld file, not yet sure what it does. */
-  /* Remove information from the compiler libraries */
-/* 10aug2019 libc.a linker error hunt
-/DISCARD/ : {
-    libc.a ( * )
-    libm.a ( * )
-    libgcc.a ( * )
-  }
-*/
 }
 
