@@ -98,7 +98,10 @@ SECTIONS {
     *(SORT(.rodata.*))
     *(.rodata)
     /* shouldn't be getting these on a cortexM, want to know if we do:  .gnu.linkonce.r.* */
+      . = ALIGN(4);
   } >FLASH
+
+/* alignment padding here disappeared spontaneously, causing a load error shifting bytes to boundary */
 
 /* data with constant initializers */
   .data :{
