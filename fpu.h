@@ -13,4 +13,9 @@ void fpu_enable();
 /** if  you will never use floating point in an isr then you can disable stacking its registers */
 void fpu_noisr() ;
 /** traditional combination of the config functions, will need to add option bits to make it live up to its name */
-void fpu_init();
+void fpu_init(bool dontStack, bool ieeePerfect);
+
+/** static allocation of one of these runs fpu_init before main(). */
+struct FpuOptions {
+  FpuOptions(bool dontStack, bool ieeePerfect);
+};

@@ -5,7 +5,6 @@
 #include "peripheraltypes.h"
 #include "core_cmFunc.h"
 
-
 /*
 0xE000ED88 CPACR coprocessor control
 0xE000EF34 FPCCR RW 0xC0000000 Section 4.6.2: Floating-point context control register (FPCCR)
@@ -16,18 +15,18 @@
  *
  * */
 
-void fpu_fast(){
-  FPSCR |= 3<<24;//FZ and DN
-  ControlField (0xE000EF3C,24,2)=3; //FZ and DN
+void fpu_fast() {
+  FPSCR |= 3 << 24;//FZ and DN
+  ControlField(0xE000EF3C, 24, 2) = 3; //FZ and DN
 }
 
-void fpu_correct(){
-  FPSCR |= 3<<24;//FZ and DN
-  ControlField (0xE000EF3C,24,2)=0;
+void fpu_correct() {
+  FPSCR |= 3 << 24;//FZ and DN
+  ControlField(0xE000EF3C, 24, 2) = 0;
 }
 
-void fpu_enable(){
-  ControlField (0xE000ED88,20,4)=0xF;//allows access
+void fpu_enable() {
+  ControlField(0xE000ED88, 20, 4) = 0xF;//allows access
   //st's manual has DSB preceding the ISB. The order here is from Rowley supplied code.
   __ISB();
   __DSB();
@@ -38,16 +37,19 @@ void fpu_noisr() {
   ControlField(0xE000EF34, 30, 2) = 0;//don't preserve FPU state on interrupts
   CONTROL &= ~(1 << 2);//don't preserve FPU state on interrupt, why it has to be in two places is beyond me. Note: rowley startup sets it to unconditionally do the stacking
 }
-
-
-struct FpuOptions{
-FpuOptions(bool dontStack,bool ieeePerfect){
+void fpu_init(bool dontStack, bool ieeePerfect) {
   fpu_enable();
-  if(dontStack)
-  fpu_noisr();
-  if(!ieeePerfect)
-  fpu_fast();
+  if (dontStack) {
+    fpu_noisr();
+  }
+  if (ieeePerfect) {
+    fpu_correct();
+  } else {
+    fpu_fast();
+  }
 }
-};
 
-InitStep(InitHardware) FpuOptions fpuopts{true,false};
+FpuOptions::FpuOptions(bool dontStack, bool ieeePerfect) {
+  fpu_init(dontStack, ieeePerfect);
+}
+

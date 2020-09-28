@@ -34,7 +34,7 @@ void run_table(const InitRoutine *table) {
 }
 
 // instead of tracking #defined symbols just dummy up the optional routines:
-[[gnu::weak, gnu::optimize(3)]] void SystemInit() {
+[[gnu::weak]] void SystemInit() {
 //  return;
 }
 
@@ -70,7 +70,7 @@ void cstartup(void) {
   generateHardReset(); // auto restart on problems, design your system to tolerate spontaneous power cycles on fatal firmware error
 }
 
-// stack pointer is set to end of ram via linker script, gets followed by:
+[[maybe_unused]] // stack pointer is set to end of ram via linker script, gets followed by:
 void (*resetVector)() __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix on section name
 
