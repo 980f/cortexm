@@ -1,6 +1,8 @@
 #pragma once  // //(C) 2017,2018,2019 Andy Heilveil, github/980f
 
+#if __has_include("Arduino.h")
 #include "Arduino.h"
+#endif
 
 /** POSIX versions uses time_t classes which 980F/safely wraps, we mimic that here.
   Note: we use double but AVR uses 32bit for that. */
@@ -111,7 +113,7 @@ struct Microseconds {
     return micros == 0;
   }
 
-
+#ifdef ARDUINO
   /** differs from posix due to implementation of delay being non-interruptible */
   void sleep()const {
     delayMicroseconds(micros);
@@ -122,6 +124,6 @@ struct Microseconds {
     *this= ::micros();
     return *this;
   }
-
+#endif
 
 };
