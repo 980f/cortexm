@@ -191,7 +191,7 @@ struct Uart:public APBdevice {
 };
 
 //use the following where a decimal number of the interrupt request is expected.
-#define UartIrq(luno) ResolveIrq(USART##luno##_irq)
+#define UartIrq(luno) USART##luno##_irq
 
 #define  USART1_irq  37
 #define  USART2_irq  38

@@ -7,8 +7,12 @@
 //macro's for generating numbers don't work in the irqnumber slot below. The argument must be a simple digit string, no math or lookups or even constexpr's
 #define IrqName(irqnumber) IRQ ## irqnumber
 
-//use this in front of the block statement of an irq handler:  (added trailing semicolon to this macro ~2020sep14)
-#define HandleInterrupt(irqname)  void IrqName( irqname ) (void);
+/*use this in front of the open curly of the function body of an irq handler:
+ HandleInterrupt(numberish){
+   isrcode();
+ }
+*/
+#define HandleInterrupt(irqname)  void IrqName( irqname ) (void)
 
 //see uses, this is a C preprocessor trick to get the symbolic name of an irq to become a number in a timely fashion.
 #define ResolveIrq(Irqsymbol)  Irqsymbol
