@@ -77,15 +77,14 @@ static constexpr TimerConstant T[] = {
   { 2, 13, 44 },
 #elif DEVICE == 407
 //stop bit is apb*32+slot
-  {2, 0, 27}, //just CC
+  {2, 0, 27}, //T1, but just CC
   {1, 0, 28},
-  {1, 1, 29},
+  {1, 1, 29}, //T3
   {1, 2, 30},
   {1, 3, 50},
   {1, 4, 54},//shared with DAC
-  {1, 5, 55},
-  //T7???
-  {2, 1, 46},//just cc
+  {1, 5, 55},//T7???
+  {2, 1, 46},//T8, but just cc and we want update
 
   {2, 16, 24},//#9 and T1 break
   {2, 17, 25},//#10 and T1 update
@@ -124,6 +123,7 @@ struct Timer:public APBdevice {
 //removing this init allows the object to be const constructed  apb.init(); //for most extensions this is the only time we do the init.
   }
 
+  void init() const;
   /** input to timer's 16 bit counter in integer Hz,
     * appears to truncate rather than round.*/
   unsigned baseRate() const;

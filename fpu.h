@@ -12,7 +12,7 @@ void fpu_correct();
 void fpu_enable();
 /** if  you will never use floating point in an isr then you can disable stacking its registers */
 void fpu_noisr() ;
-/** traditional combination of the config functions, will need to add option bits to make it live up to its name */
+/** traditional combination of the config functions */
 void fpu_init(bool dontStack, bool ieeePerfect);
 
 /** static allocation of one of these runs fpu_init before main(). */

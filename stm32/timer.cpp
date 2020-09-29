@@ -64,6 +64,9 @@ double Timer::getHz() const {
 void Timer::update() const {
   bit(0x14, 0) = 1; //UG: an auto clearing bit.
 }
+void Timer::init() const {
+  APBdevice::init();
+}
 
 ////////////////////////////
 PeriodicInterrupter::PeriodicInterrupter(unsigned stLuno) : Timer(stLuno) {

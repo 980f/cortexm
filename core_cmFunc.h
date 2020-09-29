@@ -1,9 +1,12 @@
 #pragma once
+
 /**************************************************************************//**
 * core_cmFunc.h
 * replaces uses of CMSIS Cortex-M Core Function Access Header File
 *
 * access to core registers as if they were just regular variables
+ *
+ * Ignores whether the feature is present on a device, just don't try to use it if not.
 */
 
 #include "core_cmInstr.h"
@@ -76,7 +79,7 @@ extern const MREG(primask) PRIMASK ;
 /** @returns previous psp value while setting it to @param whatever */
 unsigned swapPsp(unsigned whatever);
 
-#if __CORTEX_M >= 3
+
 extern const CPSI(f) FIQenable; //=1 or 0
 
 extern const struct BasePriority {
@@ -91,14 +94,7 @@ extern const struct BasePriority {
 }BASEPRI;
 
 extern const MREG(faultmask) FAULTMASK;
-#endif /* (__CORTEX_M >= 3) */
 
-
-#if __CORTEX_M == 4
-
-
-
-#if __FPU_PRESENT == 1
 #define FPUREG(regname) struct FPUREG_##regname {\
   operator unsigned () const {\
     unsigned  result;\
@@ -120,9 +116,4 @@ extern const MREG(faultmask) FAULTMASK;
 
 extern const MREG(fpsr) FPSR;//normal space
 extern const FPUREG(fpscr) FPSCR;
-#else
-extern unsigned FPSR;
-extern unsigned FPSCR
-#endif
 
-#endif /* (__CORTEX_M == 4) */

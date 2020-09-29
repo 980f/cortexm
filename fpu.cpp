@@ -1,9 +1,10 @@
-//core_cm4 needs a particular device defined first:
-#include DeviceHeaderFile
-//#include "core_cm4.h" //cmsis special ops
+
 #include "fpu.h"
 #include "peripheraltypes.h"
-#include "core_cmFunc.h"
+
+#include DeviceHeaderFile
+#include "core_cmFunc.h"  //ISB and DSB
+
 
 /*
 0xE000ED88 CPACR coprocessor control
@@ -16,12 +17,10 @@
  * */
 
 void fpu_fast() {
-  FPSCR |= 3 << 24;//FZ and DN
   ControlField(0xE000EF3C, 24, 2) = 3; //FZ and DN
 }
 
 void fpu_correct() {
-  FPSCR |= 3 << 24;//FZ and DN
   ControlField(0xE000EF3C, 24, 2) = 0;
 }
 
