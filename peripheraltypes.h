@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bitbasher.h"
+#include "bitbanger.h"
 #include "boolish.h"
 #include "eztypes.h"
 
