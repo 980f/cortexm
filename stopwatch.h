@@ -40,6 +40,9 @@ public:
 
   /** @returns the number of cycles of frequency @param atHz that have @see elapsed() */
   unsigned cycles(double atHz, bool andRoll=true);
+
+  /** @returns the number of cycles of @param ticks that have @see elapsed() */
+  unsigned int wraps(TimeValue ticks, bool andRoll);
 };
 
 

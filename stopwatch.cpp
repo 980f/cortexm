@@ -112,3 +112,8 @@ unsigned StopWatch::cycles(double atHz,bool andRoll){
   return cycles;
 }
 
+unsigned StopWatch::wraps(TimeValue ticks, bool andRoll){
+  TimeValue delta=peek(andRoll);
+  return delta%ticks;//strictly truncate, do not round.
+}
+
