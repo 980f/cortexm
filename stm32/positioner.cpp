@@ -287,7 +287,7 @@ void Ramper::start(void){
 }
 
 /** called when a step is taken*/
-u32 Ramper::stepped(bool suppress){
+unsigned int Ramper::stepped() {
   if(!suppress){
     //no lock, only called from ISR
     if(unsigned(stepsRemaining)<=numSteps) { //then we need to be decelerating

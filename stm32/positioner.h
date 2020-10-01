@@ -48,7 +48,7 @@ struct Ramper {
   //subtract or add this amount per tick for accel/decel respectively
   PwmModulator dither; //delta ticks inside here.
   /** adjust step time for step about to be initiated, return that time*/
-  inline u32 stepped(bool suppress=false)ISRISH;//#ISR
+  inline unsigned int stepped()ISRISH;//#ISR
   inline void start(void);//#ISR
   /**@return whether we are at a speed where we can change direction or start or stop.*/
   inline bool crawling() ISRISH {//#ISR
