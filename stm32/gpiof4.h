@@ -1,7 +1,5 @@
 #pragma once
-//F$ gpio, significantly different configuration mechanism, same data access but at different offsets.
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "hicpp-signed-bitwise"
+//F4 gpio, significantly different configuration mechanism than F1, same data access but at different offsets.
 
 #include "stm32.h"
 
@@ -49,10 +47,7 @@ struct Port /*Manager*/ : public APBdevice {
   /** @param letter is the uppercase character from the stm32 manual */
   explicit constexpr Port(char letter) : APBdevice(1, unsigned(letter - 'A'), gpiobase(letter - 'A')) {}
 
-  /**
-    * configure the given pin.
-    todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
-    */
+  /** configure the given pin. */
   void configure(unsigned bitnum, const PinOptions &c) const;
 
   /** a contiguous set of bits in a a single Port */
@@ -151,7 +146,7 @@ struct Pin /*Manager*/ {
   }
 };
 
-/** declare a pin used by a peripheral, one that will not get directly manipulated  */
+/** declare a pin used by a peripheral, one that will not get directly manipulated but might be inspectable. */
 struct FunctionPin {
   const ControlBit reader;
   operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
@@ -169,7 +164,7 @@ struct FunctionPin {
  //not templated as we want to be able to pass Pin's around. not a hierarchy as we don't want the runtime cost of virtual table lookup. */
 class LogicalPin {
 protected:
-  const Pin &pin;
+  const Pin pin; //removed reference as pins were sometimes created inside a parameter list, and as such evaporated.
   /** the level that is deemed active  */
   const bool active;
 
@@ -197,16 +192,15 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true) : LogicalPin(pin, active) {
+  constexpr explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true) : LogicalPin(pin, active) {
     pin.DI(UDF);
   }
   /** pull the opposite way of the 'active' level. */
-  InputPin(const Pin &pin, bool active) : InputPin(pin, active ? 'D' : 'U', active) {
+  constexpr explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? 'D' : 'U', active) {
     //#nada
   }
 
-//  InputPin(InputPin &&copyme)=default;
-  InputPin(const InputPin &copyme) = default;
+//  InputPin(const InputPin &copyme) = default;
 };
 
 /**
@@ -243,5 +237,3 @@ public:
   /** actually invert the present state of the pin */
   void toggle() const;
 };
-
-#pragma clang diagnostic pop
