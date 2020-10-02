@@ -1,8 +1,8 @@
 #include "positioner.h"
 
-#ifdef DebugStepper
-#include "debugio.h"
-#endif
+//#ifdef DebugStepper
+//#include "debugio.h"
+//#endif
 
 #include "minimath.h"
 //4debug

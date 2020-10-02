@@ -1,11 +1,19 @@
-//libc2.c:(.text.libc.__aeabi_errno_addr+0x2): undefined reference to `__aeabi_read_tp'
-void __aeabi_read_tp(){}
-//new.cpp:(.text.libcpp.__cxa_pure_virtual+0x2): undefined reference to `abort'
-void abort(){}
+//lines like these in the .lf file map functions that should not be called to our one dummy provided here.
+//__do_debug_operation = do_nothing
+//__vfprintf = do_nothing
+//__vfscanf = do_nothing
+//__putchar= do_nothing
+//__aeabi_read_tp= do_nothing
+//  abort= do_nothing
 
-//rowley debug detritus:
-void __putchar(int ch){}
-
+//the compiler did NOT tolerate multiple function aliases on one function :(
+//__attribute__((alias("__do_debug_operation") ))
+//__attribute__((alias("__vfprintf")))
+//__attribute__((alias("__vfscanf")))
+//__attribute__((alias("__putchar")))
+//__attribute__((alias("__aeabi_read_tp")))
+//__attribute__((alias("abort")))
+void do_nothing(){}
 
 //trace for heap users:
 //libc2.c:(.text.libc.free+0xa0): undefined reference to `__heap_start__'
