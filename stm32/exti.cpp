@@ -8,15 +8,7 @@ void selectEvent(const Pin &pin){
 #elif DEVICE==407
 #include "gpiof4.h"
 //syscfg does what afio does for the 103
-/**
- * the syscfg is an apb peripheral but we need neither reset nor clock?
- * */
-
-const APBdevice SysCfg{2,14};
-void selectEvent(const Pin &pin){
-//8+ num/4, 4 bits wide
-  ControlField(SysCfg.registerAddress(8+pin.bitnum/4),4)=pin.port.slot;//conveniently slot is what we need here.
-}
+#include "syscfg.h"
 
 #endif
 
@@ -49,10 +41,13 @@ APBdevice(2, 16)
 
 const Irq &Exti::enablePin(const Pin &pin, bool rising, bool falling) {
   //call  pin.DI() before calling this method.
+#if DEVICE==407
+  SysConfig.
+#endif
   selectEvent(pin);
 
-  theExti.bit(0, pin.bitnum) = 1;
-  theExti.bit(0x4, pin.bitnum) = 1;    //also set as an event, mostly to test the .bit method
+  theExti.bit(0, pin.bitnum) = 1;     //interrupt enable
+  theExti.bit(0x4, pin.bitnum) = 1;   //also set as an event, mostly to test the .bit method
 
   theExti.bit(0x08, pin.bitnum) = rising;
   theExti.bit(0x0C, pin.bitnum) = falling;
@@ -61,5 +56,8 @@ const Irq &Exti::enablePin(const Pin &pin, bool rising, bool falling) {
 
 void Exti::clearPending(const Pin &pin) {
   theExti.bit(0x14, pin.bitnum) = 1;
+}
+void Exti::setPending(const Pin &pin) {
+  theExti.bit(0x10, pin.bitnum) = 1;
 }
 

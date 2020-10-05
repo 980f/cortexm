@@ -28,5 +28,6 @@ you can set both rising and falling, then check the level directly to figure out
 */
   static const Irq &enablePin(const Pin &pin, bool rising, bool falling);
   static void clearPending(const Pin &pin);
+  static void setPending(const Pin &pin);
 };
 
