@@ -7,8 +7,8 @@
 #include "gpiof4.h"
 #include "bitbasher.h"
 
-// priority must be such that these get created before any application objects
-#define DefinePort(letter) const Port P##letter InitStep(InitHardware)(*#letter)
+// priority must be such that these get created before any application objects, +5 make it be after clocks.
+#define DefinePort(letter) const Port P##letter InitStep(InitHardware + 5)(*#letter)
 //the above macro is why people hate C. The '*' picks out the first letter of the string made by # letter, since the preprocessor insisted on honoring single ticks while parsing the #defined text.
 
 DefinePort(A);
