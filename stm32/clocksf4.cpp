@@ -35,7 +35,7 @@ OscControl PLL(24);
 
 #define PLLCFGR RCCBASE+4
 ControlField PLLM(PLLCFGR, 0, 6);
-ControlField PLLN(PLLCFGR, 6, 14 + ~6);
+ControlField PLLN(PLLCFGR, 6, 9);
 ControlField PLLP(PLLCFGR, 16, 2);
 ControlBit PLLsource(PLLCFGR, 22);
 ControlField PLLQ(PLLCFGR, 24, 4);
