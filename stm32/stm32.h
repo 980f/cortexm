@@ -10,6 +10,10 @@
 
 
 #if DEVICE==103
+enum BusNumber {//#this enum is used for RCC register addressing
+  AHB, APB1=1, APB2
+};
+
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
 constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | bus2 << 16u | slot << 10u); }
 
@@ -18,7 +22,13 @@ constexpr Address APB_Band(unsigned bus2, unsigned slot) { return (PeripheralBan
 const Address RCCBASE(0x40021000U);//0th offset.
 const unsigned resetOffset=0x0C;
 const unsigned clockOffset=0x18;
+
 #elif DEVICE==407
+enum BusNumber {//#this enum is used for RCC register addressing
+  AHB1=1,AHB2,AHB3, //3 buses which have some APDevice like characteristics
+  //there is a gap here.
+  APB1=5,APB2 //2 actual APB buses.
+};
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
 constexpr Address APB_Block(unsigned bus2, unsigned slot) { return (PeripheralBase | (bus2-4) << 16u | slot << 10u); }
 

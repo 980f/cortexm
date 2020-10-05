@@ -7,12 +7,6 @@
 
 #define DeclareCore(regname) extern CM3:: regname & the ## regname;
 
-// todo: move this in with core clock functions.
-inline void spin(unsigned int loops){
-  while(loops-- > 0) { /*nop()*/ // todo: make sure this does not optimize into nothing.
-  }
-}
-
 /* Memory mapping of Cortex-M3 Hardware */
 #define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Base Address */
 #define ITM_BASE            (0xE0000000UL)                            /*!< ITM Base Address                  */

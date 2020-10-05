@@ -123,7 +123,10 @@ struct Timer:public APBdevice {
 //removing this init allows the object to be const constructed  apb.init(); //for most extensions this is the only time we do the init.
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   void init() const;
+#pragma clang diagnostic pop
   /** input to timer's 16 bit counter in integer Hz,
     * appears to truncate rather than round.*/
   unsigned baseRate() const;
@@ -210,19 +213,6 @@ struct CCUnit {
     //bit 0 must also be on but that is inappropriate to do here.
   }
 
-//replaced with takePin() and other functions to be written as needed.
-  //  inline CCER& ccer() const {
-//    return timer.b->ccer[zluno];
-//  }
-
-//  int saturateTicks(int ticks) const { //todo:M replace with inline use of minimath::saturate
-//    if(ticks < 0) {
-//      return 0;
-//    } else if(ticks > 65535) {
-//      return 65535;
-//    }
-//    return ticks;
-//  }
 private:
   inline u16 &ticker() const {
     return Ref<u16>(timer.registerAddress(0x34+2 * zluno));

@@ -14,10 +14,10 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
   //47 = t1edge, external mode 1. ?:1 gives a 1 for 0 or 1, a 2 for 2.
   word(0x08) = 0x0047 + ((which ?: 1) << 4); //smcr
   if (which == Xor) {
-//todo: restore    bit() = 1;
+//todo:M restore    bit() = 1;
   }
   bit(0x0C, 0) = 1; //enabling just the update interrupt for carry-outs
-  word(0x18) |= filter << (which == CH2 ? 12 : 4);//todo: verify the 0x18
+  word(0x18) |= filter << (which == CH2 ? 12 : 4);//todo:M verify the 0x18
 } /* configureCountExternalInput */
 
 Hertz Timer::baseRate() const {

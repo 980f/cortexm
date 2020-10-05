@@ -140,8 +140,7 @@ extern "C" { // to keep names simple for "alias" processor
     switch(num) {
     default://added to stifle compiler warning.
     case 0: // surreal: stack pointer init rather than an interrupt
-    case 1: // reset
-      // todo:3 reset vector table base to rom.
+    case 1: // reset: also would be surreal to get here.
       break;
     case 2: // NMI
       // nothing to do, but pin doesn't exist on chip of interest to me
@@ -172,7 +171,7 @@ extern "C" { // to keep names simple for "alias" processor
     case 14: // pend SV (service requested by bit set rather than instruction
       break;
     case 15: // systick
-      // todo:2 disable systick interrupts
+      // todo:M disable systick interrupts, but don't include systick module, annoying include loop forms.
       break;
     } /* switch */
   } /* unhandledFault */

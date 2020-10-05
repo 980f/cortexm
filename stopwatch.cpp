@@ -82,7 +82,7 @@ double StopWatch::elapsed(double *absolutely){
   if(absolutely) {
     *absolutely = asSeconds(stopped);
   }
-  //todo: if delta<0 ....
+  //todo:M if delta<0 ....
   return asSeconds(delta);
 } // StopWatch::elapsed
 

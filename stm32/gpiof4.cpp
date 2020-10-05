@@ -65,10 +65,10 @@ void Port::configure(unsigned bitnum, const PinOptions &c) const {
   //1 bit "is open drain" into offset 4 from UDFO=='O'
   bit(registerAddress(0x04), bitnum)= c.UDFO=='O';
 
-  //todo: 2 bits from slew into offset 8
+  //2 bits from slew into offset 8
   ControlField(registerAddress(0x08), bitnum*2,2)=c.slew;
 
-  //todo: 2 bits from UDFO into offset 12  F:0 U:1 D:2  (O goes to OD register and we pull up here)  F=0x46 U=0x85 D=0x44 Oh=0x79
+  //2 bits from UDFO into offset 12  F:0 U:1 D:2  (O goes to OD register and we pull up here)  F=0x46 U=0x85 D=0x44 Oh=0x79
   unsigned code= ((c.UDFO=='D')?2:0) + (c.UDFO&1);
   ControlField(registerAddress(0x0C), bitnum*2,2)=code;
   //FYI alt function select is at offset 32, 4 bits each.
