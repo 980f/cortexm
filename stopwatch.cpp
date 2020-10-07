@@ -57,7 +57,7 @@ TimeValue StopWatchCore::peek(bool andRoll){
   if(running){
     readit(stopped);
   }
-  TimeValue elapsed=started-stopped;
+  TimeValue elapsed=stopped-started;
 
   if(andRoll){
     started=stopped;
@@ -114,6 +114,6 @@ unsigned StopWatch::cycles(double atHz,bool andRoll){
 
 unsigned StopWatch::wraps(TimeValue ticks, bool andRoll){
   TimeValue delta=peek(andRoll);
-  return delta%ticks;//strictly truncate, do not round.
+  return delta/ticks;//strictly truncate, do not round.
 }
 
