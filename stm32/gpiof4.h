@@ -169,7 +169,7 @@ protected:
   const bool active;
 
   bool polarized(bool operand) const {
-    return active != operand;
+    return active == operand;
   }
 
   explicit constexpr LogicalPin(const Pin &pin, bool active = true) :
