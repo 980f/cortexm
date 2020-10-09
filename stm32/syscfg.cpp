@@ -10,5 +10,5 @@ SysCfg::SysCfg() :APBdevice(2,14),
   ,rmii(registerAddress(0x04),23)
 {}
 
-
+InitStep(InitHardware)
 const SysCfg SysConfig;
