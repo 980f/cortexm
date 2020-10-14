@@ -112,11 +112,11 @@ constexpr unsigned lunoOffset(unsigned luno){
 //this constructor only supports ADC1 and 2 of the F10x
 ADCdev::ADCdev(unsigned luno) :
 #if DEVICE==103
-  APBdevice(2, 8 + luno),
+  APBdevice(APB2, 8 + luno),
   dcb(*reinterpret_cast<ADC_DCB *>(blockAddress)), //
   band(*reinterpret_cast<ADC_Band *>(bandAddress))
 #elif DEVICE ==407
-  APBdevice(2, 8 ), //one slot for all
+  APBdevice(APB2, 8 ), //one slot for all 3
   dcb(*reinterpret_cast<ADC_DCB *>(blockAddress+lunoOffset(luno))), //
   band(*reinterpret_cast<ADC_Band *>(bandAddress+bandShift(lunoOffset(luno))))
 #else

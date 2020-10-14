@@ -65,7 +65,7 @@ struct SysTicker {
     if (!fullspeed) {
       effectiveDivider *= 8;
     }
-    return rate(clockRate(~0U), effectiveDivider);
+    return rate(clockRate(CPU), effectiveDivider);
   }
 
   SysTicks ticksForMicros(unsigned us) const {
@@ -92,13 +92,13 @@ namespace SystemTimer {
 
 /** start ticking at the given rate.*/
   void startPeriodicTimer(unsigned persecond) {
-    theSysTicker.fullspeed = 1;
+    theSysTicker.fullspeed = 1;//todo:1 pass an option?
     //lpc has a programmable divider
-//the following fragment is stm32's fullspeed===0 logic
-//  if(!theSysTicker.fullspeed) {//!! stm32 specific (although others copy it)
-//    persecond *= 8; // times 8 here instead of /8 in the rate computation.
-//  }
-    Hertz num = clockRate(theSysTicker.fullspeed ? 0U : ~0U);
+    Hertz num =
+#if DEVICE==103
+     theSysTicker.fullspeed?clockRate(CPU):
+#endif
+    clockRate(AHB1)/8;
     theSysTicker.start(rate(num, persecond));
   }
 

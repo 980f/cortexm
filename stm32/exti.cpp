@@ -34,7 +34,7 @@ Exti::Exti() :
 #if DEVICE==103
 APBdevice(2, 1)
 #elif DEVICE==407
-APBdevice(2, 16)
+APBdevice(APB2, 16)
 #endif
 {
 }

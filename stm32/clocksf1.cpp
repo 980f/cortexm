@@ -159,15 +159,15 @@ struct ClockControl {
     }
   }
 
-  Hertz clockRate(unsigned int bus){
+  Hertz clockRate(BusNumber bus){
     Hertz rate = sysClock(SWactual);
 
     switch(bus) {
-    case ~0U: return rate;
-    case 0: return ahbRate(ahbPrescale ,rate);
-    case 1: return apbRate(apb1Prescale,rate );
-    case 2: return apbRate(apb2Prescale,rate );
-    case 3: return clockRate(2) / 2 * (adcPrescale + 1);
+    case CPU: return rate;
+    case AHB: return ahbRate(ahbPrescale ,rate);
+    case APB1: return apbRate(apb1Prescale,rate );
+    case APB2: return apbRate(apb2Prescale,rate );
+    case ADCbase: return clockRate(APB2) / 2 * (adcPrescale + 1);
     default:
       return 0; //should blow up on user.
     }

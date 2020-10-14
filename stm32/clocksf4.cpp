@@ -148,20 +148,18 @@ Hertz sysClock(unsigned int SWcode) {
 
 static const ControlField adcPrescaler{0x300+0x04+0x4001'2000,16,2};
 
-Hertz clockRate(unsigned rbus) {//
+Hertz clockRate(BusNumber rbus) {//
   u32 rate = sysClock(selected);
-
   switch (rbus) {
-  case ~0U: // processor clock
+  case CPU: // processor clock
     return rate;
-  case 0:
-  case 1:
-  case 2: //3 AHB's share the same clock
+  case AHB1:
+  case AHB2:
+  case AHB3: //3 AHB's share the same clock
     return ahbRate(ahbPrescale, rate);
-  case 4:
-  case 5://4 is a spacer for programming convenience, nomninally 'apb0'
+  case APB1://4 is a spacer for programming convenience, nomninally 'apb0'
     return apbRate(apb1Prescale, rate);
-  case 6:
+  case APB2:
     return apbRate(apb2Prescale, rate);
   default:
     return 0; //should blow up on user.
@@ -173,7 +171,7 @@ Hertz clockRate(unsigned rbus) {//
  *
  * */
 Hertz adcClock(Hertz rate){
-  Hertz feed=clockRate(6);
+  Hertz feed=clockRate(APB2);
   if(rate>0){
     for(unsigned choices=0;choices<4;++choices){
       Hertz possible=adcRate(choices,feed);

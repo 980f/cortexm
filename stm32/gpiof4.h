@@ -45,7 +45,7 @@ struct Port /*Manager*/ : public APBdevice {
   }
 
   /** @param letter is the uppercase character from the stm32 manual */
-  explicit constexpr Port(char letter) : APBdevice(1, unsigned(letter - 'A'), gpiobase(letter - 'A')) {}
+  explicit constexpr Port(char letter) : APBdevice(AHB1, unsigned(letter - 'A'), gpiobase(letter - 'A')) {}
 
   /** configure the given pin. */
   void configure(unsigned bitnum, const PinOptions &c) const;

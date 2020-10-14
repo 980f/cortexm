@@ -94,7 +94,7 @@ Uart::Uart(unsigned stluno, unsigned alt) :
 #if DEVICE == 103
   APBdevice(stluno>1 ? 1: 2, stluno>1 ? (stluno + 15): 14)
 #elif DEVICE == 407
-  APBdevice((stluno == 1 || stluno == 6) ? 2 : 1, (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15)))
+  APBdevice((stluno == 1 || stluno == 6) ? APB2 : APB1, (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15)))
 #endif
   , b(*reinterpret_cast <volatile UartBand *> (bandAddress)), dcb(*reinterpret_cast <volatile USART_DCB *> (blockAddress))
 //the irq's are the same for the same luno, just needed to add uart6 for F407:

@@ -22,7 +22,7 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
 
 Hertz Timer::baseRate() const {
   Hertz apbRate = APBdevice::getClockRate();
-  Hertz ahbRate = clockRate(0);
+  Hertz ahbRate = clockRate(AHB1);
   return (ahbRate == apbRate) ? apbRate : apbRate * 2;//#?F4?
 }
 

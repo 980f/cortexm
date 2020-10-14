@@ -57,14 +57,14 @@
 #include "debugger.h"
 //construction aid
 struct TimerConstant {
-  int apb;
-  int slot;
-  int irq;
+  BusNumber apb;
+  u8 slot;
+  u8 irq;
 //  enum DebugControlBit stopper;
 };
 
 static constexpr TimerConstant T[] = {
-  {0, 0, 0}, //spacer so that we can textually use st's 1-based labels.
+  {APB0, 0, 0}, //spacer so that we can textually use st's 1-based labels.
 #if DEVICE == 103
 
   { 2, 11, 27 }, //CC, see also 25,26 ...
@@ -77,21 +77,21 @@ static constexpr TimerConstant T[] = {
   { 2, 13, 44 },
 #elif DEVICE == 407
 //stop bit is apb*32+slot
-  {2, 0, 27}, //T1, but just CC
-  {1, 0, 28},
-  {1, 1, 29}, //T3
-  {1, 2, 30},
-  {1, 3, 50},
-  {1, 4, 54},//shared with DAC
-  {1, 5, 55},//T7???
-  {2, 1, 46},//T8, but just cc and we want update
+  {APB2, 0, 27}, //T1, but just CC
+  {APB1, 0, 28},
+  {APB1, 1, 29}, //T3
+  {APB1, 2, 30},
+  {APB1, 3, 50},
+  {APB1, 4, 54},//shared with DAC
+  {APB1, 5, 55},//T7???
+  {APB2, 1, 46},//T8, but just cc and we want update
 
-  {2, 16, 24},//#9 and T1 break
-  {2, 17, 25},//#10 and T1 update
-  {2, 18, 26},//#11 and T1 trigger
-  {1, 6, 43},//#12 and T8 break
-  {1, 7, 44},//#13 and T8 update
-  {1, 8, 45},//#14 and T8 trigger
+  {APB2, 16, 24},//#9 and T1 break
+  {APB2, 17, 25},//#10 and T1 update
+  {APB2, 18, 26},//#11 and T1 trigger
+  {APB1, 6, 43},//#12 and T8 break
+  {APB1, 7, 44},//#13 and T8 update
+  {APB1, 8, 45},//#14 and T8 trigger
 #endif
 };
 

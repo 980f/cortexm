@@ -1,6 +1,7 @@
 #ifndef _IRQNUMS_H
 #define _IRQNUMS_H  "(C) Andy Heilveil (980F) 2020 sep14"
-/** this started life as a comprehensive list, but is going to be broken up into the associated modules. */
+
+/** this started life as a comprehensive list, but is getting broken up into the associated modules. */
 
 #define  WWDG_irq 0
 #define  PVD_irq 1
