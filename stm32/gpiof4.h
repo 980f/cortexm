@@ -50,6 +50,8 @@ struct Port /*Manager*/ : public APBdevice {
   /** configure the given pin. */
   void configure(unsigned bitnum, const PinOptions &c) const;
 
+  void forAdc(unsigned bithum) const;
+
   /** a contiguous set of bits in a a single Port */
   struct Field {
     const Address odr;

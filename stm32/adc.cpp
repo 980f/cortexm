@@ -1,3 +1,7 @@
+/*
+ * todo: there are many control register differences as to bit location.
+ * */
+
 #include "adc.h"
 
 #include "minimath.h"
@@ -71,7 +75,9 @@ struct ADC_Band {
   volatile unsigned int injectionComplete;
   volatile unsigned int injectionStarted; //set by HW, cleared by you.
   volatile unsigned int sequenceStarted;
-  volatile unsigned int srwaste[32 - 5];
+  volatile unsigned int overRan;//not present on F103
+  volatile unsigned int srwaste[32 - 6];
+  //CR1:
   unsigned int watchChannel[5];
   unsigned int sequenceCompleteIE;
   unsigned int watchdogIE;
@@ -82,14 +88,21 @@ struct ADC_Band {
   unsigned int discontinuousNormal;
   unsigned int discontinuousInjection;
   unsigned int discontinuousLength[3];
-  unsigned int dualMode[4];
+  unsigned int dualMode[4]; //only F103
   unsigned int cr1waste1[2];
   unsigned int watchInjected;
   unsigned int watchRegular;
+#if DEVICE==103
   unsigned int cr1waste2[8];
-
+#elif DEVICE==407
+  unsigned int res[2];
+  unsigned int overrunIE;
+  unsigned int cr1waste2[5];
+#endif
+  //CR2:
   unsigned int powerUp; //ADON or wakeup
   unsigned int loopForever; //CONT
+#if DEVICE==103
   volatile unsigned int beCalibrating; //CAL: is a status as well as a control
   unsigned int resetCalibration; //RSTCAL
   unsigned int cr2waste4[4];
@@ -104,6 +117,25 @@ struct ADC_Band {
   unsigned int startInjection; //SWSTARTJ
   unsigned int startSequence; //SWSTART: starts sequencer.
   unsigned int enableRefandTemp; //TSVREFE
+#elif DEVICE==407
+  unsigned int cr2waste6[6];
+  unsigned int dmaEnabled; //DMA
+  unsigned int DDS;
+  unsigned int EOCS;
+  unsigned int alignLeft; //ALIGN:: 1: data in 12 msbs.
+  unsigned int cr2waste4[4];
+  unsigned int injectionTrigger[4];
+  unsigned int jonRise;
+  unsigned int jonFall;
+  unsigned int startInjection; //SWSTARTJ
+  unsigned int skip1;
+  unsigned int sequenceTrigger[4];
+  unsigned int onRise;
+  unsigned int onFall;
+  unsigned int startSequence; //SWSTART: starts sequencer.
+  unsigned int skipanother;
+#endif
+
 };
 
 constexpr unsigned lunoOffset(unsigned luno){
@@ -141,10 +173,12 @@ void ADCdev::init(void) {
   //set all sampling times to the maximum, 239.5 * 14 is around 20 uS.
   dcb.smp1 = 077777777; //yep, octal as this is packed 3 bit codes, 8 fields
   dcb.smp2 = 07777777777; //yep, octal as this is packed 3 bit codes, 10 fields
+#if DEVICE==103
   //perform calibration
   band.beCalibrating = 1;
   while (band.beCalibrating) { //maximum around 7 uSec.
   }
+#endif
 } /* init */
 
 void ADCdev::convertChannel(unsigned channelcode) {
@@ -162,13 +196,15 @@ void ADCdev::convertChannel(unsigned channelcode) {
  */
 void ADCdev::configureInput(unsigned channel) {
   if (channel < 8) {
-    Pin(PA, channel).AI();
+    PA.forAdc(channel);
   } else if (channel < 10) {
-    Pin(PB, channel - 8).AI();
+    PB.forAdc(channel - 8);
   } else if (channel < 16) {
-    Pin(PC, channel - 10).AI();
+    PC.forAdc(channel - 10);
   } else if (channel < 18) {
-    band.enableRefandTemp = 1;
+#if DEVICE==103
+    band.enableRefandTemp = 1;//enables temperature component.
+#endif
   }
 } /* configureInput */
 

@@ -74,8 +74,12 @@ void Port::configure(unsigned bitnum, const PinOptions &c) const {
   //FYI alt function select is at offset 32, 4 bits each.
 }
 
+void Port::forAdc(unsigned int bitnum) const {
+  configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, 'F'));
+}
+
 const Pin& Pin::AI() const {
-  port.configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, 'F'));
+  port.forAdc(bitnum);
   return *this;
 }
 
