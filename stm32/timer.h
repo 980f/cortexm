@@ -21,40 +21,8 @@
 
 #include "gpio.h" //for control of associated pins
 
-/* between stm embedding a 16 bit only device in a 32 bit address space and not making it byte writable and
-  * gcc insisting on using byte operations for accessing bit fields whenever possible
-  * we can't simply make a struct that represents the hardware register content.
-  */
-
-//typedef u16 *TIMER_DCB;
-
-//struct CC_BAND {
-//  unsigned int mode[2]; //determines meaning of fields that follow
-//  union {
-//    struct {
-//      unsigned int prescale[2];
-//      unsigned int filter[4]; //a code, mixture of divisor and n-in-a-row logic.
-//    }
-//    In;
-//    struct {
-//      unsigned int hairTrigger;
-//      unsigned int bufferPreload;
-//      unsigned int compareMode[3];
-//      unsigned int hardwareClearEnable;
-//    }
-//    Out;
-//  };
-//};
-//
-//struct CCER {
-//  unsigned int Enabled;
-//  unsigned int Inverted;
-//  unsigned int NE; //+adv 1..3
-//  unsigned int NP; //+adv 1..3
-//};
-
-
 #include "debugger.h"
+
 //construction aid
 struct TimerConstant {
   BusNumber apb;
@@ -102,7 +70,7 @@ static constexpr TimerConstant T[] = {
  What makes it hard is that the device requires 16 bit accesses when the register is only 16 bits, at least the F103 does.
  * */
 
-struct Timer:public APBdevice {
+struct Timer : public APBdevice {
 //  const TIMER_DCB dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
   const Irq irq;
   const unsigned luno; //handy for debug
@@ -112,9 +80,9 @@ struct Timer:public APBdevice {
   }
 
   bool is32bit() const {
-#if DEVICE==103
+#if DEVICE == 103
     return false;
-#elif DEVICE==407
+#elif DEVICE == 407
     return luno == 2 || luno == 5;
 #endif
   }
@@ -140,8 +108,10 @@ struct Timer:public APBdevice {
   unsigned ticksForMillis(unsigned ms) const;
   unsigned ticksForMicros(unsigned us) const;
   unsigned ticksForHz(double Hz) const;
-  double secondsInTicks(unsigned ticks)const;
-  enum ExternalInputOption { Xor, CH1, CH2 };
+  double secondsInTicks(unsigned ticks) const;
+  enum ExternalInputOption {
+    Xor, CH1, CH2
+  };
 
   /**
     * count the given external input, interrupt on overflow but keep counting
@@ -150,7 +120,7 @@ struct Timer:public APBdevice {
 
   /** most uses will have to turn on some of the interrupts before calling this function.*/
   /*virtual deprecated due to cost, and that we don't have a generic concept of 'running' */ void beRunning(bool on = true) const {
-    bit(0,0) = on;
+    bit(0, 0) = on;
   }
 
   inline void clearEvents(void) const {
@@ -173,11 +143,11 @@ struct Timer:public APBdevice {
   }
 
   inline void UIE(bool on) const {
-    bit(0x0C,0) = on;
+    bit(0x0C, 0) = on;
   }
 
-  inline void Interrupts(bool on) const{
-    if(on) {
+  inline void Interrupts(bool on) const {
+    if (on) {
       irq.enable();
     } else {
       irq.disable();
@@ -188,12 +158,12 @@ struct Timer:public APBdevice {
 };
 
 /** ccunit pattern for pwm with active at start of cycle */
-constexpr uint8_t PwmEarly=0b0'110'00'00;
+constexpr uint8_t PwmEarly = 0b0'110'00'00;
 
 struct CCUnit {
-  const Timer&timer;
+  const Timer &timer;
   unsigned zluno;
-  constexpr CCUnit(const Timer&_timer, unsigned _ccluno): timer(_timer), zluno(_ccluno - 1) {
+  constexpr CCUnit(const Timer &_timer, unsigned _ccluno) : timer(_timer), zluno(_ccluno - 1) {
     //nothing to do here
   }
 
@@ -201,21 +171,21 @@ struct CCUnit {
   void setmode(u8 cc) const;
 
   inline bool happened() const {
-    return timer.bit(0x10,zluno+1);
+    return timer.bit(0x10, zluno + 1);
   }
 
   inline void clear() const {
-    timer.bit(0x10,zluno+1)= 0;
+    timer.bit(0x10, zluno + 1) = 0;
   }
 
   inline void IE(bool on) const {
-    timer.bit(0x0C,zluno+1)= on;
+    timer.bit(0x0C, zluno + 1) = on;
     //bit 0 must also be on but that is inappropriate to do here.
   }
 
 private:
   inline u16 &ticker() const {
-    return Ref<u16>(timer.registerAddress(0x34+2 * zluno));
+    return Ref<u16>(timer.registerAddress(0x34 + 2 * zluno));
   }
 public:
   /** unguarded tick setting, see saturateTicks() for when you can't prove your value will be legal.*/
@@ -230,10 +200,10 @@ public:
   //some cc units have complementary outputs:
   bool amDual() const;
   /** set output polarity, and enable feature */
-  void takePin(bool activehigh=true) const;
+  void takePin(bool activehigh = true) const;
 
   //force on or off using cc config rather than gpio.
-  void force(bool active)const;
+  void force(bool active) const;
 };
 
 /** uses ARR register to divide clock and give an interrupt at a periodic rate*/
@@ -243,11 +213,11 @@ public:
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "HidingNonVirtualFunction"
   /**  sets the interrupts then chains */
-  void beRunning(bool on = true)const ;
+  void beRunning(bool on = true) const;
 #pragma clang diagnostic pop
   /** @overload */
-  void restart(unsigned ticks)const;
-  void restartHz(double hz)const; //todo:L pull up hierarchy
+  void restart(unsigned ticks) const;
+  void restartHz(double hz) const; //todo:L pull up hierarchy
 };
 
 /*
@@ -262,26 +232,25 @@ struct DelayTimer : public Timer {
   constexpr DelayTimer(unsigned luno, unsigned ccluno) : Timer(luno), cc(*this, ccluno) {}
 
   void init(int hzResolution) const;
-  const CCUnit& setDelay(int ticks) const;
+  const CCUnit &setDelay(int ticks) const;
   /** restart timeout*/
   inline void retrigger(void) const {
     startRunning(); //as long as this clears all possible interrupt sources then our retrigger can use it.
   }
-
 };
 
 /** NB: you have to declare an interrupt handler to be associated with any instance of this class.
  that isr should call onDone() else you might as well be a PeriodicInterrupter */
 class Monostable : public Timer {
 public:
-  constexpr Monostable(unsigned stLuno):Timer(stLuno){
+  constexpr Monostable(unsigned stLuno) : Timer(stLuno) {
     //#nada
   };
   void setPulseWidth(unsigned ticks);
   void setPulseMicros(unsigned microseconds);
 public:
   void retrigger();
-  void onDone(){//making this virtual would be expensive, and usually will be called from an isr with the explicit implementation handy.
+  void onDone() {//making this virtual would be expensive, and usually will be called from an isr with the explicit implementation handy.
     beRunning(false);
   }
 #pragma clang diagnostic push
@@ -301,13 +270,12 @@ struct PulseCounter : public Timer {
     */
   int count;
 
-  PulseCounter(int timerLuno, Timer::ExternalInputOption channel, unsigned filter = 0): Timer(timerLuno), cc(*this, channel == 2 ? 2 : 1){
+  PulseCounter(int timerLuno, Timer::ExternalInputOption channel, unsigned filter = 0) : Timer(timerLuno), cc(*this, channel == 2 ? 2 : 1) {
     configureCountExternalInput(channel, filter);
   }
 
-
   /** to be called from the timer's isr*/
-  void isr(void){
+  void isr(void) {
     clearEvents(); //kill all possible interrupts, in case we accidentally enable unexpected ones.
     count += 1 << 16; //or add in the reload value if we don't do a binary divide (ARR register not FFFF).
   }
@@ -318,12 +286,12 @@ struct PulseCounter : public Timer {
     beRunning(1);
   }
 
-  void start(void){
+  void start(void) {
     count = 0;
     startRunning();
   }
 
-  void stop(void){
+  void stop(void) {
     beRunning(0);
     count += counter();
   }
@@ -334,7 +302,6 @@ struct PulseCounter : public Timer {
     cc.IE(1);
     irq.setPriority(priority);
   }
-
 };
 
 //#define TimerIrq(luno)  Timer##luno##_irq

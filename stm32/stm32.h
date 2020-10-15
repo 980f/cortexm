@@ -24,7 +24,7 @@ const unsigned clockOffset=0x18;
 
 #elif DEVICE == 407
 enum BusNumber: u8 {//#this enum is used for RCC register addressing
-  CPU ,
+  CPU,
   AHB1, AHB2, AHB3, //3 buses which have some APDevice like characteristics
   APB0, //for calculations, there is no bus named 'APB0'
   APB1 = 5, APB2 //2 actual APB buses.
@@ -40,9 +40,9 @@ const unsigned clockOffset = 0x30;
 using Hertz=unsigned;
 
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
-constexpr Address APB_Block(BusNumber bus2, unsigned slot) { return (PeripheralBase | (bus2 - APB0) << 16u | slot << 10u); }
+constexpr Address APB_Block(BusNumber bus2, unsigned slot) { return (PeripheralBase | (bus2 - APB1) << 16u | slot << 10u); }
 
-constexpr Address APB_Band(BusNumber bus2, unsigned slot) { return (PeripheralBand | (bus2 - APB0) << 21u | slot << 15u); }
+constexpr Address APB_Band(BusNumber bus2, unsigned slot) { return (PeripheralBand | (bus2 - APB1) << 21u | slot << 15u); }
 
 ///** index used for rcc bit offset calculations */
 //constexpr unsigned rccBus(unsigned stnum, bool ahb) {
@@ -69,7 +69,7 @@ struct APBdevice {
 
 protected:
   /** @return bit address given the register address of the apb2 group*/
-  Address rccBit(Address basereg) const {
+  constexpr Address rccBit(Address basereg) const {
     return rccBitter + bandShift(basereg);
   }
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
@@ -82,7 +82,7 @@ public:
     slot(slot),
     blockAddress(APB_Block(rbus, slot)),
     bandAddress(APB_Band(rbus, slot)),
-    rccBitter(bandFor(RCCBASE | (rbus << 2u), slot)) {}
+    rccBitter(bandFor(RCCBASE | ((rbus-AHB1) << 2u), slot)) {}
 
 /** AHB devices  @param bus and slot are per st documentation */
   constexpr APBdevice(BusNumber stbus, unsigned slot, unsigned rawAddress) :
@@ -90,7 +90,7 @@ public:
     slot(slot),
     blockAddress(rawAddress),
     bandAddress(bandFor(rawAddress, slot)),
-    rccBitter(bandFor(RCCBASE | (rbus << 2u), slot)) {}
+    rccBitter(bandFor(RCCBASE | ((rbus-AHB1) << 2u), slot)) {}
 
   /** activate and release the module reset */
   void reset() const;

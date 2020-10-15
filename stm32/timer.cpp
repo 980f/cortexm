@@ -6,8 +6,6 @@
 #define PSC word(0x28)
 #define ARR word(0x2C)
 
-
-
 /** setting up the actual pin must be done elsewhere*/
 void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, unsigned filter) const {
   APBdevice::init(); //wipe all previous settings
@@ -64,6 +62,7 @@ double Timer::getHz() const {
 void Timer::update() const {
   bit(0x14, 0) = 1; //UG: an auto clearing bit.
 }
+
 void Timer::init() const {
   APBdevice::init();
 }
@@ -73,18 +72,18 @@ PeriodicInterrupter::PeriodicInterrupter(unsigned stLuno) : Timer(stLuno) {
   //removed so that we can constexpr beRunning(0);//for soft reset to match hard reset.
 }
 
-void PeriodicInterrupter::beRunning(bool on)const {
+void PeriodicInterrupter::beRunning(bool on) const {
   Interrupts(on); //raw interrupt is always on, UIE interrupt is only mask we twiddle.
   UIE(on);
   Timer::beRunning(on);
 }
 
-void PeriodicInterrupter::restart(unsigned ticks)const {
+void PeriodicInterrupter::restart(unsigned ticks) const {
   setCycler(ticks);
   beRunning(true);
 }
 
-void PeriodicInterrupter::restartHz(double hz) const{
+void PeriodicInterrupter::restartHz(double hz) const {
   restart(ticksForHz(hz));
 }
 
@@ -100,7 +99,6 @@ const CCUnit &DelayTimer::setDelay(int ticks) const {
   cc.setTicks(ticks);
   return cc;
 }
-////////////////////////////
 
 bool CCUnit::amDual() const {
   return timer.isAdvanced() && zluno < 3; //3 channels of advanced timers are dual output
