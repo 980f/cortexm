@@ -50,23 +50,29 @@ public:
   TimeValue interval;
   using StopWatch::StopWatch;
 
-  /** @returns whether timeout has expired,   */
+  /** @returns whether timeout has expired, and if so either restarts it or stops it */
+  bool check(bool andRestart);
+
+  /** @returns whether timeout has expired, stops the timer if it has.  */
   bool timedout() {
-    if (wraps(interval, false) > 0) {
-      stop();
-      return true;
-    } else {
-      return false;
-    }
+    return check(false);
   }
 
-  operator bool() {
+  /** @returns whether timeout has expired, and if so restarts it  */
+  bool cycled() {
+    return check(true);
+  }
+
+  operator bool() const {
     return isRunning();
   }
 
   void operator=(TimeValue timeout) {
     interval = timeout;
   }
+
+  /** @returns how long until this guy timesout, negative if overdue which it will be if you don't check it often enough. */
+  double dueIn();
 };
 
 #endif // STOPWATCH_H
