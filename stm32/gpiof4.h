@@ -127,7 +127,7 @@ struct Pin /*Manager*/ {
   const Pin &DI(char UDFO = 'D') const;
 
 /** configure as simple digital output */
-  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') const {
+  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'F') const {
     port.configure(bitnum, PinOptions(PinOptions::output, slew, UDFO));
     return *this;
   }

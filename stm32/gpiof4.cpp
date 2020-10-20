@@ -50,7 +50,15 @@ u16 Port::Field::actual() const {
   return (actually & mask) >> lsb;
 }
 
-
+static unsigned udfo2code(char UDFO){
+    switch(UDFO){
+        case 'U': return 1;
+        case 'D': return 2;
+        default:
+        case 'F': return 0;
+        case 'O': return 1;//plus other stuff happens
+    }
+}
   /**
     * configure the given pin.
     todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
@@ -69,7 +77,7 @@ void Port::configure(unsigned bitnum, const PinOptions &c) const {
   ControlField(registerAddress(0x08), bitnum*2,2)=c.slew;
 
   //2 bits from UDFO into offset 12  F:0 U:1 D:2  (O goes to OD register and we pull up here)  F=0x46 U=0x85 D=0x44 Oh=0x79
-  unsigned code= ((c.UDFO=='D')?2:0) + (c.UDFO&1);
+  unsigned code= udfo2code(c.UDFO);//failed: ((c.UDFO=='D')?2:0) + (c.UDFO&1);
   ControlField(registerAddress(0x0C), bitnum*2,2)=code;
   //FYI alt function select is at offset 32, 4 bits each.
 }
