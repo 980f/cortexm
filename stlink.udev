@@ -1,0 +1,22 @@
+copy stlink udev files into /etc/udev/rules.d
+
+>udevadm control --reload-rules 
+
+>udevadm trigger
+
+=============================
+stlink V2-1 is the most available device:
+
+# ST_PKG_VERSION 1.0.2-2
+# stm32 nucleo boards, with onboard st/linkv2-1
+# ie, STM32F0, STM32F4.
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", \
+    MODE="660", GROUP="plugdev", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", \
+    SYMLINK+="stlinkv2-1_%n"
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3752", \
+    MODE="660", GROUP="plugdev", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", \
+    SYMLINK+="stlinkv2-1_%n"
+
+
