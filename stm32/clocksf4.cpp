@@ -10,6 +10,14 @@
 
 //stm32F4 internal RC oscillator:
 #define HSI_Hz 16000000
+//hack for quick switch during development
+#ifndef EXT_MHz
+#if DEVKIT==1
+#define EXT_MHz 25
+#else
+#define EXT_MHz 12
+#endif
+#endif
 //the following wasn't getting linked when in main.cpp
 constexpr unsigned EXTERNAL_HERTZ = 1000000 * EXT_MHz;
 constexpr unsigned MAX_HERTZ = 168000000;
