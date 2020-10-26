@@ -45,14 +45,14 @@ static constexpr TimerConstant T[] = {
   { 2, 13, 44 },
 #elif DEVICE == 407
 //stop bit is apb*32+slot
-  {APB2, 0, 27}, //T1, but just CC
+  {APB2, 0, 25}, //T1 update
   {APB1, 0, 28},
   {APB1, 1, 29}, //T3
   {APB1, 2, 30},
   {APB1, 3, 50},
   {APB1, 4, 54},//shared with DAC
   {APB1, 5, 55},//T7???
-  {APB2, 1, 46},//T8, but just cc and we want update
+  {APB2, 1, 44},//T8 update
 
   {APB2, 16, 24},//#9 and T1 break
   {APB2, 17, 25},//#10 and T1 update
@@ -128,8 +128,8 @@ struct Timer : public APBdevice {
   void configureCountExternalInput(enum ExternalInputOption, unsigned filter = 0) const;
 
   /** most uses will have to turn on some of the interrupts before calling this function.*/
-  /*virtual deprecated due to cost, and that we don't have a generic concept of 'running' */ void beRunning(bool on = true) const {
-    bit(0, 0) = on;
+  void beRunning(bool on = true) const {
+    enable = on;
   }
 
   inline void clearEvents(void) const {
