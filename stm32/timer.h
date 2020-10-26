@@ -74,6 +74,10 @@ struct Timer : public APBdevice {
 //  const TIMER_DCB dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
   const Irq irq;
   const unsigned luno; //handy for debug
+  ControlBit enable;
+  ControlBit UIE;
+  ControlBit UIF;
+  ControlBit OPM;
 
   bool isAdvanced() const {
     return luno == 1 || luno == 8;
@@ -87,7 +91,12 @@ struct Timer : public APBdevice {
 #endif
   }
 
-  constexpr Timer(unsigned stLuno) : APBdevice(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq), luno(stLuno) {
+  constexpr Timer(unsigned stLuno) : APBdevice(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq), luno(stLuno)
+  ,enable(registerAddress(0),0)
+  ,UIE(registerAddress(0x0C),0)
+  ,UIF(registerAddress(0x10),0)
+  ,OPM(registerAddress(0),3)
+  {
 //removing this init allows the object to be const constructed  apb.init(); //for most extensions this is the only time we do the init.
   }
 
@@ -140,10 +149,6 @@ struct Timer : public APBdevice {
     counter() = 0;
     clearEvents();
     beRunning(true);
-  }
-
-  inline void UIE(bool on) const {
-    bit(0x0C, 0) = on;
   }
 
   inline void Interrupts(bool on) const {
@@ -298,7 +303,7 @@ struct PulseCounter : public Timer {
   /** enable interrupts for rollover.*/
   void configure(u8 priority) const {
 //    cc.pin().DI('D'); //pulling down as these are usually low
-    UIE(1);
+    UIE=1;
     cc.IE(1);
     irq.setPriority(priority);
   }

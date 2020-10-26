@@ -14,7 +14,7 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
   if (which == Xor) {
 //todo:M restore    bit() = 1;
   }
-  bit(0x0C, 0) = 1; //enabling just the update interrupt for carry-outs
+  UIE = 1; //enabling just the update interrupt for carry-outs
   word(0x18) |= filter << (which == CH2 ? 12 : 4);//todo:M verify the 0x18
 } /* configureCountExternalInput */
 
@@ -74,7 +74,10 @@ PeriodicInterrupter::PeriodicInterrupter(unsigned stLuno) : Timer(stLuno) {
 
 void PeriodicInterrupter::beRunning(bool on) const {
   Interrupts(on); //raw interrupt is always on, UIE interrupt is only mask we twiddle.
-  UIE(on);
+  UIE = on;
+  if(on){
+    OPM=0;//pulse train please.
+  }
   Timer::beRunning(on);
 }
 
@@ -99,7 +102,7 @@ const CCUnit &DelayTimer::setDelay(int ticks) const {
   cc.setTicks(ticks);
   return cc;
 }
-
+//////////////////////////////////////////////////////////
 bool CCUnit::amDual() const {
   return timer.isAdvanced() && zluno < 3; //3 channels of advanced timers are dual output
 }
@@ -139,10 +142,9 @@ void CCUnit::force(bool active) const {
 }
 
 void Monostable::init() const {
-
   beRunning(0); //just in case someone fools with the base class
   Interrupts(1);
-  UIE(1);
+  UIE = 1;
 }
 
 void Monostable::setPulseWidth(unsigned ticks) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cheaptricks.h>
 #include "bitbanger.h"
 #include "boolish.h"
 #include "eztypes.h"
@@ -34,23 +35,21 @@ using SKIPPED = const unsigned;
 using Address = unsigned;//address space of this device.
 
 union AddressCaster {
-   unsigned number;
-   void *pointer;
+  unsigned number;
+  void *pointer;
 };
 
-template<typename Scalar> constexpr Scalar&Ref(Address address){
-  AddressCaster pun {address};
+template<typename Scalar> constexpr Scalar &Ref(Address address) {
+  AddressCaster pun{address};
   return *static_cast<Scalar *>(pun.pointer);
 }
 
 //e.g. poke(0xE000ED08,__CCM_Vectors__.ram.address)
 //[[naked]]
 //inline void poke(unsigned address,unsigned value)ISRISH;
-inline void poke(unsigned address,unsigned value){
+inline void poke(unsigned address, unsigned value) {
   __asm volatile("str r1,[r0]  \n");
 }
-
-
 
 
 /** many, but not all, cortex devices put peripheral control registers in the 0x4000 space, and bitband all of that to 0x4200.
@@ -59,7 +58,7 @@ This replaces a 3-clock operation that is susceptible to interruption into a one
 */
 constexpr Address bandShift(Address byteOffset) {
   //5: 2^5 bits per 32 bit word. we expect a byte address here, so that one can pass values as read from the stm32 manual.
-  return {byteOffset << 5U};
+  return {byteOffset << 5U};//# leave braces in case Address becomes a real class
 }
 
 /** @return bitband address for given bit (default 0) of @param byte address.
@@ -70,12 +69,14 @@ constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
   //0xE000 0000: stm32 segments memory into 8 512M blocks, banding is within a block
   //0x0200 0000: indicates this is a bitband address
   //bit to lsbs of address |  byteaddress shifted up far enough for address space to go away | restore address space | bitband indicator.
-  return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & 0xE0000000U) | 0x02000000U};
+  return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & 0xE0000000U) | 0x02000000U};//# leave braces in case Address becomes a real class
 }
+
 /** when you don't know the address at compile time use one of these, else use an SFRxxx. */
 class ControlWord {
-  volatile unsigned &item;
 
+protected:
+  volatile unsigned &item;
 public:
   explicit constexpr ControlWord(Address dynaddr)
     : item(Ref<unsigned>(dynaddr)) {
@@ -159,19 +160,29 @@ public:
 };
 
 /** */
-struct ControlBit : public BoolishRef {
-  const ControlWord bandAddress;
+struct ControlBit : public ControlWord, BoolishRef {
 
-  ControlBit(Address sfraddress, unsigned bitnum) : bandAddress(bandFor(sfraddress, bitnum)) {}
+  constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {}
+
   // read
   inline operator bool() const override {// NOLINT
-    return bandAddress;
+    return item != 0;
   }
 
   // write
   bool operator=(bool value) const override {// NOLINT
-    bandAddress = value;
+    item = value;
     return value;
+  }
+
+  /** for bits declared "rc_w0" in the ST RM */
+  bool flagged() const {//todo:1 make this atomic, else only use each either strictly in an isr or not in an isr
+    if (item) {
+      item = 0;
+      return true;
+    } else {
+      return false;
+    }
   }
 
 };
@@ -265,8 +276,7 @@ public:
 template<unsigned sfraddress, unsigned bitnum>
 struct SFRbandbit : public BoolishRef {
   enum {
-    bandAddress = bandFor(sfraddress, bitnum),
-  };
+    bandAddress = bandFor(sfraddress, bitnum), };
 
   // read
   inline operator bool() const override {  // NOLINT
