@@ -49,8 +49,6 @@ struct SysTicker {
   bool start(u32 reloader) {
     enableInterrupt = 0;
     enableCounting = 0;
-    fullspeed = 1;
-
     reload = reloader - 1; //for more precise periodicity
     bool hack = rolledOver; //reading clears it
     enableCounting = 1;
@@ -85,20 +83,20 @@ soliton(SysTicker, 0xE000E010);
 
 namespace SystemTimer {
 
-  void disable(){
-    theSysTicker.enableInterrupt=false;
+  void disable() {
+    theSysTicker.enableInterrupt = false;
   }
 
 
 /** start ticking at the given rate.*/
   void startPeriodicTimer(unsigned persecond) {
-    theSysTicker.fullspeed = 1;//todo:1 pass an option?
-    //lpc has a programmable divider
+    theSysTicker.fullspeed = 0;//todo:1 pass an option?
+    //lpc has a programmable divider, not yet accommodated by this code.
     Hertz num =
-#if DEVICE==103
-     theSysTicker.fullspeed?clockRate(CPU):
-#endif
-    clockRate(AHB1)/8;
+#if DEVICE == 103 || DEVICE == 407
+      theSysTicker.fullspeed ? clockRate(CPU) :  //STM addition
+      #endif
+      clockRate(AHB1) / 8;//standard defined by ARM
     theSysTicker.start(rate(num, persecond));
   }
 
@@ -114,7 +112,7 @@ namespace SystemTimer {
     if (sec <= 0) {
       return 0;
     }
-    return theSysTicker.ticksForMicros(unsigned (sec * 1000000));
+    return theSysTicker.ticksForMicros(unsigned(sec * 1000000));
   }
 
   SysTicks ticksForMillis(int ms) {
