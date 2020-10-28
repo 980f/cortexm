@@ -21,31 +21,6 @@ Cfunction log2Exponent
   rsb r0,#31   //we wanted position of leading '1' = 31 - number of leading zeroes
   bx lr
 
-
-Cfunction  flog2
-  //todo:2 push temps
-  mov r1,r0  //r1 is unshifted mantissa
-  bl log2Exponent //ro is integer part
-  lsr r1,r0  //r1 is ms aligned mantissa
-  //todo:2 much more code!
-  //cmp r1  ; add #1
-  //todo:2 pop temps
-  bx lr
-
-
-Cfunction splitteru2
-  //r0 is address of 64 bit number
-  //we are only going to accept 32 bit returns, could write another version for 65 bits.
- 
-  //push r0
-  //ldm r0,{r2,r3} //r2 is lower bits, r3 is higher
-  ////todo: clear the sign bit before the shift
-  //lsr r1,r3,#20  //r1 is sign and exponent, we are presuming the sign bit is 0 for now
-  
-  //subs r1,#1075   // -1023 for the bias, -52 as that is where integers begin, a negative value means we have to remove some mantissa bits from the integer we are producing.
-  
-  bx lr
-
 //this routine will fail if the product of first two operands exceeds 2^32.
 Cfunction muldivide
   umull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same
@@ -67,6 +42,18 @@ CFunction shiftScale //float (float eff,int pow2){
   lsl r1,r1,#23
   sub r0,r0,r1
   bx lr
+
+
+Cfunction xxflog2
+  //todo:2 push temps
+  mov r1,r0  //r1 is unshifted mantissa
+  bl log2Exponent //ro is integer part
+  lsr r1,r0  //r1 is ms aligned mantissa
+  //todo:2 much more code!
+  //cmp r1  ; add #1
+  //todo:2 pop temps
+  bx lr
+
 
 //include core_atomic.h to use the following atomic access routines
 // in the atomic_* routines we can't use the ITF instruction mechanism (?why not?), we have to do old fashion branches.<<M4 manual suggests that we should!
@@ -165,7 +152,7 @@ Cfunction atomic_incrementWasZero
 
 
 //r0 address, trusted to be 32-bit aligned. r1 new value, r2 scratched.
-Cfunction  atomic_setIfZero
+Cfunction atomic_setIfZero
   //lock and load
   ldrex r2,[r0]
   //if not zero bail out.
