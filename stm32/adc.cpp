@@ -1,5 +1,4 @@
 /*
- * todo: there are many control register differences as to bit location.
  * */
 
 #include "adc.h"
@@ -9,52 +8,54 @@
 #include "clocks.h"
 
 struct ADC_CR1 {
-  unsigned int watchChannel : 5;
-  unsigned int sequenceCompleteIE : 1;
-  unsigned int watchdogIE : 1;
-  unsigned int injectionIE : 1;
-  unsigned int scan : 1;
-  unsigned int watchOneChannel : 1;
-  unsigned int autoInject : 1;
-  unsigned int discontinuousNormal : 1;
-  unsigned int discontinuousInjection : 1;
-  unsigned int discontinuousLength : 3;
-  unsigned int dualMode : 4;
+  unsigned int watchChannel: 5;
+  unsigned int sequenceCompleteIE: 1;
+  unsigned int watchdogIE: 1;
+  unsigned int injectionIE: 1;
+  unsigned int scan: 1;
+  unsigned int watchOneChannel: 1;
+  unsigned int autoInject: 1;
+  unsigned int discontinuousNormal: 1;
+  unsigned int discontinuousInjection: 1;
+  unsigned int discontinuousLength: 3;
+  unsigned int dualMode: 4;
   unsigned int : 2;
-  unsigned int watchInjected : 1;
-  unsigned int watchRegular : 1;
+  unsigned int watchInjected: 1;
+  unsigned int watchRegular: 1;
+
   //8 unused bits
-  ADC_CR1(void){
+  ADC_CR1(void) {
     pun(u32, *this) = 0;
   }
 };
 
 struct ADC_CR2 {
-  unsigned int powerUp : 1; //or wakeup
-  unsigned int loopForever : 1;
-  unsigned int startCalibration : 1;
-  unsigned int resetCalibration : 1;
+  unsigned int powerUp: 1; //or wakeup
+  unsigned int loopForever: 1;
+  unsigned int startCalibration: 1;
+  unsigned int resetCalibration: 1;
   unsigned int : 4;
-  unsigned int dmaEnabled : 1;
+  unsigned int dmaEnabled: 1;
   unsigned int : 2;
-  unsigned int alignLeft : 1; //true= data dropped in msbs.
-  unsigned int injectionTrigger : 3;
-  unsigned int enableHardwareInjection : 1;
+  unsigned int alignLeft: 1; //true= data dropped in msbs.
+  unsigned int injectionTrigger: 3;
+  unsigned int enableHardwareInjection: 1;
   unsigned int : 1;
-  unsigned int sequenceTrigger : 3;
-  unsigned int enableHardwareTrigger : 1;
-  unsigned int startInjection : 1;
-  unsigned int startSequence : 1;
-  unsigned int enableRefandTemp : 1;
-  ADC_CR2(void){
+  unsigned int sequenceTrigger: 3;
+  unsigned int enableHardwareTrigger: 1;
+  unsigned int startInjection: 1;
+  unsigned int startSequence: 1;
+  unsigned int enableRefandTemp: 1;
+
+  ADC_CR2(void) {
     pun(u32, *this) = 0;
   }
 };
 
 struct ADC_DCB {
   volatile unsigned int status;
-  Shadowed<ADC_CR1,unsigned int> cr1;
-  Shadowed<ADC_CR2,unsigned int> cr2;
+  Shadowed<ADC_CR1, unsigned int> cr1;
+  Shadowed<ADC_CR2, unsigned int> cr2;
   unsigned int smp1; //will use algorithmic access or external constant generator.
   unsigned int smp2; //...
   unsigned int joffset[4];
@@ -92,9 +93,9 @@ struct ADC_Band {
   unsigned int cr1waste1[2];
   unsigned int watchInjected;
   unsigned int watchRegular;
-#if DEVICE==103
+#if DEVICE == 103
   unsigned int cr1waste2[8];
-#elif DEVICE==407
+#elif DEVICE == 407
   unsigned int res[2];
   unsigned int overrunIE;
   unsigned int cr1waste2[5];
@@ -102,7 +103,7 @@ struct ADC_Band {
   //CR2:
   unsigned int powerUp; //ADON or wakeup
   unsigned int loopForever; //CONT
-#if DEVICE==103
+#if DEVICE == 103
   volatile unsigned int beCalibrating; //CAL: is a status as well as a control
   unsigned int resetCalibration; //RSTCAL
   unsigned int cr2waste4[4];
@@ -117,7 +118,7 @@ struct ADC_Band {
   unsigned int startInjection; //SWSTARTJ
   unsigned int startSequence; //SWSTART: starts sequencer.
   unsigned int enableRefandTemp; //TSVREFE
-#elif DEVICE==407
+#elif DEVICE == 407
   unsigned int cr2waste6[6];
   unsigned int dmaEnabled; //DMA
   unsigned int DDS;
@@ -138,23 +139,24 @@ struct ADC_Band {
 
 };
 
-constexpr unsigned lunoOffset(unsigned luno){
-  return (luno-1)*0x100;
+constexpr unsigned lunoOffset(unsigned luno) {
+  return (luno - 1) * 0x100;
 }
+
 //this constructor only supports ADC1 and 2 of the F10x
 ADCdev::ADCdev(unsigned luno) :
-#if DEVICE==103
+#if DEVICE == 103
   APBdevice(APB2, 8 + luno),
   dcb(*reinterpret_cast<ADC_DCB *>(blockAddress)), //
   band(*reinterpret_cast<ADC_Band *>(bandAddress))
-#elif DEVICE ==407
-  APBdevice(APB2, 8 ), //one slot for all 3
-  dcb(*reinterpret_cast<ADC_DCB *>(blockAddress+lunoOffset(luno))), //
-  band(*reinterpret_cast<ADC_Band *>(bandAddress+bandShift(lunoOffset(luno))))
+#elif DEVICE == 407
+  APBdevice(APB2, 8), //one slot for all 3
+  dcb(*reinterpret_cast<ADC_DCB *>(blockAddress + lunoOffset(luno))), //
+  band(*reinterpret_cast<ADC_Band *>(bandAddress + bandShift(lunoOffset(luno))))
 #else
 // compilation error will ensue
 #endif
-  {
+{
 }
 
 void ADCdev::init(void) {
@@ -169,11 +171,11 @@ void ADCdev::init(void) {
   band.scan = 1; //not to be confused with CONT which we call loopForever
   //scan length init's to 0== do one.
   // dcb.seq1=0<<20;//doing single converts
+  //set all sampling times to the maximum, 239.5 * 14MHz is around 20 uS.
+  dcb.smp1 = 077'777'777; //yep, octal as this is packed 3 bit codes, 8 fields
+  dcb.smp2 = 07'777'777'777; //yep, octal as this is packed 3 bit codes, 10 fields
 
-  //set all sampling times to the maximum, 239.5 * 14 is around 20 uS.
-  dcb.smp1 = 077777777; //yep, octal as this is packed 3 bit codes, 8 fields
-  dcb.smp2 = 07777777777; //yep, octal as this is packed 3 bit codes, 10 fields
-#if DEVICE==103
+#if DEVICE == 103
   //perform calibration
   band.beCalibrating = 1;
   while (band.beCalibrating) { //maximum around 7 uSec.
@@ -201,9 +203,15 @@ void ADCdev::configureInput(unsigned channel) {
     PB.forAdc(channel - 8);
   } else if (channel < 16) {
     PC.forAdc(channel - 10);
-  } else if (channel < 18) {
-#if DEVICE==103
+  } else {
+#if DEVICE == 103
     band.enableRefandTemp = 1;//enables temperature component.
+#elif DEVICE == 407
+    if (channel == 16) {
+      ControlBit(0x4001'2000 /* ADC1 base */ + 0x300, 23) = 1;//enable temperature sensor
+    } else if (channel == 17) {
+      //built in VDD sensor
+    }
 #endif
   }
 } /* configureInput */
@@ -224,6 +232,7 @@ float ADCdev::TrefCalibration::celsius(float millis) {
 u16 ADCdev::readConversion() {
   return dcb.data;
 }
+
 unsigned ADCdev::setClock(unsigned int hertz) {
   return adcClock(hertz);
 }

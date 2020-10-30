@@ -1,4 +1,4 @@
-//todo: this is the F1 clock stuff, need an F4 variant.
+// this is the F1 clock stuff
 
 #pragma ide diagnostic ignored "hicpp-signed-bitwise"
 #include "clocks.h"
