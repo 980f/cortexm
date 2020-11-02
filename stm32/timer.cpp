@@ -3,8 +3,7 @@
 
 #include "clocks.h"
 
-#define PSC word(0x28)
-#define ARR word(0x2C)
+
 
 /** setting up the actual pin must be done elsewhere*/
 void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, unsigned filter) const {
@@ -29,7 +28,10 @@ unsigned Timer::ticksForMillis(unsigned ms) const {
 }
 
 unsigned Timer::ticksForMicros(unsigned us) const {
-  return quanta(us * baseRate(), 1000000 * (1 + PSC));
+  //F407 pushed us over the range of 32bits for the intermediate values here.
+  float totalTicks=us * baseRate();
+  float divider=1000000 * (1 + PSC);
+  return ceilf(totalTicks/divider);
 }
 
 unsigned Timer::ticksForHz(double Hz) const {
@@ -42,13 +44,12 @@ double Timer::secondsInTicks(unsigned ticks) const {
 
 /**sets the prescalar to generate the given hz.*/
 void Timer::setPrescaleFor(double hz) const {
-  float maxticks = ratio(baseRate(), hz);
+  unsigned int baserate = baseRate();
+  float maxticks = ratio(baserate, hz);
   if (maxticks > 65535.0) {
     maxticks /= 65536.0F;
   }
   PSC = static_cast <u16> ( maxticks) - 1; //e.g. For F103: 36MHz/10kHz = 35999
-  //if we don't force an update cycle then we are at the mercy of other operations to allow an update event to occur. In onePulseMode that seems to never happen.
-  update();
 }
 
 void Timer::setCycler(unsigned ticks) const {
@@ -69,6 +70,13 @@ void Timer::update() const {
 
 void Timer::init() const {
   APBdevice::init();
+}
+
+void Timer::startRunning() const {
+  beRunning(false); //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
+  counter() = 0;
+  clearEvents();
+  beRunning(true);
 }
 
 ////////////////////////////
@@ -149,20 +157,19 @@ void CCUnit::force(bool active) const {
 
 void Monostable::init() const {
   Timer::init();
-  beRunning(0); //just in case someone fools with the base class
+  onDone();
   Interrupts(1);
-  UIE = 1;
 }
 
-void Monostable::setPulseWidth(unsigned ticks) {
+void Monostable::setPulseWidth(unsigned ticks) const {
+  if (ticks <= 0) {
+    ticks = 1;  //we do not know if zero will pulse here
+  }
   Timer::setCycler(ticks);
 }
 
-void Monostable::setPulseMicros(unsigned micros) {
-  if (micros <= 0) {
-    micros = 1;  //we do not know if zero will pulse here
-  }
-  setPulseWidth(Timer::ticksForMicros(micros));
+void Monostable::setPulseMicros(unsigned micros) const{
+  setPulseWidth(ticksForMicros(micros));
 }
 
 
