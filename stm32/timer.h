@@ -163,7 +163,7 @@ struct Timer : public APBdevice {
 };
 
 /** ccunit pattern for pwm with active at start of cycle */
-constexpr uint8_t PwmEarly = 0b0'110'00'00;
+constexpr uint8_t PwmEarly = 0b0'110'1'0'00;
 
 struct CCUnit {
   const Timer &timer;
@@ -190,7 +190,7 @@ struct CCUnit {
 
 private:
   inline u16 &ticker() const {
-    return Ref<u16>(timer.registerAddress(0x34 + 2 * zluno));
+    return Ref<u16>(timer.registerAddress(0x34 + 4 * zluno));
   }
 public:
   /** unguarded tick setting, see saturateTicks() for when you can't prove your value will be legal.*/
@@ -254,7 +254,10 @@ public:
   void setPulseWidth(unsigned ticks);
   void setPulseMicros(unsigned microseconds);
 public:
-  void retrigger();
+  void retrigger() const{
+    startRunning();
+  }
+
   void onDone() {//making this virtual would be expensive, and usually will be called from an isr with the explicit implementation handy.
     beRunning(false);
   }

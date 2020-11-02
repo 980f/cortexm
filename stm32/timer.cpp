@@ -148,6 +148,7 @@ void CCUnit::force(bool active) const {
 }
 
 void Monostable::init() const {
+  Timer::init();
   beRunning(0); //just in case someone fools with the base class
   Interrupts(1);
   UIE = 1;
@@ -164,9 +165,6 @@ void Monostable::setPulseMicros(unsigned micros) {
   setPulseWidth(Timer::ticksForMicros(micros));
 }
 
-void Monostable::retrigger() {
-  startRunning();
-}
 
 
 //end of file
