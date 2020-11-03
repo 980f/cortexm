@@ -78,6 +78,8 @@ struct Timer : public APBdevice {
   ControlBit UIE;
   ControlBit UIF;
   ControlBit OPM;
+  ControlWord PSC;
+  ControlWord ARR;
 
   bool isAdvanced() const {
     return luno == 1 || luno == 8;
@@ -91,13 +93,15 @@ struct Timer : public APBdevice {
 #endif
   }
 
-  constexpr Timer(unsigned stLuno) : APBdevice(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq), luno(stLuno)
-  ,enable(registerAddress(0),0)
-  ,UIE(registerAddress(0x0C),0)
-  ,UIF(registerAddress(0x10),0)
-  ,OPM(registerAddress(0),3)
+  constexpr Timer(unsigned stLuno) : APBdevice(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq), luno(stLuno) //logical parts
+    , enable(registerAddress(0), 0) //count enable.
+    , UIE(registerAddress(0x0C), 0) //update control
+    , UIF(registerAddress(0x10), 0) //update indicator
+    , OPM(registerAddress(0), 3)  //one pulse mode
+    , PSC(registerAddress(0x28))  //prescalar, divides typically max clock/2
+    , ARR(registerAddress(0x2C))  //limit register
   {
-//removing this init allows the object to be const constructed  apb.init(); //for most extensions this is the only time we do the init.
+    //#nada
   }
 
 #pragma clang diagnostic push
@@ -144,12 +148,7 @@ struct Timer : public APBdevice {
   }
 
   /** clear the counter and any flags then enable counting */
-  inline void startRunning() const {
-    beRunning(false); //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
-    counter() = 0;
-    clearEvents();
-    beRunning(true);
-  }
+  void startRunning() const;
 
   inline void Interrupts(bool on) const {
     if (on) {
@@ -159,15 +158,17 @@ struct Timer : public APBdevice {
       irq.clear();//and clear any pending (hoepfully cures a stepper control issue of not freewheeling on de-configuration)
     }
   }
+
   void update() const;
 };
 
 /** ccunit pattern for pwm with active at start of cycle */
-constexpr uint8_t PwmEarly = 0b0'110'00'00;
+constexpr uint8_t PwmEarly = 0b0'110'1'0'00;
 
 struct CCUnit {
   const Timer &timer;
   unsigned zluno;
+
   constexpr CCUnit(const Timer &_timer, unsigned _ccluno) : timer(_timer), zluno(_ccluno - 1) {
     //nothing to do here
   }
@@ -190,8 +191,9 @@ struct CCUnit {
 
 private:
   inline u16 &ticker() const {
-    return Ref<u16>(timer.registerAddress(0x34 + 2 * zluno));
+    return Ref<u16>(timer.registerAddress(0x34 + 4 * zluno));
   }
+
 public:
   /** unguarded tick setting, see saturateTicks() for when you can't prove your value will be legal.*/
   inline void setTicks(unsigned ticks) const {
@@ -234,10 +236,12 @@ public:
   */
 struct DelayTimer : public Timer {
   const CCUnit cc;
+
   constexpr DelayTimer(unsigned luno, unsigned ccluno) : Timer(luno), cc(*this, ccluno) {}
 
   void init(int hzResolution) const;
   const CCUnit &setDelay(int ticks) const;
+
   /** restart timeout*/
   inline void retrigger(void) const {
     startRunning(); //as long as this clears all possible interrupt sources then our retrigger can use it.
@@ -251,13 +255,19 @@ public:
   constexpr Monostable(unsigned stLuno) : Timer(stLuno) {
     //#nada
   };
-  void setPulseWidth(unsigned ticks);
-  void setPulseMicros(unsigned microseconds);
+  void setPulseWidth(unsigned ticks) const;
+  void setPulseMicros(unsigned microseconds) const;
 public:
-  void retrigger();
-  void onDone() {//making this virtual would be expensive, and usually will be called from an isr with the explicit implementation handy.
+  void retrigger() const {
+    startRunning();
+    UIE = 1;
+  }
+
+  void onDone() const {//making this virtual would be expensive, and usually will be called from an isr with the explicit implementation handy.
+    UIE = 0;
     beRunning(false);
   }
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "HidingNonVirtualFunction"
   //stuff that was formerly done in constructor
@@ -300,10 +310,11 @@ struct PulseCounter : public Timer {
     beRunning(0);
     count += counter();
   }
+
   /** enable interrupts for rollover.*/
   void configure(u8 priority) const {
 //    cc.pin().DI('D'); //pulling down as these are usually low
-    UIE=1;
+    UIE = 1;
     cc.IE(1);
     irq.setPriority(priority);
   }

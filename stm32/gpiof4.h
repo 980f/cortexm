@@ -232,7 +232,7 @@ public:
     return false;
   }
 
-  bool actual() const {//todo:00 see if this survived ControlWord class.
+  bool actual() const {
     return polarized((&pin.writer)[-32]);//idr is register preceding odr, hence 32 bits lower in address
   }
 

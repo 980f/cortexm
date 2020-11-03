@@ -59,10 +59,7 @@ static unsigned udfo2code(char UDFO){
         case 'O': return 1;//plus other stuff happens
     }
 }
-  /**
-    * configure the given pin.
-    todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
-    */
+  /** configure the given pin.   */
 void Port::configure(unsigned bitnum, const PinOptions &c) const {
   if (!isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
     init(); // must have the whole port running before we can modify a config of any pin.

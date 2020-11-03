@@ -168,7 +168,7 @@ struct APBperiph {
 
   /** get base clock for this module */
   u32 getClockRate() const {
-    return clockRate(rbus + 1);//todo: F407 inside clockRate
+    return clockRate(rbus);
   }
 };
 
