@@ -4,7 +4,6 @@
 #include "clocks.h"
 
 
-
 /** setting up the actual pin must be done elsewhere*/
 void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, unsigned filter) const {
   APBdevice::init(); //wipe all previous settings
@@ -18,7 +17,7 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
 } /* configureCountExternalInput */
 
 Hertz Timer::baseRate() const {
-  Hertz apbRate = APBdevice::getClockRate();
+  Hertz apbRate = getClockRate();
   Hertz ahbRate = clockRate(AHB1);
   return (ahbRate == apbRate) ? apbRate : apbRate * 2;//#?F4?
 }
@@ -29,9 +28,11 @@ unsigned Timer::ticksForMillis(unsigned ms) const {
 
 unsigned Timer::ticksForMicros(unsigned us) const {
   //F407 pushed us over the range of 32bits for the intermediate values here.
-  float totalTicks=us * baseRate();
-  float divider=1000000 * (1 + PSC);
-  return ceilf(totalTicks/divider);
+  float totalTicks = baseRate();//ticks per second
+  totalTicks /= (1 + PSC);//after prescalar
+  totalTicks /= 1000000;//ticks per micro
+  totalTicks *= us;
+  return ceilf(totalTicks);
 }
 
 unsigned Timer::ticksForHz(double Hz) const {
@@ -168,7 +169,7 @@ void Monostable::setPulseWidth(unsigned ticks) const {
   Timer::setCycler(ticks);
 }
 
-void Monostable::setPulseMicros(unsigned micros) const{
+void Monostable::setPulseMicros(unsigned micros) const {
   setPulseWidth(ticksForMicros(micros));
 }
 
