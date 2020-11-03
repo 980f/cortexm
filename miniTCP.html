@@ -4,17 +4,17 @@
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <title>miniTCP</title>
   </head>
-  <body> <br>
-    Mini TCP implementation <br>
+  <body>
+    <h2> Mini TCP implementation </h2>
     <br>
-    Skipped packet: <br>
+    <hr> Skipped packet: <br>
     If incoming seq!=expected (recorded in lastAckSent) then send a dupack with last seq acked as request for retransmission. <br>
     <br>
     optional timeout retransmission: <br>
-    base timeout is: RTT average+max(G,4*RTT variance) G clock granularity(round up)<br>
+    base timeout is: RTT average+max(G,4*RTT variance) where G is clock granularity(seems like that should be a min function!)<br>
     RTT: round trip time from recent comms. <br>
-    double with each retry <br>
-    Our implementation: user provides a constant.<br>
+    Double with each value with each retry <br>
+    Our implementation: user provides a constant. We notify client on resend and client can decide to veto it and instead reestablish connection.<br>
     <br>
     To control remote sender:<br>
     receive window == receive space available <br>
@@ -22,25 +22,27 @@
     <br>
     Our implementation: double buffered, return either size of buffer or zero depending upon whether 'other' buffer has been released.<br>
     <br>
+    Fragmentation isn't supported, this is for point to point stuff over local network for device comm, bulk data sending is the rare case and is parcelled out at application layer.<br>
+    <br>
     MSS is maximum that can be received ever, separate numbers for each end. <br>
     Our implementation disallows window scaling, we never support more than 64k windows, typically much smaller.<br>
     <br>
     PSH bit is targeted at the local sending stack, but may also be of interest at the receiver. <br>
     We make it available with data as indication of "end of frame".<br>
     <br>
-    Outgoing sequence nominal starts with a random number, but is thereafter a count.<br>
+    ACK bit means "I am sending an ACK value", and is typically sent with every output.<br>
+    <br>
+    Outgoing sequence nominally starts with a random number, but is thereafter a count.<br>
     Ditto for received sequence. <br>
     We start with 0, or user provided start value with connect call.<br>
     <br>
     <br>
-    Seq and ack are 32 bits, wraps at 4Gb sent.<br>
-    Ack returns incoming SEQ+length, aka next expected sequence. For SYN response pretend the length is 1.<br>
-    SEQ of pure ACK <br>
+    Seq and ack values are 32 bits, wraps at 4Gb sent.<br>
+    Ack sends incoming SEQ+length, aka next expected sequence. For SYN response pretend the length is 1.<br>
     <br>
-    <br>
+    As formulae:<br>
     outgoing ACK= expected value of next incoming SEQ<br>
     outgoing SEQ=count of own sendings, SYN = 1<br>
-    ACK bit means "I am sending an ACK value"<br>
     <br>
     Example:<br>
     <table border="1">
@@ -127,29 +129,57 @@
       </tbody>
     </table>
     <br>
+    Serving<br>
+    Incoming SYN packets call a connection listener. That connection listener returns whether connection is accepted. If accepted all subsequent traffic goes to that listener.<br>
+    The usual OS dance of binding a port to start listening is not required or supported, only a single receiver is supported. That receiver can implement multiple ports etc.<br>
+    The connection acceptance results in SYN-ACK with listeners ACK field being accessed.<br>
     <br>
-    <hr>ARP<br>
-    send broadcast message to get remote's MAC<br>
-    parse broadcast messages to record remote's MAC<br>
-    parse broadcast messages to respond with own MAC<br>
+    Client support<br>
+    SYN polling for serving via timer value, stops on SYN-ACK addressed to client.<br>
+    ARP messaging independent of connection state.<br>
+    ARP state query "is there an ARP entry for my IP".<br>
+    Client MAC is managed by this support, client doesn't maintain it. Client support fills in IP header on xmit request.<br>
+    Client support maintains SEQ and ACK counters.<br>
+    Client support calls client with pointer and length of incoming chunks.<br>
+    Client support accepts xmit request with pointer and length.<br>
+    Client support calls client with "xmit sent" and "xmit got ACK'd" event notifications.<br>
     <br>
     <br>
+    <hr>ARP packets<br>
+    <ul>
+      <li>send broadcast message with own IP and MAC, "gratuitous ARP"</li>
+      <li>send broadcast message to request remote's MAC</li>
+      <li>send broadcast message requesting MAC for one's own IP</li>
+      <li>parse broadcast messages to record remote's MAC from its "gratuitous ARP"</li>
+      <li>parse broadcast messages to respond with own MAC</li>
+      <li>parse directed message to record remote's MAC</li>
+    </ul>
+    ARP support maintains "own MAC" value via "own ARP entry".<br>
+    ARP supports notifying a client of reception of MAC for an IP.<br>
+    ARP supports monitoring/fetching MAC for an IP.<br>
     <br>
-    <hr><br>
+    <hr>Packet formatting<br>
     <br>
     Data offset is count of 32 bit words, not bytes.
     <ul>
-      <li> URG—Indicates that some urgent data has been placed.&nbsp; (OOB signaling)<br>
+      <li> URG—Indicates that some urgent data exists, value is offset within data block. (OOB signaling)<br>
       </li>
-      <li>ACK—Indicates that acknowledgement number is valid.<br>
-      </li>
-      <li>PSH—Indicates that data should be passed to the application as soon as possible.<br>
-      </li>
-      <li>RST—Resets the connection. (only sent by server in response to attempt to connect to a port without service, or data sent to a closed connection)<br>
-      </li>
-      <li>SYN—Synchronizes sequence numbers to initiate a connection.<br>
-      </li>
-      <li>FIN—Means that the sender of the flag has finished sending data. (close connection)</li>
+      <li>ACK—Number of next SEQ expected.</li>
+      <li>Flags</li>
+      <ul>
+        <li>PSH—Indicates that data should be passed to the application as soon as possible.<br>
+        </li>
+        <li>RST—Resets the connection. (only sent by server in response to attempt to connect to a port without service, or data sent to a closed connection)<br>
+        </li>
+        <li>SYN—Set sequence number, acts as indication of connection request.<br>
+        </li>
+        <li>FIN—Means that the sender of the flag has finished sending data. (close connection)</li>
+      </ul>
+      <li>Window —receive buffer available. A value of 0 means "shut up!"</li>
+      <li>Options —presence is indicated by IP header length (IHL). Byte sequenced data with leading byte identifying content with implicit definition of following bytes. NUL terminated, with padding to multiple of 4 bytes.</li>
+      <li>Data presence is indicated by IPV4 total length field.</li>
+      <ul>
+      </ul>
     </ul>
     <br>
     <table>
@@ -169,9 +199,7 @@
     <br>
     <hr>IPV4 info<br>
     <br>
-    <br>
-    <br>
-    <p> 576 bytes required packet size. </p>
+    <p> 576 bytes required packet size buffer in receiver, 512 data + 64 max header.</p>
     <br>
     <table>
       <tbody>
@@ -188,7 +216,7 @@
       </tbody>
     </table>
     <br>
-    <hr> <br>
+    <hr> Notes from wikipedia<br>
     <br>
     TCP protocol operations may be divided into three phases. <i>Connection establishment</i> is a multi-step handshake process that establishes a connection before entering the <i>data transfer</i> phase. After data transmission is completed, the <i>connection termination</i> closes the connection and releases all allocated resources. <br>
     A TCP connection is managed by an operating system through a resource that represents the local end-point for communications, the <i><a
@@ -223,43 +251,35 @@
     </dl>
     <h3><span class="mw-headline" id="Connection_establishment"><span class="anchor"
           id="CONNECTION-ESTABLISHMENT"></span>Connection establishment</span><span
-        class="mw-editsection"><span class="mw-editsection-bracket">[</span><a
-          href="/w/index.php?title=Transmission_Control_Protocol&amp;action=edit&amp;section=5"
-          title="Edit section: Connection establishment">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+        class="mw-editsection"><span class="mw-editsection-bracket"></span></span></h3>
     <br>
     To establish a connection, TCP uses a three-way <a href="/wiki/Handshaking"
-      title="Handshaking">handshake</a>. Before a client attempts to connect with a server, the server must first bind to and listen at a port to open it up for connections: this is called a passive open. Once the passive open is established, a client may initiate an active open. To establish a connection, the three-way (or 3-step) handshake occurs:
+      title="Handshaking">handshake</a>. <br>
     <ol>
-      <li><b>SYN</b>: The active open is performed by the client sending a SYN to the server. The client sets the segment's sequence number to a random value A.</li>
-      <li><b>SYN-ACK</b>: In response, the server replies with a SYN-ACK. The acknowledgment number is set to one more than the received sequence number i.e. A+1, and the sequence number that the server chooses for the packet is another random number, B.</li>
-      <li><b>ACK</b>: Finally, the client sends an ACK back to the server. The sequence number is set to the received acknowledgement value i.e. A+1, and the acknowledgement number is set to one more than the received sequence number i.e. B+1.</li>
+      <li><b>SYN</b>: Client sends a SYN to the server, no ACK or PSH. The client outgoing ACK value is random as far as the remote is concerned.</li>
+      <li><b>SYN-ACK</b>: The server replies with a SYN-ACK. The client records the ACK value as the remote's 'next seq number to expect', takes the SYN as permission to start sending stuff.</li>
+      <li><b>ACK</b>: The client sends an ACK back to the server. The sequence number is set to the received acknowledgement value i.e. A+1, and the acknowledgement number is set to one more than the received sequence number i.e. B+1.</li>
     </ol>
     <br>
-    At this point, both the client and server have received an acknowledgment of the connection. The steps 1, 2 establish the connection parameter (sequence number) for one direction and it is acknowledged. The steps 2, 3 establish the connection parameter (sequence number) for the other direction and it is acknowledged. With these, a full-duplex communication is established.
     <h3><span class="mw-headline" id="Connection_termination">Connection termination</span><span
-        class="mw-editsection"><span class="mw-editsection-bracket">[</span><a
-          href="/w/index.php?title=Transmission_Control_Protocol&amp;action=edit&amp;section=6"
-          title="Edit section: Connection termination">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
-    <div class="thumb tright">
-      <div class="thumbinner" style="width:262px;"><a href="/wiki/File:TCP_CLOSE.svg"
-          class="image"><img alt="" src="//upload.wikimedia.org/wikipedia/commons/thumb/5/55/TCP_CLOSE.svg/260px-TCP_CLOSE.svg.png"
-            decoding="async" class="thumbimage" srcset="//upload.wikimedia.org/wikipedia/commons/thumb/5/55/TCP_CLOSE.svg/390px-TCP_CLOSE.svg.png 1.5x, //upload.wikimedia.org/wikipedia/commons/thumb/5/55/TCP_CLOSE.svg/520px-TCP_CLOSE.svg.png 2x"
-            data-file-width="375" data-file-height="300" width="260" height="208"></a>
-        <div class="thumbcaption">
-          <div class="magnify"><a href="/wiki/File:TCP_CLOSE.svg" class="internal"
-              title="Enlarge"></a></div>
-          Connection termination</div>
-      </div>
-    </div>
+        class="mw-editsection"><span class="mw-editsection-bracket"></span></span></h3>
+    The connection termination phase uses a four-way handshake, with each side of the connection terminating independently. <br>
+    When an endpoint wishes to stop its half of the connection, it transmits a FIN packet, which the other end acknowledges with an ACK. <br>
+    Therefore, a typical tear-down requires a pair of FIN and ACK segments from each TCP endpoint. <br>
+    After the side that sent the first FIN has responded with the final ACK, it waits for a timeout before finally closing the connection, during which time the local port is unavailable for new connections; this prevents confusion due to delayed packets being delivered during subsequent connections. <br>
     <br>
-    The connection termination phase uses a four-way handshake, with each side of the connection terminating independently. When an endpoint wishes to stop its half of the connection, it transmits a FIN packet, which the other end acknowledges with an ACK. Therefore, a typical tear-down requires a pair of FIN and ACK segments from each TCP endpoint. After the side that sent the first FIN has responded with the final ACK, it waits for a timeout before finally closing the connection, during which time the local port is unavailable for new connections; this prevents confusion due to delayed packets being delivered during subsequent connections. <br>
-    A connection can be <a href="/wiki/TCP_half-open" title="TCP half-open">"half-open"</a>, in which case one side has terminated its end, but the other has not. The side that has terminated can no longer send any data into the connection, but the other side can. The terminating side should continue reading the data until the other side terminates as well. <br>
-    It is also possible to terminate the connection by a 3-way handshake, when host A sends a FIN and host B replies with a FIN &amp; ACK (merely combines 2 steps into one) and host A replies with an ACK.<sup
-      id="cite_ref-21" class="reference"><a href="#cite_note-21">[17]</a></sup> <br>
+    A connection can be <a href="/wiki/TCP_half-open" title="TCP half-open">"half-open"</a>, in which case one side has terminated its end, but the other has not. The side that has terminated can no longer send any data into the connection, but the other side can. <br>
+    The terminating side should continue reading the data until the other side terminates as well. <br>
+    <br>
+    It is also possible to terminate the connection by a 3-way handshake, when host A sends a FIN and host B replies with a FIN &amp; ACK (merely combines 2 steps into one) and host A replies with an ACK. <br>
+    <br>
     Some operating systems, such as <a href="/wiki/Linux" title="Linux">Linux</a> and <a
       href="/w/index.php?title=H-UX&amp;action=edit&amp;redlink=1" class="new"
-      title="H-UX (page does not exist)">H-UX</a>, implement a half-duplex close sequence in the TCP stack. If the host actively closes a connection, while still having unread incoming data available, the host sends the signal RST (losing any received data) instead of FIN.<sup
-      id="cite_ref-22" class="reference"><a href="#cite_note-22">[18]</a></sup> This assures a TCP application that the remote process has read all the transmitted data by waiting for the signal FIN, before it actively closes the connection. The remote process cannot distinguish between an RST signal for <i>connection aborting</i> and <i>data loss</i>. Both cause the remote stack to lose all data received. <br>
+      title="H-UX (page does not exist)">H-UX</a>, implement a half-duplex close sequence in the TCP stack. <br>
+    If the host actively closes a connection, while still having unread incoming data available, the host sends the signal RST (losing any received data) instead of FIN.<br>
+    This assures a TCP application that the remote process has read all the transmitted data by waiting for the signal FIN, before it actively closes the connection. <br>
+    The remote process cannot distinguish between an RST signal for <i>connection aborting</i> and <i>data loss</i>. Both cause the remote stack to lose all data received. <br>
+    <br>
     Some application protocols using the TCP open/close handshaking for the application protocol open/close handshaking may find the RST problem on active close. As an example:
     <pre>s = connect(remote);
 send(s, data);
@@ -270,26 +290,27 @@ close(s);
     <br>
     TCP uses a <i>sequence number</i> to identify each byte of data. The sequence number identifies the order of the bytes sent from each computer so that the data can be reconstructed in order, regardless of any <a
       href="/wiki/Packet_reordering" class="mw-redirect" title="Packet reordering">packet reordering</a>, or <a
-      href="/wiki/Packet_loss" title="Packet loss">packet loss</a> that may occur during transmission. The sequence number of the first byte is chosen by the transmitter for the first packet, which is flagged SYN. This number can be arbitrary, and should, in fact, be unpredictable to defend against <a
+      href="/wiki/Packet_loss" title="Packet loss">packet loss</a> that may occur during transmission.<br>
+    The sequence number of the first byte is chosen by the transmitter for the first packet, which is flagged SYN. This number can be arbitrary, and should, in fact, be unpredictable to defend against <a
       href="/wiki/TCP_sequence_prediction_attack" title="TCP sequence prediction attack">TCP sequence prediction attacks</a>. <br>
-    Acknowledgements (ACKs) are sent with a sequence number by the receiver of data to tell the sender that data has been received to the specified byte. ACKs do not imply that the data has been delivered to the application. They merely signify that it is now the receiver's responsibility to deliver the data. <br>
-    Reliability is achieved by the sender detecting lost data and retransmitting it. TCP uses two primary techniques to identify loss. Retransmission timeout (abbreviated as RTO) and duplicate cumulative acknowledgements (DupAcks).
-    <h5><span class="mw-headline" id="Dupack-based_retransmission">Dupack-based retransmission</span><span
-        class="mw-editsection"><span class="mw-editsection-bracket">[</span><a
-          href="/w/index.php?title=Transmission_Control_Protocol&amp;action=edit&amp;section=10"
-          title="Edit section: Dupack-based retransmission">edit</a><span
-          class="mw-editsection-bracket">]</span></span></h5>
+    Acknowledgements (ACKs) are sent with a sequence number by the receiver of data to tell the sender that data has been received to the specified byte. <br>
+    ACKs do not imply that the data has been delivered to the application. They merely signify that it is now the receiver's responsibility to deliver the data. <br>
     <br>
-    If a single segment (say segment 100) in a stream is lost, then the receiver cannot acknowledge packets above no. 100 because it uses cumulative ACKs. Hence the receiver acknowledges packet 99 again on the receipt of another data packet. This duplicate acknowledgement is used as a signal for packet loss. That is, if the sender receives three duplicate acknowledgements, it retransmits the last unacknowledged packet. A threshold of three is used because the network may reorder segments causing duplicate acknowledgements. This threshold has been demonstrated to avoid spurious retransmissions due to reordering.<sup
+    Reliability is achieved by the sender detecting lost data and retransmitting it. TCP uses two primary techniques to identify loss. Retransmission timeout (abbreviated as RTO) and duplicate cumulative acknowledgements (DupAcks).
+    <h4><span class="mw-headline" id="Dupack-based_retransmission">Dupack-based retransmission</span><span
+        class="mw-editsection"><span class="mw-editsection-bracket"></span><span
+          class="mw-editsection-bracket"></span></span></h4>
+    If a single segment (say segment 100) in a stream is lost, then the receiver cannot acknowledge packets above no. 100 because it uses cumulative ACKs. Hence the receiver acknowledges packet 99 again on the receipt of another data packet. <br>
+    This duplicate acknowledgement is used as a signal for packet loss. That is, if the sender receives three duplicate acknowledgements, it retransmits the last unacknowledged packet. <br>
+    A threshold of three is used because the network may reorder segments causing duplicate acknowledgements. This threshold has been demonstrated to avoid spurious retransmissions due to reordering.<sup
       id="cite_ref-24" class="reference"><a href="#cite_note-24">[20]</a></sup> Sometimes <a
       href="/wiki/Selective_acknowledgement" class="mw-redirect" title="Selective acknowledgement">selective acknowledgements</a> (SACKs) are used to provide explicit feedback about the segments that have been received. This greatly improves TCP's ability to retransmit the right segments.
-    <h5><span class="mw-headline" id="Timeout-based_retransmission">Timeout-based retransmission</span><span
-        class="mw-editsection"><span class="mw-editsection-bracket">[</span><a
-          href="/w/index.php?title=Transmission_Control_Protocol&amp;action=edit&amp;section=11"
-          title="Edit section: Timeout-based retransmission">edit</a><span
-          class="mw-editsection-bracket">]</span></span></h5>
-    <br>
-    When a sender transmits a segment, it initializes a timer with a conservative estimate of the arrival time of the acknowledgement. The segment is retransmitted if the timer expires, with a new timeout threshold of twice the previous value, resulting in exponential backoff behavior. Typically, the initial timer value is RTT average+max(G,4*RTT variance) <span
+    <h4><span class="mw-headline" id="Timeout-based_retransmission">Timeout-based retransmission</span><span
+        class="mw-editsection"><span class="mw-editsection-bracket"></span><span
+          class="mw-editsection-bracket"></span></span></h4>
+    When a sender transmits a segment, it initializes a timer with a conservative estimate of the arrival time of the acknowledgement. <br>
+    The segment is retransmitted if the timer expires, with a new timeout threshold of twice the previous value, resulting in exponential backoff behavior. <br>
+    Typically, the initial timer value is RTT average+max(G,4*RTT variance) <span
       class="mwe-math-element"><span class="mwe-math-mathml-inline mwe-math-mathml-a11y"
         style="display: none;"><math xmlns="http://www.w3.org/1998/Math/MathML"
           alttext="{\displaystyle {\text{smoothed RTT}}+\max(G,4\times {\text{RTT variation}})}"> </math></span></span> <br>
