@@ -54,7 +54,12 @@ public:
   bool check(bool andRestart);
 
   /** @returns whether timeout has expired, stops the timer if it has.  */
-  bool timedout() {
+  bool timedout(bool whileRunning = true) {
+    if(whileRunning){
+      if(!isRunning()){
+        return false;
+      }
+    }
     return check(false);
   }
 
