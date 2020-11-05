@@ -152,7 +152,7 @@ public:
   }
 
   void enable() {
-    if (atomic_decrementNowZero(locker)) {
+    if (atomic_decrementNowZero(locker)) {//todo:000 seems to be defective!
       enable();
       // if locked then reduce the lock such that the unlock will cause an enable
       // one level earlier than it would have. This might be surprising so an
@@ -193,6 +193,17 @@ public:
   }
 };
 
+/** simplest locker, always disables, always enables. */
+struct IRQblock{
+  Irq &irq;
+  IRQblock(Irq &irq):irq(irq){
+    irq.disable();
+  }
+  ~IRQblock(){
+    irq.enable();
+  }
+};
+
 #ifdef __linux__ //just compiling for syntax checking
 extern bool IrqEnable;
 #define IRQLOCK(irq)
@@ -200,6 +211,8 @@ extern bool IrqEnable;
 #else
 #include "core_cmFunc.h"
 #define IRQLOCK(irqVarb) IRQLock IRQLCK ## irqVarb(irqVarb)
+#define IRQBLOCK(irqVarb) IRQblock IRQBLCK ## irqVarb(irqVarb)
+
 #endif
 
 //this does not allow for static locking, only for within a function's execution (which is a good thing!):
