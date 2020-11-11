@@ -2,36 +2,66 @@
 
 #include "eztypes.h"
 #include "peripheraltypes.h"
-//not stable part of gcc it appears, will use ours instead. #include "atomic"
 
-//macro's for generating numbers don't work in the irqnumber slot below. The argument must be a simple digit string, no math or lookups or even constexpr's
-#define IrqName(irqnumber) IRQ ## irqnumber
+/** Instead of having a long list of particularly spelled interrupt handler names and also a list of interrupt number names we can get by with just
+ * the number names and generate handler names from them.
+ *
+ * The IrqName and HandleInterrupt macros below are used in application code, and you can make macros like UartIrq(uartNumber) and use those
+ * both in the interrupt controls defined here (class Irq) and to mark the handler.
+ *
+ * Most interrupt handlers are oneliners that call a shared function with an arugment for the instance of the peripheral.
+ *
+ * #define myIrqNum 29
+ * const Irq myIrq(myIrqNum);
+ * ...
+ * myIrq.setPriority(...);
+ * ...
+ * HandleInterrupt(myIrqNum){
+ *   myObject.handle();
+ * }
+ *
+ * ******************************
+ *
+ * The following do the same for faults:
+ * FaultName(faultIndex) MACRO_cat(FAULT , faultIndex)
+ * FaultHandler(name, faultIndex)
+ * HandleFault(faultIndex)
+ *
+ * ******************************
+ *
+ * This allows us to build the vector table with names that are independent of the peripherals, which means that they are also
+ * independent of the vendor other than for the highest valued interrupt that can occur.
+ * I weak define all of them to a common "unhandled interrupt handler".
+ * My version of that handler disables the interrupt, using the NVIC registers to figure that out.
+ * You may wish to put a halt there instead of a simple disable and return.
+ *
+ * That takes up less bytes of rom than the usual copy of "branch here" for each handler.
+ * */
 
-/*use this in front of the open curly of the function body of an irq handler:
+/**irqnumber can be a decimal or a macro that resolves to one. To ensure proper resolution of macro to number see MACRO_wrap and frineds in eztypes.h.
+ you will detect a failure by your interrupt handler not gtting called despite interrupt being taken, a breakpoint in */
+#define IrqName(irqnumber) MACRO_cat(IRQ , irqnumber)
+
+
+/** use the following macro in front of the open curly of the function body of an irq handler:
  HandleInterrupt(numberish){
    isrcode();
  }
 */
 #define HandleInterrupt(irqname)  void IrqName( irqname ) (void)
 
-//see uses, this is a C preprocessor trick to get the symbolic name of an irq to become a number in a timely fashion.
-#define ResolveIrq(Irqsymbol)  Irqsymbol
-
-//object based interrupt handlers need some glue:
-#define ObjectInterrupt(objCall, irqnumber) HandleInterrupt(irqnumber){ objCall; }
-
-#define FaultName(faultIndex) FAULT ## faultIndex
+#define FaultName(faultIndex) MACRO_cat(FAULT , faultIndex)
 #define FaultHandler(name, faultIndex) void name(void) __attribute__((alias("FAULT" # faultIndex)))
 
 #define HandleFault(faultIndex) void FaultName(faultIndex) (void)
 
+//there are 16 possible faults, address space is always reserved for them whether the particular chip has the fault or not.
+constexpr unsigned FaultBias=16;
+
 /** @return previous setting while inserting new one.
-the exception number for an irq is irqnumber+16!
+the exception number for an irq is irqnumber+16 (FaultBias)!
 */
 u8 setInterruptPriorityFor(unsigned exceptionnumber, u8 newvalue);
-
-///** e.g. SysTick to lowest: setFaultHandlerPriority(15,255);*/
-//u8 setFaultHandlerPriority(unsigned faultIndex, u8 level);
 
 extern "C" void disableInterrupt(unsigned irqnum);
 
@@ -48,12 +78,13 @@ public:
 
   /** unhandled interrupt handler needed random access by number */
   static constexpr unsigned biasFor(unsigned number) {
-    return 0xE000E000 + ((number >> 5) << 2); // NOLINT(hicpp-signed-bitwise)
+    return 0xE000E000 + ((number >> 5) << 2);
   }
 
   static constexpr unsigned bitFor(unsigned number) {
     return number & bitMask(0, 5);
   }
+
   /** which member of group of 32 this is */
   const unsigned bit;
   /** memory offset for which group of 32 this is in, including the nvic base address */
@@ -64,7 +95,7 @@ public:
   const unsigned number;
 
   explicit constexpr Irq(unsigned number) :
-      bit(bitFor(number)), bias(biasFor(number)), mask(bitMask(bit)), number(number) {
+    bit(bitFor(number)), bias(biasFor(number)), mask(bitMask(bit)), number(number) {
     //#done
   }
 
@@ -87,7 +118,7 @@ public:
   }
 
   u8 setPriority(u8 newvalue) const {
-    return setInterruptPriorityFor(number+16, newvalue);//seems like this was wrong for many years due to lack of +16.
+    return setInterruptPriorityFor(number + FaultBias, newvalue);
   }
 
   /** @returns whether the source of the request is active */
@@ -103,6 +134,7 @@ public:
   void enable() const {
     strobe(0x100);
   }
+
   /** simulate the interrupt, expect it to be handled before the next line of your code. */
   void fake() const {
     strobe(0x200);
@@ -123,7 +155,8 @@ public:
   }
 
   /** enable or disable */
-  void operator=(bool on) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
+  void operator=(
+    bool on) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     if (on) {
       enable();
     } else {
@@ -144,11 +177,11 @@ public:
  * See IRQLock for the safest way to use this class.
  * instantiating more than one of these for a given interrupt defeats the nesting nature of its enable.
  */
-class GatedIrq: public Irq {
+class GatedIrq : public Irq {
   unsigned locker; //tracking nested attempts to lock out the interrupt.
 public:
   explicit GatedIrq(unsigned number) :
-      Irq(number), locker(0) {
+    Irq(number), locker(0) {
   }
 
   void enable() {
@@ -170,10 +203,10 @@ public:
     clear(); // acknowledge to hardware
     enable(); // allow again
   }
-
 };
 
-/** disable interrupt on creation of object, enable it on destruction
+/** see IRQLOCK macro for proper instatiation of one of these.
+ * disable interrupt on creation of object, enable it on destruction
  * usage: create one within a block where the irq must not be honored.
  * note: this cheap implementation may turn on an interrupt that was off,
  *  don't lock if you can't tolerate the interrupt being enabled.
@@ -184,7 +217,7 @@ struct IRQLock {
   GatedIrq &irq;
 public:
   explicit IRQLock(GatedIrq &irq) :
-      irq(irq) {
+    irq(irq) {
     irq.lock();
   }
 
@@ -194,13 +227,36 @@ public:
 };
 
 /** simplest locker, always disables, always enables. */
-struct IRQblock{
-  Irq &irq;
-  IRQblock(Irq &irq):irq(irq){
+struct IRQblock {
+  const Irq &irq;
+
+  IRQblock(const Irq &irq) : irq(irq) {
     irq.disable();
   }
-  ~IRQblock(){
+
+  ~IRQblock() {
     irq.enable();
+  }
+};
+
+/** simple locker, always disables, enables if was enabled.
+ * This cannot deal with some other interrupt service routine deciding that the state of this interrupt should change
+ * while this guy is running. That is weird enough to not worry about, since most usages only gate the interrupt for
+ * making access to a variable shared by the isr and foreground atomic.
+ * Any strange gating as in this edge case should be done on the upstream enable in the peripheral itself, not here in the NVIC.
+ * */
+struct IRQstacker {
+  const Irq &irq;
+  bool wasEnabled;
+
+  IRQstacker(const Irq &irq) : irq(irq), wasEnabled(irq.isEnabled()) {
+    irq.disable();
+  }
+
+  ~IRQstacker() {
+    if (wasEnabled) {
+      irq.enable();
+    }
   }
 };
 
@@ -209,7 +265,9 @@ extern bool IrqEnable;
 #define IRQLOCK(irq)
 
 #else
+
 #include "core_cmFunc.h"
+
 #define IRQLOCK(irqVarb) IRQLock IRQLCK ## irqVarb(irqVarb)
 #define IRQBLOCK(irqVarb) IRQblock IRQBLCK ## irqVarb(irqVarb)
 
@@ -221,7 +279,8 @@ extern bool IrqEnable;
 /** creating one of these in a function (or blockscope) disables <em> all </em> interrupts until said function (or blockscope) exits.
  * By using this fanciness you can't accidentally leave interrupts disabled. */
 class CriticalSection {
-  static volatile unsigned nesting;
+  /** Note Well the static below, that is essential for this guy to work. */
+  static volatile unsigned nesting;//zero init by C startup.
 public:
   CriticalSection() {
     if (!nesting++) {
@@ -230,7 +289,8 @@ public:
   }
 
   ~CriticalSection() {
-    if (nesting) { //then interrupts are globally disabled
+    if (nesting) { //this should always be non-zero, someone has to attack this well hidden variable from outside the class,
+      //... but testing it before decrementing it is free with even modest optimization turned on, it has to be loaded into a register to be decremented.
       if (--nesting == 0) {
         IrqEnable = true;
       }
