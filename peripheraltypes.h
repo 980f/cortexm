@@ -51,12 +51,11 @@ inline void poke(unsigned address, unsigned value) {
   __asm volatile("str r1,[r0]  \n");
 }
 
-
 /** many, but not all, cortex devices put peripheral control registers in the 0x4000 space, and bitband all of that to 0x4200.
  * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
 This replaces a 3-clock operation that is susceptible to interruption into a one clock operation that is not. That is important if an ISR is modifying the same control word as main thread code.
 */
-constexpr Address bandShift(Address byteOffset) {
+inline constexpr Address bandShift(Address byteOffset) {
   //5: 2^5 bits per 32 bit word. we expect a byte address here, so that one can pass values as read from the stm32 manual.
   return {byteOffset << 5U};//# leave braces in case Address becomes a real class
 }
@@ -92,31 +91,32 @@ public:
   }
 
 //using void return as we don't want to trust what the compiler might do with the 'volatile'
-  void operator=(unsigned value) const {// NOLINT
+  INLINETHIS
+  void operator=(unsigned value) const ISRISH {
     item = value;
   }
-
-  void operator|=(unsigned value) const {// NOLINT
+  INLINETHIS
+  void operator|=(unsigned value) const ISRISH {
     item |= value;
   }
-
-  void operator&=(unsigned value) const {// NOLINT
+  INLINETHIS
+  void operator&=(unsigned value) const ISRISH {
     item &= value;
   }
 
-
   /** mostly exists to appease compiler complaint about ambiguity of assignment. */
-  void operator=(const ControlWord &other) const {// NOLINT
-    item = other;
+  INLINETHIS
+  void operator=(const ControlWord &other) const ISRISH {
+    item = other.item;
   }
 
 
 //we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
   /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
-  operator unsigned() const {// NOLINT
+  INLINETHIS
+  operator unsigned() const ISRISH {
     return item;
   }
-
 };
 
 /** Multiple contiguous bits in a register. Requires register to be R/W.
@@ -144,7 +144,6 @@ public:
   inline operator unsigned() const {// NOLINT
     return (word & mask) >> pos;  //the compiler should render this down to a bitfield extract instruction.
   }
-
 
   // write
   unsigned operator=(unsigned value) const {// NOLINT
@@ -184,7 +183,6 @@ struct ControlBit : public ControlWord, BoolishRef {
       return false;
     }
   }
-
 };
 
 /** a datum at a known absolute address */
@@ -201,7 +199,6 @@ struct SFRint {
   inline void operator=(Inttype value) const {
     Ref<Inttype>(sfraddress) = value;
   }
-
 };
 
 ///** making all (conveniently predefined) SFR's unsigned presuming that all hardware values are unsigned. About the only exception is ADC values. */
@@ -289,7 +286,6 @@ struct SFRbandbit : public BoolishRef {
     return value;
   }
 };
-
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
 const Address PeripheralBase{0x40000000};  //1<<30
