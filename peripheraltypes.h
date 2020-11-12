@@ -131,7 +131,7 @@ class ControlField {
   const unsigned pos;
 
 public:
-  constexpr ControlField(Address sfraddress, unsigned pos, unsigned width = 1)
+  constexpr ControlField(Address sfraddress, unsigned pos, unsigned width)
     : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, width)), pos(pos) {}
 
 public:
