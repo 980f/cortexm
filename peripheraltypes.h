@@ -16,7 +16,6 @@
  * Volatile is used to keep the compiler from optimizing away accesses that have physical side effects.
 I am working on replacing *'s with &'s, its a statistical thing herein as to which is better.
 
- on // NOLINT or
  #pragma ide diagnostic ignored "google-explicit-constructor"
  #pragma ide diagnostic ignored "misc-unconventional-assign-operator"
 
@@ -141,12 +140,12 @@ public:
   ControlField() = delete;
 
   // read
-  inline operator unsigned() const {// NOLINT
+  inline operator unsigned() const {
     return (word & mask) >> pos;  //the compiler should render this down to a bitfield extract instruction.
   }
 
   // write
-  unsigned operator=(unsigned value) const {// NOLINT
+  unsigned operator=(unsigned value) const {
     word = ((value << pos) & mask) | (word & ~mask);  //the compiler should render this down to a bitfield insert instruction.
     return operator unsigned();
   }
@@ -164,12 +163,12 @@ struct ControlBit : public ControlWord, BoolishRef {
   constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {}
 
   // read
-  inline operator bool() const override {// NOLINT
+  inline operator bool() const override {
     return item != 0;
   }
 
   // write
-  bool operator=(bool value) const override {// NOLINT
+  bool operator=(bool value) const override {
     item = value;
     return value;
   }
@@ -191,12 +190,12 @@ struct SFRint {
   constexpr SFRint() = default;
 
   // read.
-  inline operator Inttype() const {
+  INLINETHIS operator Inttype() const {
     return Ref<Inttype>(sfraddress);
   }
 
   // write
-  inline void operator=(Inttype value) const {
+  INLINETHIS void operator=(Inttype value) const {
     Ref<Inttype>(sfraddress) = value;
   }
 };
@@ -229,12 +228,12 @@ public:
   }
 
   // read
-  inline operator unsigned() const {  // NOLINT
+  INLINETHIS operator unsigned() const {  
     return (Ref<unsigned>(sfraddress) & mask) >> pos;
   }
 
   // write
-  inline void operator=(unsigned value) const {  // NOLINT
+  INLINETHIS void operator=(unsigned value) const {  
     Ref<unsigned>(sfraddress) = ((value << pos) & mask) | (Ref<unsigned>(sfraddress) & ~mask);
   }
 
@@ -254,12 +253,12 @@ public:
   constexpr SFRbit() = default;
 
   // read
-  inline operator bool() const override {  // NOLINT
+  inline operator bool() const override {  
     return (Ref<unsigned>(sfraddress) & mask) != 0;
   }
 
   // write
-  bool operator=(bool value) const override {  // NOLINT
+  bool operator=(bool value) const override {  
     if (value) {
       Ref<unsigned>(sfraddress) |= mask;
     } else {
@@ -276,12 +275,12 @@ struct SFRbandbit : public BoolishRef {
     bandAddress = bandFor(sfraddress, bitnum), };
 
   // read
-  inline operator bool() const override {  // NOLINT
+  INLINETHIS operator bool() const override {  
     return *(reinterpret_cast<volatile unsigned *>(bandAddress));
   }
 
   // write
-  bool operator=(bool value) const override {  // NOLINT
+  INLINETHIS bool operator=(bool value) const override {  
     *(reinterpret_cast<unsigned *>(bandAddress)) = value;
     return value;
   }
