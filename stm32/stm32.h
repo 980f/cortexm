@@ -111,6 +111,10 @@ public:
     return ControlWord(bandFor(blockAddress + offset, bit));//bandAddress and bandFor were both setting the 0200 0000 bit.
   }
 
+  constexpr ControlField field(Address offset,unsigned pos, unsigned width) const {
+    return ControlField(registerAddress(offset),pos, width);
+  }
+
   /** @returns reference to a word member of the hardware object, @param offset if value from st's manual (byte address) */
   constexpr ControlWord word(Address offset) const {
     return ControlWord(blockAddress + offset);

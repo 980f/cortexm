@@ -20,7 +20,7 @@ struct PinOptions {
 //cheap enum for pullup/down/float/open_drain
   char UDFO;
 
-  constexpr PinOptions(Dir dir, Slew slew = slow, char UDFO = 'F') : dir(dir), slew(slew), UDFO(UDFO) {
+  constexpr PinOptions(Dir dir, Slew slew = slow, char UDFO = 'F',unsigned altcode=0) : dir(dir), slew(slew), UDFO(UDFO) ,altcode(altcode){
     //#nada
   }
 
@@ -28,9 +28,15 @@ struct PinOptions {
     return PinOptions(input, slow, UDFO);
   }
 
-  static PinOptions Output(Slew slew = slow, bool function = false, char UDFO = 'F') {
-    return PinOptions(function ? PinOptions::function : PinOptions::output, slew, UDFO);
+  static PinOptions Output(Slew slew = slow, char UDFO = 'F') {
+    return PinOptions(PinOptions::output, slew, UDFO);
   }
+
+  static PinOptions Function(unsigned altcode, Slew slew = slow, char UDFO = 'F') {
+    return PinOptions(PinOptions::function , slew, UDFO, altcode);
+  }
+
+  unsigned altcode;
 };
 
 /** the 16 bits as a group.
@@ -115,7 +121,7 @@ struct Pin /*Manager*/ {
   const ControlWord reader;
   const ControlWord writer;
 
-  Pin(const Port &port, unsigned bitnum) :
+  constexpr Pin(const Port &port, unsigned bitnum) :
     bitnum(bitnum), port(port), reader(port.registerAddress(0x10), bitnum), writer(port.registerAddress(0x14), bitnum) {
     //#nada
   }
@@ -157,8 +163,7 @@ struct FunctionPin {
   //cannot be constexpr as it hits the configuration registers and that takes real code.
   FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') :
     reader(port.registerAddress(0x10), bitnum) {
-    port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO));
-    ControlField(port.registerAddress(0x20 + ((bitnum >= 8) * 4)), (bitnum & 7) * 4, 4) = nibble;
+    port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO,nibble));
   }
 };
 
