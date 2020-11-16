@@ -2,7 +2,7 @@
 #processor specific but project independent parts of a CMake cortexM build.
 
 #todo: what is the cmake pathing for included files? try to do this with a relative path.
-#include("cortexm/cortexm4.cmake")
+include("cortexm/cortexm4.cmake")
 #the next are for some project generator module which I think I abandoned.
 set(CHIP STM32F407)
 set(CPU_FAMILY STM32F40x)
