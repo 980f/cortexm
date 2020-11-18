@@ -59,15 +59,16 @@
 constexpr unsigned FaultBias=16;
 
 /** @return previous setting while inserting new one.
-the exception number for an irq is irqnumber+16 (FaultBias)!
+ * give this 0..15, we will put that where it belongs.
+the exception number for an irq is irqnumber, for fault a negative value, -1 to -15
 */
-u8 setInterruptPriorityFor(unsigned exceptionnumber, u8 newvalue);
+u8 setInterruptPriorityFor(int exceptionnumber, u8 newvalue);
 
 extern "C" void disableInterrupt(unsigned irqnum);
 
 /** #of levels for grouping priorities, max 7
- * <sup>7-code</sup> is what actually goes into the hardare register (==~code)
- * stm32F10x only implements the 4 msbs of the logic so values 3,2,1 are same as 0*/
+ * <sup>7-code</sup> is what actually goes into the hardware register (==~code)
+ * stm32F10x et al. only implements the 4 msbs of the logic so values 3,2,1 are same as 0 */
 void configurePriorityGrouping(unsigned code);
 
 /** Controls for an irq, which involves bit picking in a block of 32 bit registers.
@@ -75,7 +76,7 @@ void configurePriorityGrouping(unsigned code);
  templated version was too difficult to manage for the slight potential gain in efficiency, i.e. templating was creeping through classes that didn't template well and a base class that the template can extend adds greater runtime overhead than the template can remove. Instead we just inline the code as a template would have required of us and let the compiler work at optimizing this. */
 class Irq {
 public:
-
+  static void setAllPriorties(u8 prio);
   /** unhandled interrupt handler needed random access by number */
   static constexpr unsigned biasFor(unsigned number) {
     return 0xE000E000 + ((number >> 5) << 2);
@@ -118,7 +119,7 @@ public:
   }
 
   u8 setPriority(u8 newvalue) const {
-    return setInterruptPriorityFor(number + FaultBias, newvalue);
+    return setInterruptPriorityFor(number, newvalue);
   }
 
   /** @returns whether the source of the request is active */

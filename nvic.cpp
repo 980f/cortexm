@@ -7,83 +7,85 @@
 volatile unsigned CriticalSection::nesting = 0;
 /////////////////////////////////
 
-u8 setInterruptPriorityFor(unsigned number,u8 newvalue) { // one byte each, often only some high bits are implemented
-  u8 &priorityRegister(*reinterpret_cast<u8 *>(0xE000E400 + number));
+u8 setInterruptPriorityFor(int number, u8 newvalue) { // one byte each, often only some high bits are implemented
+  //faults are at ED14 + 4..15, 0..3 are not allowed to be reprioritized, some otehrs are also ignored
+  u8 &priorityRegister(*reinterpret_cast<u8 *>(number < 0 ? 0xE000ED14 - number : (0xE000E400 + number)));
   u8 oldvalue = priorityRegister;
-  priorityRegister = newvalue;
-  return oldvalue;
+  priorityRegister = newvalue << 4;
+  return oldvalue >> 4;
 }
+
 
 /////////////////////////////////
 
 struct InterruptController {
   // ICSR
-  volatile unsigned int active : 9; // isr we are within
+  volatile unsigned int active: 9; // isr we are within
   unsigned int : 2;
-  volatile unsigned int unnested : 1; // status: will return to "not-interrupted" if isr ends now.
-  volatile unsigned int pending : 9; // highest priority one pending, if>active we are about to nest :)
-  volatile unsigned int isrpending : 1; // non-NMI, non-Fault is pending
-  volatile unsigned int isrpreempt : 1; // about to be nested, only useful for debug.
+  volatile unsigned int unnested: 1; // status: will return to "not-interrupted" if isr ends now.
+  volatile unsigned int pending: 9; // highest priority one pending, if>active we are about to nest :)
+  volatile unsigned int isrpending: 1; // non-NMI, non-Fault is pending
+  volatile unsigned int isrpreempt: 1; // about to be nested, only useful for debug.
   unsigned int : 1;
-  unsigned int pendTickClr : 1;
-  unsigned int pendTickSet : 1;
-  unsigned int pendSVClr : 1;
-  unsigned int pendSVSet : 1;
+  unsigned int pendTickClr: 1;
+  unsigned int pendTickSet: 1;
+  unsigned int pendSVClr: 1;
+  unsigned int pendSVSet: 1;
   unsigned int : 2;
-  unsigned int pendNMISet : 1;
+  unsigned int pendNMISet: 1;
   unsigned int : 1;
 
   u32 VectorTableBase; // bits 6..0 better be set to 0!
 
   struct AIRC {
-    unsigned int hardReset : 1; // generate a hardware reset, maybe
-    unsigned int eraseIrqState : 1; // abend interrupt handling activity, but doesn't fixup the stack
-    unsigned int pleaseReset : 1; // will generate a hardware reset
-    unsigned int priorityGrouper : 3; // indirectly the number of interrupt levels
-    unsigned int endianNess : 1; // read only
+    unsigned int hardReset: 1; // generate a hardware reset, maybe
+    unsigned int eraseIrqState: 1; // abend interrupt handling activity, but doesn't fixup the stack
+    unsigned int pleaseReset: 1; // will generate a hardware reset
+    unsigned int priorityGrouper: 3; // indirectly the number of interrupt levels
+    unsigned int endianNess: 1; // read only
     u16 VectorKey; // write 05FA to write to any of the above fields.
   };
 
   u32 airc; // must build an object then copy as a u32 to this field.
 
   unsigned int : 1;
-  unsigned int sleepOnExit : 1; //
-  unsigned int sleepDeep : 1;
+  unsigned int sleepOnExit: 1; //
+  unsigned int sleepDeep: 1;
   unsigned int : 1;
-  unsigned int sevOnPend : 1; // let interrupts be events for WFE
+  unsigned int sevOnPend: 1; // let interrupts be events for WFE
   unsigned int : 32 - 5;
 
   // u32 CCR;
-  unsigned int allowThreadOnReturn : 1; // only an RTOS would want this available
-  unsigned int allowSoftInterruptTriggers : 1; // allow user code to simulate interrupts
+  unsigned int allowThreadOnReturn: 1; // only an RTOS would want this available
+  unsigned int allowSoftInterruptTriggers: 1; // allow user code to simulate interrupts
   unsigned int : 1;
-  unsigned int trapUnaligned : 1;
-  unsigned int trapDivBy0 : 1; // a heinous thing to do
+  unsigned int trapUnaligned: 1;
+  unsigned int trapDivBy0: 1; // a heinous thing to do
   unsigned int : 3;
-  unsigned int ignoreMisalignmentInFaultHandlers : 1;
+  unsigned int ignoreMisalignmentInFaultHandlers: 1;
   unsigned int : 1; // stkalign, let hardware manage this
   unsigned int : 32 - 10;
-
+  /* priorities for faults. */
   u8 priority[12]; // syscall settable prorities, 4 .. 15, -12 to -1 in our unified numbering
   // volatile u32 SHCSR;
-  volatile unsigned int memFault : 1;
-  volatile unsigned int busFault : 1;
+  volatile unsigned int memFault: 1;
+  volatile unsigned int busFault: 1;
   unsigned int : 1;
-  volatile unsigned int usageFault : 1;
+  volatile unsigned int usageFault: 1;
   unsigned int : 3;
-  volatile unsigned int serviceCall : 1;
-  volatile unsigned int monitorActive : 1;
+  volatile unsigned int serviceCall: 1;
+  volatile unsigned int monitorActive: 1;
   unsigned int : 1;
-  volatile unsigned int serviceFlagActive : 1;
-  volatile unsigned int sysTicked : 1;
-  volatile unsigned int usageFaultPending : 1;
-  volatile unsigned int memFaultPending : 1;
-  volatile unsigned int busFaultPending : 1;
-  volatile unsigned int serviceCallPending : 1;
+  volatile unsigned int serviceFlagActive: 1;
+  volatile unsigned int sysTicked: 1;
+  volatile unsigned int usageFaultPending: 1;
+  volatile unsigned int memFaultPending: 1;
+  volatile unsigned int busFaultPending: 1;
+  volatile unsigned int serviceCallPending: 1;
 
-  unsigned int memoryFaultEnable : 1;
-  unsigned int busFaultEnable : 1;
-  unsigned int usageFaultEnable : 1;
+  unsigned int memoryFaultEnable: 1;
+  unsigned int busFaultEnable: 1;
+  unsigned int usageFaultEnable: 1;
   unsigned int : 32 - 19;
 
   u8 memFaultInfo;
@@ -126,18 +128,18 @@ soliton(InterruptController, 0xE000ED04);
 //
 //#endif
 
-void configurePriorityGrouping(unsigned code){
-  SFRint<unsigned,0xE000ED0C>()= ((~code & 7) << 8) | (0x05FA<<16); //5FA is a guard against random writes.
+void configurePriorityGrouping(unsigned code) {
+  SFRint<unsigned, 0xE000ED0C>() = ((~code & 7) << 8) | (0x05FA << 16); //5FA is a guard against random writes.
 }
 
 extern "C" { // to keep names simple for "alias" processor
-  void unhandledFault(void){
-    int num = theInterruptController.active;
+void unhandledFault(void) {
+  int num = theInterruptController.active;
 
-    if(num >= 4) {
-      theInterruptController.priority[num - 4] = 0xFF; // lower them as much as possible
-    }
-    switch(num) {
+  if (num >= 4) {
+    theInterruptController.priority[num - 4] = 0xFF; // lower them as much as possible
+  }
+  switch (num) {
     default://added to stifle compiler warning.
     case 0: // surreal: stack pointer init rather than an interrupt
     case 1: // reset: also would be surreal to get here.
@@ -173,19 +175,19 @@ extern "C" { // to keep names simple for "alias" processor
     case 15: // systick
       // todo:M disable systick interrupts, but don't include systick module, annoying include loop forms.
       break;
-    } /* switch */
-  } /* unhandledFault */
+  } /* switch */
+} /* unhandledFault */
 
 
-  void disableInterrupt(unsigned irqnum){
-    ControlWord(Irq::biasFor(irqnum)|0x180)=bitMask(Irq::bitFor(irqnum));
-  }
+void disableInterrupt(unsigned irqnum) {
+  ControlWord(Irq::biasFor(irqnum) | 0x180) = bitMask(Irq::bitFor(irqnum));
+}
 
 
-  void unhandledInterruptHandler(void) {//#used by linker's vctor table support.
-    /* turn it off so it doesn't happen again, and a handy breakpoint */
-    disableInterrupt(theInterruptController.active - 16);
-  }
+void unhandledInterruptHandler(void) {//#used by linker's vctor table support.
+  /* turn it off so it doesn't happen again, and a handy breakpoint */
+  disableInterrupt(theInterruptController.active - 16);
+}
 } // end extern "C"
 
 // the stubs declare handler routines that deFault to unhandledInterruptHandler or unhandledFault if not otherwise declared.
@@ -242,18 +244,29 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
  * Unfortunately this is all c preprocessor magic so you can't use constexpr stuff to compute an interrupt request from some configuration knowledge.
  * */
 
+void Irq::setAllPriorties(u8 prio) {
+  //todo:1 do by groups of 4.
+  u8 *priors=reinterpret_cast<u8*>(0xE000E400);
+  for(int i=countof(VectorTable);i-->0;){
+    priors[i]=prio<<4;
+  }
+}
+
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
+
 //trying to get good assembler code on this one :)
-void generateHardReset(){
+void generateHardReset() {
   //maydo: DSB before and after the reset
   //lsdigit: 1 worked on stm32, 4 should have worked but looped under the debugger.
-  unsigned pattern=0x5FA0005U | (theInterruptController.airc & bitMask(8,3));//retain priority group setting, JIC we don't reset that during startup
+  unsigned pattern = 0x5FA0005U | (theInterruptController.airc & bitMask(8, 3));//retain priority group setting, JIC we don't reset that during startup
   do {//keep on hitting the bit until we reset.
-    theInterruptController.airc=pattern;
+    theInterruptController.airc = pattern;
     //probably should try 5 instead of bit 3 above in case different vendors misread the arm spec differently.
   } while (true);
 }
+
 #pragma clang diagnostic pop
 
 
@@ -266,32 +279,3 @@ const CPSI_i IRQEN;    //cmsis name
 
 #endif
 
-///* ##########################   NVIC functions  #################################### */
-///** \ingroup  CMSIS_Core_FunctionInterface
-//    \defgroup CMSIS_Core_NVICFunctions CMSIS Core NVIC Functions
-//  @{
-// */
-
-///** \brief  Set Priority Grouping
-
-//  This function sets the priority grouping field using the required unlock sequence.
-//  The parameter PriorityGroup is assigned to the field SCB->AIRCR [10:8] PRIGROUP field.
-//  Only values from 0..7 are used.
-//  In case of a conflict between priority grouping and available
-//  priority bits (__NVIC_PRIO_BITS) the smallest possible priority group is set.
-
-//    \param [in]      PriorityGroup  Priority grouping field
-// */
-// static __INLINE void NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
-// {
-//  uint32_t reg_value;
-//  uint32_t PriorityGroupTmp = (PriorityGroup & 0x07);                         /* only values 0..7 are used          */
-
-//  reg_value  =  SCB->AIRCR;                                                   /* read old register configuration    */
-//  reg_value &= ~(SCB_AIRCR_VECTKEY_Msk | SCB_AIRCR_PRIGROUP_Msk);             /* clear bits to change               */
-//  reg_value  =  (reg_value                       |
-//                (0x5FA << SCB_AIRCR_VECTKEY_Pos) |
-//                (PriorityGroupTmp << 8));                                     /* Insert write key and priorty group */
-//  SCB->AIRCR =  reg_value;
-// }
-/*@} end of CMSIS_Core_NVICFunctions */
