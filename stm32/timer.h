@@ -78,6 +78,8 @@ struct Timer : public APBdevice {
   ControlBit UIE;
   ControlBit UIF;
   ControlBit OPM;
+  ControlBit UG;
+
   ControlWord PSC;
   ControlWord ARR;
 
@@ -98,6 +100,7 @@ struct Timer : public APBdevice {
     , UIE(registerAddress(0x0C), 0) //update control
     , UIF(registerAddress(0x10), 0) //update indicator
     , OPM(registerAddress(0), 3)  //one pulse mode
+    , UG(registerAddress(0x14),0) //force update
     , PSC(registerAddress(0x28))  //prescalar, divides typically max clock/2
     , ARR(registerAddress(0x2C))  //limit register
   {
@@ -117,9 +120,11 @@ struct Timer : public APBdevice {
   /** set cycle length in units determined by baseRate and prescale:*/
   void setCycler(unsigned ticks) const;
   unsigned getCycler() const;
-  double getHz() const;
+  double overflowRate() const;
   unsigned ticksForMillis(unsigned ms) const;
   unsigned ticksForMicros(unsigned us) const;
+  unsigned ticksForSeconds(double secs) const;
+
   unsigned ticksForHz(double Hz) const;
   double secondsInTicks(unsigned ticks) const;
   enum ExternalInputOption {
@@ -167,9 +172,10 @@ constexpr uint8_t PwmEarly = 0b0'110'1'0'00;
 
 struct CCUnit {
   const Timer &timer;
-  unsigned zluno;
+  const unsigned zluno;
+  const ControlWord ticker;
 
-  constexpr CCUnit(const Timer &_timer, unsigned _ccluno) : timer(_timer), zluno(_ccluno - 1) {
+  constexpr CCUnit(const Timer &_timer, unsigned _ccluno) : timer(_timer), zluno(_ccluno - 1), ticker(timer.registerAddress(0x34 + 4 * zluno)) {
     //nothing to do here
   }
 
@@ -189,19 +195,14 @@ struct CCUnit {
     //bit 0 must also be on but that is inappropriate to do here.
   }
 
-private:
-  inline u16 &ticker() const {
-    return Ref<u16>(timer.registerAddress(0x34 + 4 * zluno));
+  inline void Update() const {
+    timer.bit(0x14, zluno + 1) = 1;
   }
 
 public:
   /** unguarded tick setting, see saturateTicks() for when you can't prove your value will be legal.*/
   inline void setTicks(unsigned ticks) const {
-    ticker() = u16(ticks);
-  }
-
-  inline u16 getTicks() const {
-    return ticker();
+    ticker = u16(ticks);
   }
 
   //some cc units have complementary outputs:
