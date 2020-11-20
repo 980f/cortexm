@@ -21,7 +21,7 @@
 
 #include "gpio.h" //for control of associated pins
 
-#include "debugger.h"
+//#include "debugger.h"
 
 //construction aid
 struct TimerConstant {
@@ -34,24 +34,27 @@ struct TimerConstant {
 static constexpr TimerConstant T[] = {
   {CPU, 0, 0}, //spacer so that we can textually use st's 1-based labels.
 #if DEVICE == 103
+  { APB2, 11, 27 }, //CC, see also 25,26 ...
 
-  { 2, 11, 27 }, //CC, see also 25,26 ...
-  { 1, 0, 28 },
-  { 1, 1, 29 },
-  { 1, 2, 30 },
-  { 1, 3, 50 },
-  { 1, 4, 54 },
-  { 1, 5, 55 },
-  { 2, 13, 44 },
+  { APB1, 0, 28 },
+  { APB1, 1, 29 },
+  { APB1, 2, 30 },
+  { APB1, 3, 50 },
+  { APB1, 4, 54 },
+  { APB1, 5, 55 },
+
+  { APB2, 13, 44 },
 #elif DEVICE == 407
 //stop bit is apb*32+slot
   {APB2, 0, 25}, //T1 update
+
   {APB1, 0, 28},
   {APB1, 1, 29}, //T3
   {APB1, 2, 30},
   {APB1, 3, 50},
   {APB1, 4, 54},//shared with DAC
   {APB1, 5, 55},//T7???
+
   {APB2, 1, 44},//T8 update
 
   {APB2, 16, 24},//#9 and T1 break
@@ -121,6 +124,7 @@ struct Timer : public APBdevice {
   /** set cycle length in units determined by baseRate and prescale:*/
   void setCycler(unsigned ticks) const;
   unsigned getCycler() const;
+  /** @returns rate at which timer will overflow if free running. */
   float overflowRate() const;
   unsigned ticksForMillis(unsigned ms) const;
   unsigned ticksForMicros(unsigned us) const;
@@ -141,7 +145,7 @@ struct Timer : public APBdevice {
     enable = on;
   }
 
-  inline void clearEvents(void) const {
+  inline void clearEvents() const {
     word(0x10) = 0;
   }
 
@@ -165,6 +169,7 @@ struct Timer : public APBdevice {
   }
 
   void update() const;
+  float getHz() const;
 };
 
 /** ccunit pattern for pwm with active at start of cycle */
@@ -249,8 +254,7 @@ struct DelayTimer : public Timer {
   }
 };
 
-/** NB: you have to declare an interrupt handler to be associated with any instance of this class.
- that isr should call onDone() else you might as well be a PeriodicInterrupter */
+/**  todo: untested use of OPM instead of interrupt */
 class Monostable : public Timer {
 public:
   constexpr Monostable(unsigned stLuno) : Timer(stLuno) {
@@ -260,13 +264,9 @@ public:
   void setPulseMicros(unsigned microseconds) const;
 public:
   void retrigger() const {
+    OPM=1;
     startRunning();
     UIE = 1;
-  }
-
-  void onDone() const {//making this virtual would be expensive, and usually will be called from an isr with the explicit implementation handy.
-    UIE = 0;
-    beRunning(false);
   }
 
 #pragma clang diagnostic push
@@ -284,31 +284,31 @@ struct PulseCounter : public Timer {
     * only fully valid after stop() is called.
     *
     */
-  int count;
+  unsigned count;
 
   PulseCounter(int timerLuno, Timer::ExternalInputOption channel, unsigned filter = 0) : Timer(timerLuno), cc(*this, channel == 2 ? 2 : 1) {
     configureCountExternalInput(channel, filter);
   }
 
   /** to be called from the timer's isr*/
-  void isr(void) {
+  void isr() {
     clearEvents(); //kill all possible interrupts, in case we accidentally enable unexpected ones.
     count += 1 << 16; //or add in the reload value if we don't do a binary divide (ARR register not FFFF).
   }
 
   /**use this to continue after having been paused with stop, can't call it continue as that is a keyword :)*/
-  void proceed(void) const {
+  void proceed() const {
     clearEvents();
-    beRunning(1);
+    beRunning(true);
   }
 
-  void start(void) {
+  void start() {
     count = 0;
     startRunning();
   }
 
-  void stop(void) {
-    beRunning(0);
+  void stop() {
+    beRunning(false);
     count += counter();
   }
 

@@ -1,16 +1,20 @@
 #include "timer.h"
-#include "minimath.h"
-
 #include "clocks.h"
 
+/* Add fields only as code needs to use them. The timers are so complex (or perhaps just poorly documented) that you should be reading the manual when trying to code something.
+ * the base class has functions bit() field() and word() which take the values from the RMxxxx documentation.
+ * The bit() uses the bitband mechanism.
+ * The field() tends to shifting and masking.
+ * The word() is for registers with a single value.
+ */
 
 /** setting up the actual pin must be done elsewhere*/
 void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, unsigned filter) const {
   APBdevice::init(); //wipe all previous settings
   //47 = t1edge, external mode 1. ?:1 gives a 1 for 0 or 1, a 2 for 2.
-  word(0x08) = 0x0047 + ((which ?: 1) << 4); //smcr
+  word(0x08) = 0x0047 | ((which ?: 1) << 4); //smcr
   if (which == Xor) {
-//todo:M restore    bit() = 1;
+//todo:M restore    bit(??) = 1;
   }
   UIE = 1; //enabling just the update interrupt for carry-outs
   word(0x18) |= filter << (which == CH2 ? 12 : 4);//todo:M verify the 0x18
@@ -19,7 +23,7 @@ void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, u
 Hertz Timer::baseRate() const {
   Hertz apbRate = getClockRate();
   Hertz ahbRate = clockRate(AHB1);
-  return (ahbRate == apbRate) ? apbRate : apbRate * 2;//#?F4?
+  return (ahbRate == apbRate) ? apbRate : apbRate * 2;
 }
 
 unsigned Timer::ticksForMillis(unsigned ms) const {
@@ -35,7 +39,7 @@ unsigned Timer::ticksForHz(double Hz) const {
 }
 
 float Timer::secondsInTicks(unsigned ticks) const {
-  return ratio(double(baseRate()), ticks * (1 + PSC));
+  return ratio(float(baseRate()), ticks * (1 + PSC));
 }
 
 /**sets the prescalar to generate the given hz.*/
@@ -157,10 +161,10 @@ void CCUnit::force(bool active) const {
 
 void Monostable::init() const {
   Timer::init();
-  onDone();
-  Interrupts(1);
+  OPM = 1;
 }
 
+//////////////////////////////////////////////////////
 void Monostable::setPulseWidth(unsigned ticks) const {
   if (ticks <= 0) {
     ticks = 1;  //we do not know if zero will pulse here
