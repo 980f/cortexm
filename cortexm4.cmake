@@ -5,13 +5,13 @@ also sometimes you need to run just this file to get the compiler settings cache
 ]]
 
 #kill a warning: qt sets this when it launches cmake, but we don't produce QT stuff so we got a warning.
-unset(QT_QMAKE_EXECUTABLE)
+UNSET(QT_QMAKE_EXECUTABLE)
 
 # Magic settings. Without it CMake tries to run test programs on the host platform, which fails of course.
 SET(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_SYSTEM_PROCESSOR Cortex-M4)
-set(gcccpu cortex-m4)  #todo: see if spelling of the above items matters to cmake, if not make it match gcc's case.
-set(TARGET arm-arm-none-eabi)
+SET(CMAKE_SYSTEM_PROCESSOR Cortex-M4)
+SET(gcccpu cortex-m4)  #todo: see if spelling of the above items matters to cmake, if not make it match gcc's case.
+SET(TARGET arm-arm-none-eabi)
 
 #we use a cross compiler, your OS *might* have a usable one, but I downloaded one from developer.arm.com:
 SET(BINROOT /d/bin/gcc-arm-none-eabi/bin/)
@@ -21,25 +21,25 @@ SET(CMAKE_C_COMPILER_WORKS 1)
 SET(CMAKE_C_COMPILER ${BINROOT}arm-none-eabi-gcc)
 SET(CMAKE_CXX_COMPILER_WORKS 1)
 SET(CMAKE_CXX_COMPILER ${BINROOT}arm-none-eabi-g++)
-set(AS ${BINROOT}arm-none-eabi-as)
-set(AR ${BINROOT}arm-none-eabi-ar)
-set(OBJCOPY ${BINROOT}arm-none-eabi-objcopy)
-set(OBJDUMP ${BINROOT}arm-none-eabi-objdump)
-set(SIZE ${BINROOT}arm-none-eabi-size)
+SET(AS ${BINROOT}arm-none-eabi-as)
+SET(AR ${BINROOT}arm-none-eabi-ar)
+SET(OBJCOPY ${BINROOT}arm-none-eabi-objcopy)
+SET(OBJDUMP ${BINROOT}arm-none-eabi-objdump)
+SET(SIZE ${BINROOT}arm-none-eabi-size)
 
 
 # CMSIS heritage defines:
-add_definitions(-D__CORTEX_M=4)
-add_definitions(-D__FPU_PRESENT=1)
-add_definitions(-D__MPU_PRESENT=1)
+ADD_DEFINITIONS(-D__CORTEX_M=4)
+ADD_DEFINITIONS(-D__FPU_PRESENT=1)
+ADD_DEFINITIONS(-D__MPU_PRESENT=1)
 
 #had to add this to get cortexm3.s to be processed:
-enable_language(ASM)
+ENABLE_LANGUAGE(ASM)
 #wildy guessing on trying to get correct asm language:
 SET(CMAKE_ASM_COMPILER_TARGET ${gcccpu})
 
 #cli stuff common to assembler and compiler:
-set(gcc_arch "-mcpu=${gcccpu} -mfloat-abi=hard -mfpu=fpv4-sp-d16 ")
+SET(gcc_arch "-mcpu=${gcccpu} -mfloat-abi=hard -mfpu=fpv4-sp-d16 ")
 
 SET(CMAKE_ASM_FLAGS " ${gcc_arch} ")
 
@@ -51,6 +51,15 @@ SET(CMAKE_C_FLAGS "${ccli_common} -std=c11 -Wno-int-to-pointer-cast -Wno-pointer
 
 # -Wno-unknown-pragmas added to hide spew from clang pragmas that hide clang spew. phew!
 SET(CMAKE_CXX_FLAGS "${ccli_common}  -std=c++17  -Wno-unknown-pragmas -fno-rtti -fno-exceptions -MD " CACHE INTERNAL "cxx compiler flags")
+
+#// build the vector table file, set LAST_IRQ in your processor definition cmake file.
+
+ADD_CUSTOM_COMMAND(
+  OUTPUT ${PROJECT_SOURCE_DIR}/nvicTable.link
+  COMMAND cortexm/mkIrqs ${LAST_IRQ} >nvicTable.link
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  DEPENDS ../cortexm/mkIrqs ${CMAKE_CURRENT_LIST_FILE}
+)
 
 
 
