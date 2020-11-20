@@ -20,7 +20,7 @@ struct PinOptions {
 //cheap enum for pullup/down/float/open_drain
   char UDFO;
 
-  constexpr PinOptions(Dir dir, Slew slew = slow, char UDFO = 'F',unsigned altcode=0) : dir(dir), slew(slew), UDFO(UDFO) ,altcode(altcode){
+  constexpr explicit PinOptions(Dir dir, Slew slew = slow, char UDFO = 'F',unsigned altcode=0) : dir(dir), slew(slew), UDFO(UDFO) ,altcode(altcode){
     //#nada
   }
 
@@ -47,7 +47,7 @@ struct PinOptions {
 
 struct Port /*Manager*/ : public APBdevice {
   static constexpr unsigned gpiobase(unsigned Ais0) {
-    return 0x40020000 + 0x400 * Ais0;
+    return GPIOBASE + 0x400 * Ais0;
   }
 
   /** @param letter is the uppercase character from the stm32 manual */

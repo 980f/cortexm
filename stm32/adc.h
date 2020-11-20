@@ -4,8 +4,6 @@
 #include "stm32.h"
 #include "shadow.h"
 
-struct ADC_DCB;
-struct ADC_Band;
 
 //tag for ADC value type
 using AdcValue=uint16_t ;
@@ -24,8 +22,6 @@ constexpr unsigned MaxAdcClock=
  * */
 class ADCdev : public APBdevice {
 public:
-  ADC_DCB &dcb;
-  ADC_Band &band;
 
   ADCdev(unsigned luno);
   void init();

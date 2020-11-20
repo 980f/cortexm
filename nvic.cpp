@@ -7,11 +7,12 @@
 volatile unsigned CriticalSection::nesting = 0;
 /////////////////////////////////
 
-u8 setInterruptPriorityFor(unsigned number,u8 newvalue) { // one byte each, often only some high bits are implemented
-  u8 &priorityRegister(*reinterpret_cast<u8 *>(0xE000E400 + number));
+u8 setInterruptPriorityFor(int number, u8 newvalue) { // one byte each, often only some high bits are implemented
+  //faults are at ED14 + 4..15, 0..3 are not allowed to be reprioritized, some otehrs are also ignored
+  u8 &priorityRegister(*reinterpret_cast<u8 *>(number < 0 ? 0xE000ED14 - number : (0xE000E400 + number)));
   u8 oldvalue = priorityRegister;
-  priorityRegister = newvalue;
-  return oldvalue;
+  priorityRegister = newvalue << 4;//todo: this '4' is ST's value, and can be inferred from some other register.
+  return oldvalue >> 4;
 }
 
 /////////////////////////////////
@@ -64,6 +65,7 @@ struct InterruptController {
   unsigned int : 1; // stkalign, let hardware manage this
   unsigned int : 32 - 10;
 
+  /* priorities for faults. */
   u8 priority[12]; // syscall settable prorities, 4 .. 15, -12 to -1 in our unified numbering
   // volatile u32 SHCSR;
   volatile unsigned int memFault : 1;
@@ -241,6 +243,14 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
  * This does mean that the point of use needs to know the actual irq number, but that is also needed in order to control the nvic bits so you will have that at hand.
  * Unfortunately this is all c preprocessor magic so you can't use constexpr stuff to compute an interrupt request from some configuration knowledge.
  * */
+
+void Irq::setAllPriorties(u8 prio) {
+  //todo:1 do by groups of 4.
+  u8 *priors=reinterpret_cast<u8*>(0xE000E400);
+  for(int i=countof(VectorTable);i-->0;){
+    priors[i]=prio<<4;
+  }
+}
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"

@@ -23,23 +23,18 @@ Hertz Timer::baseRate() const {
 }
 
 unsigned Timer::ticksForMillis(unsigned ms) const {
-  return quanta(ms * baseRate(), 1000 * (1 + PSC));
+  return ticksForSeconds(1e-3*ms);
 }
 
 unsigned Timer::ticksForMicros(unsigned us) const {
-  //F407 pushed us over the range of 32bits for the intermediate values here.
-  float totalTicks = baseRate();//ticks per second
-  totalTicks /= (1 + PSC);//after prescalar
-  totalTicks /= 1000000;//ticks per micro
-  totalTicks *= us;
-  return ceilf(totalTicks);
+  return ticksForSeconds(1e-6*us);
 }
 
 unsigned Timer::ticksForHz(double Hz) const {
   return quanta(baseRate(), Hz * (1 + PSC));
 }
 
-double Timer::secondsInTicks(unsigned ticks) const {
+float Timer::secondsInTicks(unsigned ticks) const {
   return ratio(double(baseRate()), ticks * (1 + PSC));
 }
 
@@ -61,7 +56,7 @@ unsigned Timer::getCycler() const {
   return unsigned(ARR) + 1; //#cast required
 }
 
-double Timer::getHz() const {
+float Timer::getHz() const {
   return secondsInTicks(getCycler());
 }
 
@@ -78,6 +73,10 @@ void Timer::startRunning() const {
   counter() = 0;
   clearEvents();
   beRunning(true);
+}
+
+unsigned Timer::ticksForSeconds(double secs) const {
+  return ceilf(secs*(double(baseRate())/(1 + PSC)));
 }
 
 ////////////////////////////

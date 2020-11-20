@@ -75,7 +75,8 @@ ControlField apb2Prescale(RCCCC, 13, 3);
 
 //flash control functions for F40x parts
 void setFlash4Clockrate(Hertz hz) {
-  ControlField(0x40023C00, 0, 3) = hz / 30000000;//full voltage. For lesser voltage change the denominator
+  //the below relies on truncating divide, do not round or ceil.
+  ControlField(FLASHBASE, 0, 3) = hz / 30'000'000;//full voltage. For lesser voltage change the denominator
 }
 
 void switchToInteral() {

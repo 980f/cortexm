@@ -20,13 +20,27 @@ constexpr Hertz ahbRate(unsigned ahbPrescale,Hertz feed){
   return feed  >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));
 }
 
+constexpr uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+constexpr Hertz ahbRatex(unsigned ahbPrescale,Hertz feed){
+  return feed  >> AHBPrescTable[ahbPrescale];
+}
+
+
 constexpr Hertz apbRate(unsigned apbPrescale,Hertz feed){
   return feed >> (apbPrescale >= 4 ? (apbPrescale - 3) : 0);
 }
 
+constexpr uint8_t APBPrescTable[8] = {0, 0, 0, 0, 1, 2, 3, 4};
+constexpr Hertz apbRatex(unsigned apbPrescale,Hertz feed){
+  return feed >> APBPrescTable[apbPrescale];
+}
+
+
 constexpr Hertz adcRate(unsigned adcPrescale,Hertz feed){
   return feed /((1+adcPrescale)*2);
 }
+
+
 
 
 /**set system clocks to the fastest possible*/

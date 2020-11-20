@@ -1,4 +1,4 @@
-#include DeviceHeaderFile
+
 #include "core_cmFunc.h"
 
 //demo of MREG macro usage

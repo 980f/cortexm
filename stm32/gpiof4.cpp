@@ -36,16 +36,16 @@ void Port::Field::operator=(unsigned value) const {  // NOLINT(cppcoreguidelines
   field = mask & (((((~value) << 16) | value)) << lsb);  // read the stm32 manual for this.
 }
 
-Port::Field::operator u16() const {
+Port::Field::operator uint16_t() const {
   return (odr & mask) >> lsb;
 }
 
 void Port::Field::operator^=(unsigned value) const {
-  return *this = (value ^ *this);  // uses operator = and operator cast u16.
+  return *this = (value ^ *this);  // uses operator = and operator cast uint16_t.
 }
 
-u16 Port::Field::actual() const {
-  u16 actually = (&odr)[-2];  // idr precedes odr, -2 is for 2 u16's.
+uint16_t Port::Field::actual() const {
+  uint16_t actually = (&odr)[-2];  // idr precedes odr, -2 is for 2 uint16_t's.
 
   return (actually & mask) >> lsb;
 }
@@ -105,29 +105,11 @@ const Pin &Pin::FN(unsigned nibble, PinOptions::Slew slew, char UDFO) const {
   return *this;
 }
 
-
-//////////////////////////////////
-// compiler didn't produce code into .o file for these so I moved to header file
-//constexpr InputPin::InputPin(const Pin& pin, char UDF, bool lowactive): LogicalPin(pin, lowactive) {
-//  pin.DI(UDF);
-//}
-//
-//constexpr InputPin::InputPin(const Pin& pin, bool lowactive) : InputPin(pin, lowactive ? 'U' : 'D', lowactive) {
-//  /*empty*/
-//}
-
 //////////////////////////////////
 
 void OutputPin::toggle() const {
   pin = 1 - pin;  //we can ignore polarity stuff :)
 }
 
-/////////////////////////////////
-
-//constexpr unsigned gpiobase(unsigned Ais0){
-//  return 0x40020000+0x400*Ais0;
-//}
-
-//constexpr Port::Port(char letter) : APBdevice(1, unsigned(letter - 'A'),gpiobase(letter - 'A')) {}
 
 #pragma clang diagnostic pop

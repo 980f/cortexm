@@ -2,7 +2,13 @@
 #include "fpu.h"
 #include "peripheraltypes.h"
 
+#ifdef DeviceHeaderFile
 #include DeviceHeaderFile
+#else
+#define __CORTEX_M 4
+#define __FPU_PRESENT  1
+#endif
+
 #include "core_cmFunc.h"  //ISB and DSB
 
 
@@ -27,8 +33,8 @@ void fpu_correct() {
 void fpu_enable() {
   ControlField(0xE000ED88, 20, 4) = 0xF;//allows access
   //st's manual has DSB preceding the ISB. The order here is from Rowley supplied code.
-  __ISB();
-  __DSB();
+  MNE(ISB);
+  MNE(DSB);
 }
 
 void fpu_noisr() {
@@ -36,6 +42,7 @@ void fpu_noisr() {
   ControlField(0xE000EF34, 30, 2) = 0;//don't preserve FPU state on interrupts
   CONTROL &= ~(1 << 2);//don't preserve FPU state on interrupt, why it has to be in two places is beyond me. Note: rowley startup sets it to unconditionally do the stacking
 }
+
 void fpu_init(bool dontStack, bool ieeePerfect) {
   fpu_enable();
   if (dontStack) {

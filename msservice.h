@@ -10,7 +10,7 @@
 using namespace SystemTimer;
 #include "polledtimer.h"
 #include "tableofpointers.h"
-MakeRef(SystemTicker,PolledTimerServer);
+#define RegisterPolledTimerWithSysTick MakeRef(SystemTicker,PolledTimerServer);
 
 
 #endif // MSSERVICE_H

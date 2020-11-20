@@ -164,7 +164,7 @@ namespace SystemTimer {
   }
 
   void setPriority(unsigned int TickPriority) {
-    setInterruptPriorityFor(15, TickPriority);
+    setInterruptPriorityFor(-15, TickPriority);
   }
 }
 

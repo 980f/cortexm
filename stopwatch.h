@@ -72,9 +72,9 @@ public:
     return isRunning();
   }
 
-  void operator=(TimeValue timeout) {
-    interval = timeout;
-  }
+//  void operator=(TimeValue timeout) {
+//    interval = timeout;
+//  }
 
   /** @returns how long until this guy timesout, negative if overdue which it will be if you don't check it often enough. */
   double dueIn();
