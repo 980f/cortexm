@@ -74,6 +74,21 @@ void cstartup(void) {
 void (*resetVector)() __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix on section name
 
+
+
+//trying to get good assembler code on this one :)
+[[noreturn]] void generateHardReset(){
+  //maydo: DSB before and after the reset
+  //lsdigit: 1 worked on stm32, 4 should have worked but looped under the debugger.
+  ControlWord airc(SCB(0x0C));
+  unsigned pattern=0x5FA'0005U | (airc & bitMask(8,3));//retain priority group setting, JIC we don't reset that during startup
+  do {//keep on hitting the bit until we reset.
+    airc=pattern;
+    //probably should try 5 instead of bit 3 above in case different vendors misread the arm spec differently.
+  } while (true);
+}
+
+
 #ifdef __linux__  //for testing compiles with PC compiler etc.
 const RamInitBlock __data_segment__={0,{0,0}};
 const RamBlock __bss_segment__={0,0};

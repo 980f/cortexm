@@ -7,10 +7,6 @@
 constexpr unsigned PriorityShift=4;//todo: this '4' is ST's value, may need to make dependent upon processor defines.
 volatile unsigned CriticalSection::nesting = 0;
 /////////////////////////////////
-// the SCB is kinda like a peripheral, but we may just inline this at each point of use. The manual lists both absolute and relative addresses.
-constexpr Address SCB(unsigned offset){
-  return 0xE000'ED00 + offset;
-}
 
 u8 setInterruptPriorityFor(int number, u8 newvalue) { // one byte each, often only some high bits are implemented
   //fault priorities are at ED14 + 4..15, 0..3 are not allowed to be reprioritized, some others are also ignored
@@ -147,20 +143,7 @@ void Irq::setAllPriorties(u8 prio) {
   }
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
-//trying to get good assembler code on this one :)
-void generateHardReset(){
-  //maydo: DSB before and after the reset
-  //lsdigit: 1 worked on stm32, 4 should have worked but looped under the debugger.
-  ControlWord airc(SCB(0x0C));
-  unsigned pattern=0x5FA'0005U | (airc & bitMask(8,3));//retain priority group setting, JIC we don't reset that during startup
-  do {//keep on hitting the bit until we reset.
-    airc=pattern;
-    //probably should try 5 instead of bit 3 above in case different vendors misread the arm spec differently.
-  } while (true);
-}
-#pragma clang diagnostic pop
+
 
 
 #ifdef __linux__ //just compiling for syntax checking
