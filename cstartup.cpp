@@ -1,4 +1,5 @@
 #include "cruntime.h" //to validate it, herein lay default implementations of it.
+#include "peripheraltypes.h" //for generateHardReset and vectors2ram
 
 /**
 This file is the reset handler.
@@ -7,11 +8,6 @@ You may have to tell the linker that the reset entrypoint is "cstartup".
 Rowley's build used the name "reset_handler".
 
 */
-
-
-/* CMSIS uses this function for doing things that must precede C init, such as turning on IO ports so that configuration commands in constructors function.
-You can't use any static *object* but you can use static initialized plain old data */
-void SystemInit(); // __USE_CMSIS __USE_LPCOPEN
 
 #pragma GCC diagnostic ignored "-Wmain"
 
@@ -33,36 +29,33 @@ void run_table(const InitRoutine *table) {
   }
 }
 
-// instead of tracking #defined symbols just dummy up the optional routines:
-[[gnu::weak]] void SystemInit() {
-//  return;
-}
-
-#include "peripheraltypes.h" //
+#if VECTORSINRAM == 1
 const extern RamInitBlock __CCM_Vectors__;//name coordinated with cortexm.ld
 void vectors2ram() {
   __CCM_Vectors__.go();
   SFRint<unsigned *,0xE000ED08> ()=__CCM_Vectors__.ram.address;
 }
+#else
+#define vectors2ram()
+#endif
 /** Reset entry point. The chip itself has set up the stack pointer to top of ram, and then the PC to this. It has not set up a frame pointer.
  */
 extern "C" //to make it easy to pass this to linker sanity checker.
 [[noreturn]] //we don't need no stinking stack frame (no params, no locals) gnu::naked generates a warning, so we dropped it even though it causes a few useless instructions to be emitted.
 void cstartup(void) {
-  // initialize static variables
+  // Nonzero initialized static variables
   __data_segment__.go();
   // Zero other static variables.
   __bss_segment__.go();
-  // a CMSIS hook: can move to __init_table__ sorted to be first.
-  SystemInit(); // stuff that C++ construction might need, like turning on hardware modules (e.g. GPIO group inits)
 
-  run_table(__init_table__); //includes running constructors for static objects
-  //incorporated by linker into our __init_table__:  __libc_init_array(); // C++ library initialization 
-
-  //
-#if VECTORSINRAM ==1
+  //move vectors before running init code, this will matter if the init code alters the vector table (and if no code does why have it in ram? the preformance gain is minimal)
   vectors2ram();
-#endif
+
+  //SystemInit() removed as it did not have a well defined priority over other initsteps.
+  //users of that can add an   __attribute__((init_priority(0))) to their SystemInit (or some other value than zero depending on how to order it with other pre-main execution.)
+
+  run_table(__init_table__); //includes running constructors for static objects and __libc_init_array() C++ library initializations
+
   main();
   //execute destructors for static objects and do atexit routines.
   run_table(__exit_table__);
@@ -75,19 +68,16 @@ void (*resetVector)() __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix on section name
 
 
-
-//trying to get good assembler code on this one :)
-[[noreturn]] void generateHardReset(){
+[[noreturn]] void generateHardReset() {
   //maydo: DSB before and after the reset
   //lsdigit: 1 worked on stm32, 4 should have worked but looped under the debugger.
   ControlWord airc(SCB(0x0C));
-  unsigned pattern=0x5FA'0005U | (airc & bitMask(8,3));//retain priority group setting, JIC we don't reset that during startup
+  unsigned pattern = 0x5FA'0005u | (airc & bitMask(8, 3));//retain priority group setting, JIC we don't reset that during startup
   do {//keep on hitting the bit until we reset.
-    airc=pattern;
+    airc = pattern;
     //probably should try 5 instead of bit 3 above in case different vendors misread the arm spec differently.
   } while (true);
 }
-
 
 #ifdef __linux__  //for testing compiles with PC compiler etc.
 const RamInitBlock __data_segment__={0,{0,0}};
@@ -96,8 +86,6 @@ const InitRoutine __init_table__[]={nullptr};
 const InitRoutine __exit_table__[]={nullptr};
 const unsigned __stack_limit__(0);
 #else
-
-
 
 #endif
 

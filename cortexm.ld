@@ -89,24 +89,30 @@ SECTIONS {
   } >FLASH
  __exit_table__ = LOADADDR(.exit);
 
+/* sometimes you need to stub out a function using the linker. The following chunk of linker magic creates a callable function extern "C" do_nothing() */
+  .dummy : {
+    LONG(0x47704770)     /*  bx lr followed by bx lr, since we will consume 32 bits and I am not sure which half gets called.  */
+  } >FLASH
+  do_nothing =  LOADADDR(.dummy);
+
 /* fully const'ed data, note that some things declared const end up in .data despite valiant attempts to compile time compute values. */
   .rodata :{
-    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata. 
+    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata.
         Eventually the 'used' attribute was applied to the C++ declarations, but we shall keep the KEEP in case something reverts.
-        We can't just keep all rodata's because the libraries are chock full of such sections */
+        We can't just KEEP all rodata's because the libraries are chock full of such sections and we want them to go away if not used */
     KEEP( *(SORT(.table.*)))
     *(SORT(.rodata.*))
     *(.rodata)
     /* shouldn't be getting these on a cortexM, want to know if we do:  .gnu.linkonce.r.* */
-      . = ALIGN(4); /* alignment padding for startupCopy disappeared spontaneously, causing an elf file load error- shifting bytes to boundary.
-        apparently we have been lucky for years that the segments naturally aligned. */
   } >FLASH
 
 /* data with non-zero initializers */
   .data :{
+    . = ALIGN(4); /* alignment padding for startupCopy disappeared spontaneously, causing an elf file load error- shifting bytes to boundary.
+                       apparently we have been lucky for years that the segments naturally aligned. */
     *(SORT(.data.*))
     *(.data)
-    /*.gnu.linkonce.d.*) */
+    /* *(.gnu.linkonce.d.*) /* these should not get produced. If they do expose this and fix its syntax errors, and documented what generated them */
   } >SRAM AT>FLASH
 
   .startupCopy : { /* this initializes an instance of what cstartup.cpp calls 'struct RamInitBlock' */
