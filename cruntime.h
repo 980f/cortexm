@@ -5,7 +5,7 @@
 
 /** removed the naked attribute ~gcc 7 as it complains about non-asm code :(
  my approach to dealing with errors is to start over. If you don't like that then use 'atExit' functionality to do a while(1) to prevent a restart */
-extern "C" [[/*gnu::naked,*/noreturn]] void generateHardReset();  // supplied by nvic.cpp as that is where reset hardware controls happen to reside.
+extern "C" [[noreturn]] void generateHardReset();  // supplied by nvic.cpp as that is where reset hardware controls happen to reside.
 
 
 /** these structs are created via LONG(...) directives in the ld file.

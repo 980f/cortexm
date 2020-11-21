@@ -95,6 +95,8 @@ Uart::Uart(unsigned stluno) :
   APBdevice(stluno==1 ? APB2 : APB1, stluno == 1 ? 14: (stluno + 15))
 #elif DEVICE == 407
   APBdevice((stluno == 1 || stluno == 6) ? APB2 : APB1, (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15)))
+#elif DEVICE == 452
+APBdevice((stluno == 1 || stluno == 6) ? APB2 : APB1, (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15)))
 #endif
   , b(*reinterpret_cast <volatile UartBand *> (bandAddress))
   , dcb(*reinterpret_cast <volatile USART_DCB *> (blockAddress))

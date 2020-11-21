@@ -1,6 +1,6 @@
 #pragma once
 
-#include "eztypes.h"
+//#include "eztypes.h"
 /* stm family common stuff */
 #include "peripheraltypes.h" //stm32 specific peripheral construction aids.
 

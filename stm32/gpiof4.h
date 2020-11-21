@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "modernize-use-nodiscard"
 #pragma once
 //F4 gpio, significantly different configuration mechanism than F1, same data access but at different offsets.
 
@@ -8,36 +10,37 @@ struct PinOptions {
   enum Dir {
     input = 0, output, function, analog  //#value is for control register
   };
-
   Dir dir;
 
   enum Slew {
     slow = 0, medium, fast, fastest //#value is for control register
   };
-
   Slew slew;
 
-//cheap enum for pullup/down/float/open_drain
-  char UDFO;
+  enum Puller {
+    F,D,U,O  //# ordered for ease of setting up/down registers
+  };
+  Puller UDFO;
 
-  constexpr explicit PinOptions(Dir dir, Slew slew = slow, char UDFO = 'F',unsigned altcode=0) : dir(dir), slew(slew), UDFO(UDFO) ,altcode(altcode){
+  constexpr explicit PinOptions(Dir dir, Slew slew = slow, Puller UDFO = F,unsigned altcode=0) : dir(dir), slew(slew), UDFO(UDFO) ,altcode(altcode){
     //#nada
   }
 
-  static PinOptions Input(char UDFO = 'F') {
+  static PinOptions Input(Puller UDFO = F) {
     return PinOptions(input, slow, UDFO);
   }
 
-  static PinOptions Output(Slew slew = slow, char UDFO = 'F') {
+  static PinOptions Output(Slew slew = slow, Puller UDFO = F) {
     return PinOptions(PinOptions::output, slew, UDFO);
   }
 
-  static PinOptions Function(unsigned altcode, Slew slew = slow, char UDFO = 'F') {
+  static PinOptions Function(unsigned altcode, Slew slew = slow, Puller UDFO = F) {
     return PinOptions(PinOptions::function , slew, UDFO, altcode);
   }
 
   unsigned altcode;
 };
+
 
 /** the 16 bits as a group.
   * Note well that even when the group is not enabled the port can be read from (as long as it exists).
@@ -81,7 +84,10 @@ struct Port /*Manager*/ : public APBdevice {
     void operator^=(unsigned value) const;
 
     /** @returns the value set by the last operator =, ie the requested output- not what the physical pins are reporting. */
-    operator u16() const; // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
+    operator uint16_t() const {
+      return (Ref<u16>(odr)&mask)>>lsb;
+    }
+    // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     /** read back the actual pins */
     u16 actual() const;
     //more operators only at need
@@ -129,17 +135,17 @@ struct Pin /*Manager*/ {
 /** @returns this after configuring it for analog input */
   const Pin &AI() const;
 
-/** @returns bitband address for input after configuring as digital input, pull <u>U</u>p, pull <u>D</u>own, or leave <u>F</u>loating*/
-  const Pin &DI(char UDFO = 'D') const;
+/** @returns bitband address for input after configuring as digital input, default pulldown as that is what test equipment induces ;) */
+  const Pin &DI(PinOptions::Puller UDFO = PinOptions::D) const;
 
 /** configure as simple digital output */
-  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'F') const {
+  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::D) const {
     port.configure(bitnum, PinOptions(PinOptions::output, slew, UDFO));
     return *this;
   }
 
 /** configure pin as alt function output*/
-  const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') const;
+  const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::F) const;
 
 /** raw access convenience. @see InputPin for business logic version of a pin */
   INLINETHIS
@@ -163,7 +169,7 @@ struct FunctionPin {
     return reader;
   }
   //cannot be constexpr as it hits the configuration registers and that takes real code.
-  FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') :
+  FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::F) :
     reader(port.registerAddress(0x10), bitnum) {
     port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO,nibble));
   }
@@ -201,11 +207,11 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  constexpr explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true) : LogicalPin(pin, active) {
+  constexpr explicit InputPin(const Pin &pin, PinOptions::Puller UDF = PinOptions::D, bool active = true) : LogicalPin(pin, active) {
     pin.DI(UDF);
   }
   /** pull the opposite way of the 'active' level. */
-  constexpr explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? 'D' : 'U', active) {
+  constexpr explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? PinOptions::D : PinOptions::U, active) {
     //#nada
   }
 
@@ -220,7 +226,7 @@ class OutputPin : public LogicalPin {
 public:
   constexpr OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
     LogicalPin(pin, active) {
-    pin.DO(slew, openDrain);
+    pin.DO(slew, openDrain?PinOptions::O:PinOptions::F);
   }
 
   /** @returns pass through @param truth after setting pin to that value */
@@ -246,3 +252,6 @@ public:
   /** actually invert the present state of the pin */
   void toggle() const;
 };
+
+
+#pragma clang diagnostic pop

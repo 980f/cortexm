@@ -8,8 +8,8 @@ Below I am configuring SRAM to be just SRAM1 and calling their SRAM2 "CCM" to ma
 */
 
 MEMORY {
-  UNPLACED_SECTIONS (wx) : ORIGIN = 0x100000000, LENGTH = 0
-  FLASH (rx) : ORIGIN = 0, LENGTH = 512K
+  UNPLACED_SECTIONS (wx) : ORIGIN = 1024M, LENGTH = 0
+  FLASH (rx) : ORIGIN = 128M, LENGTH = 512K
   SRAM (wx) : ORIGIN = 512M , LENGTH = 128K
   CCM (wx)  : ORIGIN = 256M , LENGTH = 32K
 }

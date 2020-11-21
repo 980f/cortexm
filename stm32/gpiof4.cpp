@@ -23,21 +23,14 @@ DefinePort(I);
 DefinePort(J);
 
 constexpr Port::Field::Field(const Port &port, unsigned lsb, unsigned msb)
-  : odr(port.registerAddress(0x14)),
-    at(port.registerAddress(0x18)),  //bsrr "bit set/reset register"
-    lsb(lsb),
-    mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16),
-    port(port) {
+  : odr(port.registerAddress(0x14)), at(port.registerAddress(0x18)),  //bsrr "bit set/reset register"
+  lsb(lsb), mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16), port(port) {
   /* empty */
 }
 
 void Port::Field::operator=(unsigned value) const {  // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
   ControlWord field(at);
   field = mask & (((((~value) << 16) | value)) << lsb);  // read the stm32 manual for this.
-}
-
-Port::Field::operator uint16_t() const {
-  return (odr & mask) >> lsb;
 }
 
 void Port::Field::operator^=(unsigned value) const {
@@ -50,20 +43,6 @@ uint16_t Port::Field::actual() const {
   return (actually & mask) >> lsb;
 }
 
-static unsigned udfo2code(char UDFO) {
-  switch (UDFO) {
-    case 'U':
-      return 1;
-    case 'D':
-      return 2;
-    default:
-    case 'F':
-      return 0;
-    case 'O':
-      return 1;//plus other stuff happens
-  }
-}
-
 /** configure the given pin.   */
 void Port::configure(unsigned bitnum, const PinOptions &c) const {
   if (!isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
@@ -72,21 +51,20 @@ void Port::configure(unsigned bitnum, const PinOptions &c) const {
   //2 bits from dir into offset 0
   field(0x00, bitnum * 2, 2) = c.dir;
 
-  //1 bit "is open drain" into offset 4 from UDFO=='O'
-  bit(registerAddress(0x04), bitnum) = c.UDFO == 'O';
+  //1 bit "is open drain" into offset 4 from UDFO==O
+  bit(0x04, bitnum) = (c.UDFO == PinOptions::O);
 
   //2 bits from slew into offset 8
   field(0x08, bitnum * 2, 2) = c.slew;
 
-  //2 bits from UDFO into offset 12  F:0 U:1 D:2  (O goes to OD register and we pull up here)  F=0x46 U=0x85 D=0x44 Oh=0x79
-  unsigned code = udfo2code(c.UDFO);//failed: ((c.UDFO=='D')?2:0) + (c.UDFO&1);
-  field(0x0C, bitnum * 2, 2) = code;
+  //2 bits from UDFO into offset 12  F:0 U:1 O:1 D:2  (O goes to OD register and we pull up here)
+  field(0x0C, bitnum * 2, 2) = c.UDFO >= PinOptions::U ? 1 : (c.UDFO << 1);
   //alt function select is at offset 32, 4 bits each.
-  field((bitnum >= 8) ? 0x24 : 0x20, (bitnum & 7) * 4, 4) = c.altcode;
+  field((bitnum > 7) ? 0x24 : 0x20, (bitnum & 7) * 4, 4) = c.altcode;
 }
 
 void Port::forAdc(unsigned int bitnum) const {
-  configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, 'F'));
+  configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, PinOptions::F));
 }
 
 const Pin &Pin::AI() const {
@@ -94,14 +72,14 @@ const Pin &Pin::AI() const {
   return *this;
 }
 
-const Pin &Pin::DI(char UDF) const {  // default Down as that is what meters will do.
+const Pin &Pin::DI(PinOptions::Puller UDF) const {  // default Down as that is what meters will do.
   port.configure(bitnum, PinOptions(PinOptions::input, PinOptions::Slew::slow, UDF));
   return *this;
 }
 
 /** configure pin as alt function output*/
-const Pin &Pin::FN(unsigned nibble, PinOptions::Slew slew, char UDFO) const {
-  port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO,nibble));
+const Pin &Pin::FN(unsigned nibble, PinOptions::Slew slew, PinOptions::Puller UDF) const {
+  port.configure(bitnum, PinOptions(PinOptions::function, slew, UDF, nibble));
   return *this;
 }
 
@@ -111,5 +89,6 @@ void OutputPin::toggle() const {
   pin = 1 - pin;  //we can ignore polarity stuff :)
 }
 
-
 #pragma clang diagnostic pop
+
+
