@@ -160,7 +160,7 @@ SECTIONS {
   Another reason to dislike that is that it hardcodes names for things, like the 'traditional' vector managment code does.
 
   Nonetheless, if one wanted to do all that segment magic one could have the file that includes this one
-  include files for with a section per each peripheral.
+  include files with a section per each peripheral.
 */
 
 }
