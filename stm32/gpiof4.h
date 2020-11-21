@@ -118,8 +118,8 @@ enum IrqStyle {
 struct Pin /*Manager*/ {
   const unsigned bitnum;
   const Port &port;
-  const ControlWord reader;
-  const ControlWord writer;
+  const ControlBit reader;
+  const ControlBit writer;
 
   constexpr Pin(const Port &port, unsigned bitnum) :
     bitnum(bitnum), port(port), reader(port.registerAddress(0x10), bitnum), writer(port.registerAddress(0x14), bitnum) {
@@ -142,12 +142,14 @@ struct Pin /*Manager*/ {
   const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, char UDFO = 'D') const;
 
 /** raw access convenience. @see InputPin for business logic version of a pin */
+  INLINETHIS
   operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
     return reader;
   }
 
 /** @returns pass through @param truth after setting pin to that value.
 @see OutputPin for business logic version */
+  INLINETHIS
   bool operator=(bool truth) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     writer = truth;
     return truth;//#don't reread the pin, nor its actual, keep this as a pass through

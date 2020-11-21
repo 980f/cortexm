@@ -84,10 +84,11 @@ public:
   /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
   constexpr ControlWord(const ControlWord &other) = default;
 
-  constexpr ControlWord(Address dynaddr, unsigned bitnum)
-    : ControlWord(bandFor(dynaddr, bitnum)) {
-    //#done
-  }
+//use ControlBit instead. This one allows the ambiguity of writing a value other than 1 or 0 to a bit band item.
+//  constexpr ControlWord(Address dynaddr, unsigned bitnum)
+//    : ControlWord(bandFor(dynaddr, bitnum)) {
+//    //#done
+//  }
 
 //using void return as we don't want to trust what the compiler might do with the 'volatile'
   INLINETHIS
@@ -114,6 +115,51 @@ public:
   /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
   INLINETHIS
   operator unsigned() const ISRISH {
+    return item;
+  }
+};
+
+/** when you don't know the address at compile time use one of these, else use an SFRxxx.
+ * This is for fields which are byte aligned and some multiple of 8 bits */
+template<typename IntType>
+class ControlItem {
+
+protected:
+  volatile IntType &item;
+public:
+  explicit constexpr ControlItem(Address dynaddr)
+    : item(Ref<IntType>(dynaddr)) {
+    //#done
+  }
+
+  /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
+  constexpr ControlItem(const ControlItem &other) = default;
+
+//using void return as we don't want to trust what the compiler might do with the 'volatile'
+  INLINETHIS
+  void operator=(IntType value) const ISRISH {
+    item = value;
+  }
+  INLINETHIS
+  void operator|=(IntType value) const ISRISH {
+    item |= value;
+  }
+  INLINETHIS
+  void operator&=(IntType value) const ISRISH {
+    item &= value;
+  }
+
+  /** mostly exists to appease compiler complaint about ambiguity of assignment. */
+  INLINETHIS
+  void operator=(const ControlItem &other) const ISRISH {
+    item = other.item;
+  }
+
+
+//we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
+  /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
+  INLINETHIS
+  operator IntType() const ISRISH {
     return item;
   }
 };
@@ -238,8 +284,9 @@ public:
   }
 
   void operator+=(unsigned value) const {
-    Ref<unsigned>(sfraddress) = Ref<unsigned>(sfraddress) + value;
+    operator = (operator unsigned() + value);//todo:M optimize if compiler doesn't remove the shifts of all but this functions value argument.
   }
+
 };
 
 /** single bit, ignoring the possibility it is in bitbanded memory.

@@ -43,7 +43,7 @@ SET(gcc_arch "-mcpu=${gcccpu} -mfloat-abi=hard -mfpu=fpv4-sp-d16 ")
 
 SET(CMAKE_ASM_FLAGS " ${gcc_arch} ")
 
-#stuff common to C and C++
+#stuff common to C and C++. the -sections allows the linker to finely prune the output.
 SET(ccli_common " ${gcc_arch}  -fdata-sections -ffunction-sections -Wall ")
 
 #3rd party code such as STM's HAL does extensive type punning of integers to addresses:
@@ -52,14 +52,25 @@ SET(CMAKE_C_FLAGS "${ccli_common} -std=c11 -Wno-int-to-pointer-cast -Wno-pointer
 # -Wno-unknown-pragmas added to hide spew from clang pragmas that hide clang spew. phew!
 SET(CMAKE_CXX_FLAGS "${ccli_common}  -std=c++17  -Wno-unknown-pragmas -fno-rtti -fno-exceptions -MD " CACHE INTERNAL "cxx compiler flags")
 
-#// build the vector table file, set LAST_IRQ in your processor definition cmake file.
+# build the vector table file, set LAST_IRQ in your processor definition cmake file.
+#can't figure out how to invoke this function, until then will continue to use a bash script mkIrqs.
+#FUNCTION(GENIRQTABLE lastirq)
+#  SET(linkfile "//Table for $lastirq interrupts")
+#  FOREACH (anirq RANGE ${lastirq})
+#    LIST(APPEND linkfile "stub( ${anirq} )\;\n")
+#  ENDFOREACH ()
+#  LIST(APPEND linkfile "Handler VectorTable[] __attribute__((section(\".vectors.3\"))) = {")
+#  FOREACH (anirq RANGE ${lastirq})
+#    LIST(APPEND linkfile "" IrqName (${anirq}) ,"\n")
+#  ENDFOREACH ()
+#  LIST(APPEND linkfile  "};")
+#  MESSAGE($(linkfile))
+#ENDFUNCTION()
 
 ADD_CUSTOM_COMMAND(
-  OUTPUT ${PROJECT_SOURCE_DIR}/nvicTable.link
-  COMMAND cortexm/mkIrqs ${LAST_IRQ} >nvicTable.link
+  OUTPUT ${PROJECT_SOURCE_DIR}/nvicTable.inc
+  COMMAND cortexm/mkIrqs ${LAST_IRQ} >nvicTable.inc
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   DEPENDS ../cortexm/mkIrqs ${CMAKE_CURRENT_LIST_FILE}
 )
-
-
 
