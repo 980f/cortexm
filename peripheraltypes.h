@@ -43,17 +43,14 @@ template<typename Scalar> constexpr Scalar &Ref(Address address) {
   return *static_cast<Scalar *>(pun.pointer);
 }
 
-//e.g. poke(0xE000ED08,__CCM_Vectors__.ram.address)
-//[[naked]]
-//inline void poke(unsigned address,unsigned value)ISRISH;
-inline void poke(unsigned address, unsigned value) {
-  __asm volatile("str r1,[r0]  \n");
-}
-
 /** many, but not all, cortex devices put peripheral control registers in the 0x4000 space, and bitband all of that to 0x4200.
  * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
 This replaces a 3-clock operation that is susceptible to interruption into a one clock operation that is not. That is important if an ISR is modifying the same control word as main thread code.
 */
+static const unsigned int BandGroup = 0xFC00'0000;//this was originaly E000 which worked for some parts, but fails for L452 with 4800 and 5000 AHB peripherals and F407 OTG-FS and others.
+
+static const unsigned BandBit = 0x0200'0000;
+
 inline constexpr Address bandShift(Address byteOffset) {
   //5: 2^5 bits per 32 bit word. we expect a byte address here, so that one can pass values as read from the stm32 manual.
   return {byteOffset << 5U};//# leave braces in case Address becomes a real class
@@ -67,7 +64,7 @@ constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
   //0xE000 0000: stm32 segments memory into 8 512M blocks, banding is within a block
   //0x0200 0000: indicates this is a bitband address
   //bit to lsbs of address |  byteaddress shifted up far enough for address space to go away | restore address space | bitband indicator.
-  return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & 0xE0000000U) | 0x02000000U};//# leave braces in case Address becomes a real class
+  return {(bitnum << 2U) | bandShift(byteAddress&~BandGroup) | (byteAddress & BandGroup) | BandBit};//# leave braces in case Address becomes a real class
 }
 
 /** when you don't know the address at compile time use one of these, else use an SFRxxx. */
@@ -94,10 +91,12 @@ public:
   void operator=(unsigned value) const ISRISH {
     item = value;
   }
+
   INLINETHIS
   void operator|=(unsigned value) const ISRISH {
     item |= value;
   }
+
   INLINETHIS
   void operator&=(unsigned value) const ISRISH {
     item &= value;
@@ -228,12 +227,12 @@ public:
   }
 
   // read
-  INLINETHIS operator unsigned() const {  
+  INLINETHIS operator unsigned() const {
     return (Ref<unsigned>(sfraddress) & mask) >> pos;
   }
 
   // write
-  INLINETHIS void operator=(unsigned value) const {  
+  INLINETHIS void operator=(unsigned value) const {
     Ref<unsigned>(sfraddress) = ((value << pos) & mask) | (Ref<unsigned>(sfraddress) & ~mask);
   }
 
@@ -253,12 +252,12 @@ public:
   constexpr SFRbit() = default;
 
   // read
-  inline operator bool() const override {  
+  inline operator bool() const override {
     return (Ref<unsigned>(sfraddress) & mask) != 0;
   }
 
   // write
-  bool operator=(bool value) const override {  
+  bool operator=(bool value) const override {
     if (value) {
       Ref<unsigned>(sfraddress) |= mask;
     } else {
@@ -275,18 +274,31 @@ struct SFRbandbit : public BoolishRef {
     bandAddress = bandFor(sfraddress, bitnum), };
 
   // read
-  INLINETHIS operator bool() const override {  
+  INLINETHIS operator bool() const override {
     return *(reinterpret_cast<volatile unsigned *>(bandAddress));
   }
 
   // write
-  INLINETHIS bool operator=(bool value) const override {  
+  INLINETHIS bool operator=(bool value) const override {
     *(reinterpret_cast<unsigned *>(bandAddress)) = value;
     return value;
   }
 };
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
-const Address PeripheralBase{0x40000000};  //1<<30
+constexpr Address PeripheralBase{0x40000000};  //1<<30
 
-const Address PeripheralBand{0x42000000};//bandFor(PeripheralBase)
+constexpr Address PeripheralBand{0x42000000};//bandFor(PeripheralBase)
+
+//if we haven't included cmsis/core_cmx.h then we can have these:
+#ifndef SCS_BASE
+constexpr Address SCS_BASE{0xE000E000};                           /*!< System Control Space Base Address */
+constexpr Address SysTick_BASE{SCS_BASE + 0x0010};                /*!< SysTick Base Address */
+constexpr Address NVIC_BASE{SCS_BASE + 0x0100};                   /*!< NVIC Base Address */
+constexpr Address SCB_BASE{SCS_BASE + 0x0D00};                    /*!< System Control Block Base Address */
+
+//#define CoreDebug_BASE      (0xE000EDF0UL)                            /*!< Core Debug Base Address */
+//#define ITM_BASE            (0xE0000000UL)                            /*!< ITM Base Address */
+//#define DWT_BASE            (0xE0001000UL)                            /*!< DWT Base Address */
+//#define TPI_BASE            (0xE0040000UL)                            /*!< TPI Base Address */
+#endif
