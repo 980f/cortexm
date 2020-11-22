@@ -44,7 +44,7 @@ SET(gcc_arch "-mcpu=${gcccpu} -mfloat-abi=hard -mfpu=fpv4-sp-d16 ")
 SET(CMAKE_ASM_FLAGS " ${gcc_arch} ")
 
 #stuff common to C and C++. the -sections allows the linker to finely prune the output.
-SET(ccli_common " ${gcc_arch}  -fdata-sections -ffunction-sections -Wall ")
+SET(ccli_common " ${gcc_arch}  -fdata-sections -ffunction-sections -Wall -ffreestanding")
 
 #3rd party code such as STM's HAL does extensive type punning of integers to addresses:
 SET(CMAKE_C_FLAGS "${ccli_common} -std=c11 -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast " CACHE INTERNAL "c compiler flags")
@@ -66,6 +66,13 @@ SET(CMAKE_CXX_FLAGS "${ccli_common}  -std=c++17  -Wno-unknown-pragmas -fno-rtti 
 #  LIST(APPEND linkfile  "};")
 #  MESSAGE($(linkfile))
 #ENDFUNCTION()
+
+# every project needs cstartup, and we wish to optimize it independent of whether the rest of the project gets optimized
+LIST(APPEND SOURCES
+  cortexm/cstartup.cpp
+  )
+
+set_source_files_properties(cortexm/cstartup.cpp PROPERTIES COMPILE_OPTIONS "-g0;-O2;-fomit-frame-pointer")
 
 ADD_CUSTOM_COMMAND(
   OUTPUT ${PROJECT_SOURCE_DIR}/nvicTable.inc

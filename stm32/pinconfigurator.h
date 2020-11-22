@@ -17,12 +17,13 @@ struct PinConfigurator : public PinOptions {
 
   void configure() const ;
 
-  /** declare one of these to get pins init before main() */
-  class PinInitializer {
-    PinInitializer();
-  };
 };
 
+/** declare one of these to get pins init before main() */
+class PinInitializer {
+public:
+  PinInitializer();
+};
 
 #define ConfPin( letter,  bitnum, ... ) MakeObject(PinConfigurator, letter ##bitnum, #letter [0],bitnum, __VA_ARGS__);
 

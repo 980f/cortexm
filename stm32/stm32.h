@@ -1,7 +1,11 @@
 #pragma once
 
-//#include "eztypes.h"
 /* stm family common stuff */
+
+#ifndef DEVICE
+#error "You must define DEVICE to one of the known ones, 103,407,452"
+#endif
+
 #include "peripheraltypes.h" //stm32 specific peripheral construction aids.
 
 #pragma clang diagnostic push

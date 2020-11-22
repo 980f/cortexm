@@ -14,7 +14,7 @@ void PinConfigurator::configure() const {
   port.configure(bitnum,*this);
 }
 
-PinConfigurator::PinInitializer::PinInitializer() {
+PinInitializer::PinInitializer() {
   ForObjects(PinConfigurator){
     (*it).configure();
   }
