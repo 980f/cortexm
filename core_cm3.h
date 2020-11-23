@@ -7,11 +7,6 @@
 
 #define DeclareCore(regname) extern CM3:: regname & the ## regname;
 
-/* Memory mapping of Cortex-M3 Hardware */
-#define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Base Address */
-#define ITM_BASE            (0xE0000000UL)                            /*!< ITM Base Address                  */
-
-
 namespace CM3 {
 /*******************************************************************************
  *                 CMSIS definitions
