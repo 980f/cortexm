@@ -248,10 +248,16 @@ struct IRQblock {
  * */
 struct IRQstacker {
   const Irq &irq;
-  bool wasEnabled;
+  const bool wasEnabled;
 
   IRQstacker(const Irq &irq) : irq(irq), wasEnabled(irq.isEnabled()) {
     irq.disable();
+  }
+
+  IRQstacker(const Irq &irq,bool inISR) : irq(irq), wasEnabled(!inISR && irq.isEnabled()) {
+    if(!inISR) {
+      irq.disable();
+    }
   }
 
   ~IRQstacker() {
@@ -261,6 +267,7 @@ struct IRQstacker {
   }
 };
 
+
 #ifdef __linux__ //just compiling for syntax checking
 extern bool IrqEnable;
 #define IRQLOCK(irq)
@@ -269,8 +276,12 @@ extern bool IrqEnable;
 
 #include "core_cmFunc.h"
 
+//not working quite right, try IRQBLOCK or IRQSTACK until we remove this comment.
 #define IRQLOCK(irqVarb) IRQLock IRQLCK ## irqVarb(irqVarb)
+//unconditionally disable, then enable on scope exit
 #define IRQBLOCK(irqVarb) IRQblock IRQBLCK ## irqVarb(irqVarb)
+//use this when the interrupt might not be on
+#define IRQSTACK(irqVarb,...) IRQstacker IRQPUSH ## irqVarb(irqVarb , __VA_ARGS__)
 
 #endif
 
