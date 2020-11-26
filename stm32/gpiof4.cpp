@@ -83,6 +83,11 @@ const Pin &Pin::FN(unsigned nibble, PinOptions::Slew slew, PinOptions::Puller UD
   return *this;
 }
 
+const Pin &Pin::DO(PinOptions::Slew slew, PinOptions::Puller UDFO) const {
+  port.configure(bitnum, PinOptions(PinOptions::output, slew, UDFO));
+  return *this;
+}
+
 //////////////////////////////////
 
 void OutputPin::toggle() const {

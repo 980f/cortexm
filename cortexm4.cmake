@@ -74,6 +74,7 @@ LIST(APPEND SOURCES
 
 set_source_files_properties(cortexm/cstartup.cpp PROPERTIES COMPILE_OPTIONS "-g0;-O2;-fomit-frame-pointer")
 
+# build the vector table file, set LAST_IRQ in your processor definition cmake file. You may have to manually delete this file when building for a different chip.
 ADD_CUSTOM_COMMAND(
   OUTPUT ${PROJECT_SOURCE_DIR}/nvicTable.inc
   COMMAND cortexm/mkIrqs ${LAST_IRQ} >nvicTable.inc
