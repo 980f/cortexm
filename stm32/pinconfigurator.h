@@ -27,6 +27,6 @@ public:
 };
 
 //in the macro below the #letter [0] is how you get a single letter constant from a single letter macro operand
-#define ConfPin(letter, bitnum, ...) MakeObject(PinConfigurator, letter ##bitnum, #letter [0],bitnum, __VA_ARGS__);
+#define ConfPin(letter, bitnum, ...) MakeObject(PinConfigurator, CONF ## letter ##bitnum, #letter [0],bitnum, __VA_ARGS__);
 //in the macro above I used va_args so that we cna add constructors with default to PinConfigurator
 
