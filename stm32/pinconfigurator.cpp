@@ -20,3 +20,6 @@ PinInitializer::PinInitializer() {
   }
 }
 
+//we only need to do this once, it handles the pins from all files.
+InitStep(InitHardware)
+const PinInitializer makem;

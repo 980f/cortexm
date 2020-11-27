@@ -77,13 +77,13 @@ struct Timer : public APBdevice {
 //  const TIMER_DCB dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
   const Irq irq;
   const unsigned luno; //handy for debug
-  ControlBit enable;
-  ControlBit UIE;
-  ControlBit UIF;
-  ControlBit OPM;
-  ControlBit UG;
-  ControlWord PSC;
-  ControlWord ARR;
+  const ControlBit enable;
+  const ControlBit UIE;
+  const ControlBit UIF;
+  const ControlBit OPM;
+  const ControlBit UG;
+  const ControlWord PSC;
+  const ControlWord ARR;
 
   bool isAdvanced() const {
     return luno == 1 || luno == 8;

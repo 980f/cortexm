@@ -40,6 +40,7 @@ extern "C" { // to keep names simple for "alias" processor
       break;
     case 3: // hard Fault
       /** infinite recursion gets here, stack trashing, I've had vptr's go bad...*/
+      //usage fault coprocessor gets you here, try turning the FPU on before you use it!
       generateHardReset(); // since we usually get into an infinite loop.
       /* used hard reset rather than soft as my hardware module interfaces expect it.*/
       break;//# leave this here in case generateHardReset loses its 'never returns' attribute.
