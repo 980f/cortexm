@@ -336,6 +336,7 @@ const Address PeripheralBand{0x42000000};//bandFor(PeripheralBase)
 //cortexM 'private peripherals'
 
 // the SCB is kinda like a peripheral, but we may just inline this at each point of use. The manual lists both absolute and relative addresses.
+INLINETHIS
 constexpr Address SCB(unsigned offset){
   return 0xE000'ED00 + offset;
 }

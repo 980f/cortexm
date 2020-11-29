@@ -50,7 +50,7 @@ SET(ccli_common " ${gcc_arch}  -fdata-sections -ffunction-sections -Wall -ffrees
 SET(CMAKE_C_FLAGS "${ccli_common} -std=c11 -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast " CACHE INTERNAL "c compiler flags")
 
 # -Wno-unknown-pragmas added to hide spew from clang pragmas that hide clang spew. phew!
-SET(CMAKE_CXX_FLAGS "${ccli_common}  -std=c++17  -Wno-unknown-pragmas -fno-rtti -fno-exceptions -MD " CACHE INTERNAL "cxx compiler flags")
+SET(CMAKE_CXX_FLAGS "${ccli_common}  -std=c++17  -Wno-unknown-pragmas -fno-rtti -fno-exceptions -fno-threadsafe-statics -MD " CACHE INTERNAL "cxx compiler flags")
 
 # build the vector table file, set LAST_IRQ in your processor definition cmake file.
 #can't figure out how to invoke this function, until then will continue to use a bash script mkIrqs.
