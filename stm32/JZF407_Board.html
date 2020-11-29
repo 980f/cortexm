@@ -5,17 +5,17 @@
     <title>cg2_pins</title>
     <meta name="author" content="Andy Heilveil">
   </head>
-  <body style="            background-color: white;">
-    <h2 style="background-color: white;">JZF407 Pinout worksheet</h2>
-    copy before editing for each project!<br>
-    <hr style="background-color: white;">
-    <h3 style="background-color: white;"> </h3>
-    <table style="background-color: white;">
-      <tbody>
-        <tr>
-          <td valign="top"><br>
-            <table cellspacing="2" cellpadding="2" border="1">
-              <tbody>
+  <body style="               background-color: white;">
+  <h2 style="background-color: white;">JZF407 Pinout worksheet</h2>
+  copy before editing for each project!<br>
+  <hr style="background-color: white;">
+  <h3 style="background-color: white;"></h3>
+  <table style="background-color: white;">
+    <tbody>
+    <tr>
+      <td valign="top"><br>
+        <table cellspacing="2" cellpadding="2" border="1">
+          <tbody>
                 <tr>
                   <td rowspan="1" colspan="3">ETHERNET&nbsp; RMII</td>
                 </tr>
@@ -225,24 +225,34 @@
                   <td>PB10</td>
                   <td>CK</td>
                 </tr>
-                <tr>
-                  <td rowspan="1" colspan="2">AT24C02</td>
-                </tr>
-                <tr>
-                  <td>PB8</td>
-                  <td>SCL</td>
-                </tr>
-                <tr>
-                  <td>PB9</td>
-                  <td>SDA</td>
-                </tr>
-                <tr>
-                  <td rowspan="1" colspan="2">18B20</td>
-                </tr>
-                <tr>
-                  <td>PE2</td>
-                  <td>DQ</td>
-                </tr>
+              </tbody>
+            </table>
+            <br>
+            <table>
+              <tbody>
+              <tr>
+                <td rowspan="1" colspan="2">AT24C02</td>
+              </tr>
+              <tr>
+                <td>PB8</td>
+                <td>SCL</td>
+              </tr>
+              <tr>
+                <td>PB9</td>
+                <td>SDA</td>
+              </tr>
+              </tbody>
+            </table>
+            <br>
+            <table>
+              <tbody>
+              <tr>
+                <td rowspan="1" colspan="2">18B20</td>
+              </tr>
+              <tr>
+                <td>PE2</td>
+                <td>DQ</td>
+              </tr>
               </tbody>
             </table>
           </td>
@@ -316,6 +326,8 @@
                 </tr>
               </tbody>
             </table>
+            <br>
+            PB2/BOOT1 N/A<br>
           </td>
         </tr>
         <tr>
@@ -345,7 +357,8 @@
                     PE9<br>
                     PE8-<br>
                     PB13-<br>
-                    PA7-</td>
+                    <span style="text-decoration: line-through;">PA7</span>-
+                  </td>
                   <td><span style="text-decoration: line-through;">PA9</span><br>
                     PE11<br>
                     PE10-<br>
@@ -373,10 +386,10 @@
                   <td>PA15<br>
                     <br>
                   </td>
-                  <td>PA1<br>
+                  <td><span style="text-decoration: line-through;">PA1</span><br>
                     PB3<br>
                   </td>
-                  <td>PA2<br>
+                  <td><span style="text-decoration: line-through;">PA2</span><br>
                     PB10<br>
                   </td>
                   <td>PA3<br>
@@ -421,10 +434,10 @@
                   <td><span style="text-decoration: line-through;">PB7</span><br>
                     PD13<br>
                   </td>
-                  <td>PB8<br>
+                  <td><span style="text-decoration: line-through;">PB8</span><br>
                     PD14<br>
                   </td>
-                  <td>PB9<br>
+                  <td><span style="text-decoration: line-through;">PB9</span><br>
                     PD15<br>
                   </td>
                   <td><br>
@@ -558,19 +571,19 @@
                 </tr>
               </tbody>
             </table>
-            <br>
           </td>
           <td><br>
             <br>
             <table width="100%" border="1">
               <tbody>
-                <tr>
-                  <td>P4</td>
-                  <td>usage</td>
-                  <td>usage</td>
-                  <td><br>
-                  </td>
-                </tr>
+              <tr>
+                <td><br>
+                </td>
+                <td>usage</td>
+                <td>usage</td>
+                <td><br>
+                </td>
+              </tr>
                 <tr>
                   <td><br>
                   </td>
@@ -641,13 +654,14 @@
             <br>
             <table width="100%" border="1">
               <tbody>
-                <tr>
-                  <td>P5</td>
-                  <td>usage</td>
-                  <td>usage</td>
-                  <td><br>
-                  </td>
-                </tr>
+              <tr>
+                <td><br>
+                </td>
+                <td>usage</td>
+                <td>usage</td>
+                <td><br>
+                </td>
+              </tr>
                 <tr>
                   <td><br>
                   </td>
@@ -718,12 +732,13 @@
             <br>
             <table width="100%" border="1">
               <tbody>
-                <tr>
-                  <td>P3</td>
-                  <td>usage</td>
-                  <td>usage</td>
-                  <td>24L01</td>
-                </tr>
+              <tr>
+                <td><br>
+                </td>
+                <td>usage</td>
+                <td>usage</td>
+                <td>24L01</td>
+              </tr>
                 <tr>
                   <td><br>
                   </td>
@@ -759,96 +774,6 @@
                 </tr>
               </tbody>
             </table>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <br>
-    Analog inputs are ratioed to the 2.5 ref value, converted to an intermediate value in millivolts.<br>
-    The configuration then needs offset and multiplier given millivolts.<br>
-    <table style="background-color: white;" border="1">
-      <tbody>
-        <tr>
-          <td>analog input</td>
-          <td>AI</td>
-          <td><br>
-          </td>
-          <td>0V<br>
-          </td>
-          <td>scaling info<br>
-          </td>
-          <td>per millivolt</td>
-        </tr>
-        <tr>
-          <td>PA5</td>
-          <td>5</td>
-          <td>Curr_mon</td>
-          <td>0<br>
-          </td>
-          <td>600 @ 3 </td>
-          <td>0.2 uA</td>
-        </tr>
-        <tr>
-          <td>PB0</td>
-          <td>8</td>
-          <td>Temp_mon</td>
-          <td>25C<br>
-          </td>
-          <td>-48 @ 3&nbsp; ?linear?<br>
-          </td>
-          <td>-0.24333 'C</td>
-        </tr>
-        <tr>
-          <td>PB1</td>
-          <td>9</td>
-          <td>Tube_Temp</td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-        </tr>
-        <tr>
-          <td>PC0</td>
-          <td>10</td>
-          <td>2.5 vref</td>
-          <td rowspan="1" colspan="3">n/a</td>
-        </tr>
-        <tr>
-          <td>PC2</td>
-          <td>12</td>
-          <td>vac sense</td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-        </tr>
-        <tr>
-          <td>PC3</td>
-          <td>13</td>
-          <td>flow sense</td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-        </tr>
-        <tr>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-          <td><br>
-          </td>
-          <td><br>
           </td>
         </tr>
       </tbody>

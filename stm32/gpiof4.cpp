@@ -52,19 +52,19 @@ void Port::configure(unsigned bitnum, const PinOptions &c) const {
   field(0x00, bitnum * 2, 2) = c.dir;
 
   //1 bit "is open drain" into offset 4 from UDFO==O
-  bit(0x04, bitnum) = (c.UDFO == PinOptions::O);
+  bit(0x04, bitnum) = (c.UDFO == PinOptions::OpenDrain);
 
   //2 bits from slew into offset 8
   field(0x08, bitnum * 2, 2) = c.slew;
 
   //2 bits from UDFO into offset 12  F:0 U:1 O:1 D:2  (O goes to OD register and we pull up here)
-  field(0x0C, bitnum * 2, 2) = c.UDFO >= PinOptions::U ? 1 : (c.UDFO << 1);
+  field(0x0C, bitnum * 2, 2) = c.UDFO >= PinOptions::Up ? 1 : (c.UDFO << 1);
   //alt function select is at offset 32, 4 bits each.
   field((bitnum > 7) ? 0x24 : 0x20, (bitnum & 7) * 4, 4) = c.altcode;
 }
 
 void Port::forAdc(unsigned int bitnum) const {
-  configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, PinOptions::F));
+  configure(bitnum, PinOptions(PinOptions::analog, PinOptions::Slew::slow, PinOptions::Float));
 }
 
 const Pin &Pin::AI() const {

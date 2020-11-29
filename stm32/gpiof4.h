@@ -3,8 +3,16 @@
 #pragma once
 //F4 gpio, significantly different configuration mechanism than F1, same data access but at different offsets.
 
-#include <cortexm/utility.h>
+
 #include "stm32.h"
+
+#if __has_include("utility")
+
+#include <utility>
+
+#else
+#include "utility.h"
+#endif
 
 struct PinOptions {
 
@@ -25,26 +33,26 @@ struct PinOptions {
   Slew slew;
 
   enum Puller {
-    F
-    , D
-    , U
-    , O  //# ordered for ease of setting up/down registers
+    Float
+    , Down
+    , Up
+    , OpenDrain  //# ordered for ease of setting up/down registers
   };
   Puller UDFO;
 
-  constexpr explicit PinOptions(Dir dir, Slew slew = slow, Puller UDFO = F, unsigned altcode = 0) : dir(dir), slew(slew), UDFO(UDFO), altcode(altcode) {
+  constexpr explicit PinOptions(Dir dir, Slew slew = slow, Puller UDFO = Float, unsigned altcode = 0) : dir(dir), slew(slew), UDFO(UDFO), altcode(altcode) {
     //#nada
   }
 
-  static PinOptions Input(Puller UDFO = F) {
+  static PinOptions Input(Puller UDFO = Float) {
     return PinOptions(input, slow, UDFO);
   }
 
-  static PinOptions Output(Slew slew = slow, Puller UDFO = F) {
+  static PinOptions Output(Slew slew = slow, Puller UDFO = Float) {
     return PinOptions(PinOptions::output, slew, UDFO);
   }
 
-  static PinOptions Function(unsigned altcode, Slew slew = slow, Puller UDFO = F) {
+  static PinOptions Function(unsigned altcode, Slew slew = slow, Puller UDFO = Float) {
     return PinOptions(PinOptions::function, slew, UDFO, altcode);
   }
 
@@ -152,13 +160,13 @@ struct Pin /*Manager*/ {
   const Pin &AI() const;
 
 /** @returns bitband address for input after configuring as digital input, default pulldown as that is what test equipment induces ;) */
-  const Pin &DI(PinOptions::Puller UDFO = PinOptions::D) const;
+  const Pin &DI(PinOptions::Puller UDFO = PinOptions::Down) const;
 
 /** configure as simple digital output */
-  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::D) const;
+  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Down) const;
 
 /** configure pin as alt function output*/
-  const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::F) const;
+  const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Float) const;
 
 /** raw access convenience. @see InputPin for business logic version of a pin */
   INLINETHIS
@@ -184,7 +192,7 @@ struct FunctionPin {
   }
 
   //cannot be constexpr as it hits the configuration registers and that takes real code.
-  FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::F) :
+  FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Float) :
     reader(port.registerAddress(0x10), bitnum) {
     port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO, nibble));
   }
@@ -231,12 +239,12 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  constexpr explicit InputPin(Pin &&pin, PinOptions::Puller UDF = PinOptions::D, bool active = true) : LogicalPin(std::move(pin), active) {
+  constexpr explicit InputPin(Pin &&pin, PinOptions::Puller UDF = PinOptions::Down, bool active = true) : LogicalPin(std::move(pin), active) {
     pin.DI(UDF);
   }
 
   /** pull the opposite way of the 'active' level. */
-  constexpr explicit InputPin(Pin &&pin, bool active) : InputPin(std::move(pin), active ? PinOptions::D : PinOptions::U, active) {
+  constexpr explicit InputPin(Pin &&pin, bool active) : InputPin(std::move(pin), active ? PinOptions::Down : PinOptions::Up, active) {
     //#nada
   }
 
@@ -251,7 +259,7 @@ class OutputPin : public LogicalPin {
 public:
   constexpr explicit OutputPin(Pin &&pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
     LogicalPin(std::move(pin), active) {
-    pin.DO(slew, openDrain ? PinOptions::O : PinOptions::F);
+    pin.DO(slew, openDrain ? PinOptions::OpenDrain : PinOptions::Float);
   }
 
   /** set to given value, @returns whether a change actually occurred.*/
