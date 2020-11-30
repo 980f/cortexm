@@ -31,9 +31,11 @@ struct TimerConstant {
 //  enum DebugControlBit stopper;
 };
 
+#define TimerTableSpacer   {CPU, 0, 0},
+
 static constexpr TimerConstant T[] = {
-  {CPU, 0, 0}, //spacer so that we can textually use st's 1-based labels.
-#if DEVICE == 103
+  TimerTableSpacer  //spacer so that we can textually use st's 1-based labels.
+#if DEVICE == 103    //T1..8
   { APB2, 11, 27 }, //CC, see also 25,26 ...
 
   { APB1, 0, 28 },
@@ -63,6 +65,26 @@ static constexpr TimerConstant T[] = {
   {APB1, 6, 43},//#12 and T8 break
   {APB1, 7, 44},//#13 and T8 update
   {APB1, 8, 45},//#14 and T8 trigger
+#elif DEVICE == 452  //lots of gaps!
+  {APB2, 11, 25}, //T1
+  {APB1, 0, 28}, //T2
+  {APB1, 1, 29}, //T3
+  TimerTableSpacer
+  TimerTableSpacer
+  {APB1, 4, 54},//T6
+  TimerTableSpacer
+
+  TimerTableSpacer
+  TimerTableSpacer
+  TimerTableSpacer
+  TimerTableSpacer
+  TimerTableSpacer
+  TimerTableSpacer
+  TimerTableSpacer
+  {APB2, 16, 24},//#15
+
+  {APB2, 17, 25},//#16 overlaps T1
+
 #endif
 };
 
