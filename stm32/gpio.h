@@ -4,4 +4,6 @@
 #include "gpiof1.h"
 #elif DEVICE==407
 #include "gpiof4.h"
+#elfi DEVICE==452
+#include "gpiol4.h"
 #endif

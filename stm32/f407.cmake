@@ -8,6 +8,9 @@ set(CPU_FAMILY STM32F40x)
 
 #980f uses this for now:
 ADD_DEFINITIONS(-DDEVICE=407)
+#nascent replacement for DEVICE usage, when whole file is swapped out or in.
+set(GPIO_MODULE gpiof4)
+set(CLOCK_MODULE clocksf4)
 
 #[[
 #Hal uses this:

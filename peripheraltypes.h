@@ -25,18 +25,20 @@ I am working on replacing *'s with &'s, its a statistical thing herein as to whi
 /** for a private single instance block */
 #define soliton(type, address) type& the##type = *reinterpret_cast<type*>(address);
 
-/** @deprecated marker for non-occupied memory location */
-using SKIPPED = const unsigned;
+///** @deprecated marker for non-occupied memory location */
+//using SKIPPED = const unsigned;
 
 /** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
 using Address = unsigned;//address space of this device.
 
+/* an attempt to suppress warnings about integer to pointer casts, while still leaving that warning on to catch unintentional ones */
 union AddressCaster {
   unsigned number;
   void *pointer;
 };
 
-template<typename Scalar> constexpr Scalar &Ref(Address address) {
+/* this function exists to hide some verbose casting */
+template<typename Scalar> INLINETHIS constexpr Scalar &Ref(Address address) {
   AddressCaster pun{address};
   return *static_cast<Scalar *>(pun.pointer);
 }
@@ -45,11 +47,10 @@ template<typename Scalar> constexpr Scalar &Ref(Address address) {
  * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
 This replaces a 3-clock operation that is susceptible to interruption into a one clock operation that is not. That is important if an ISR is modifying the same control word as main thread code.
 */
-static const unsigned int BandGroup = 0xFC00'0000;//this was originaly E000 which worked for some parts, but fails for L452 with 4800 and 5000 AHB peripherals.
+static constexpr unsigned int BandGroup= 0xE000'0000;//bit banding only applies to 0000 0000 through 000F FFFF in the 2000 and 4000 regions.
+static constexpr unsigned BandBit = 0x0200'0000;
 
-static const unsigned BandBit = 0x0200'0000;
-
-inline constexpr Address bandShift(Address byteOffset) {
+INLINETHIS constexpr Address bandShift(Address byteOffset) {
   //5: 2^5 bits per 32 bit word. we expect a byte address here, so that one can pass values as read from the stm32 manual.
   return {byteOffset << 5U};//# leave braces in case Address becomes a real class
 }
@@ -57,15 +58,14 @@ inline constexpr Address bandShift(Address byteOffset) {
 /** @return bitband address for given bit (default 0) of @param byte address.
 this assumes that the byte address ends in 00, which all of the ones in the st manual do.
 */
-constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
+INLINETHIS constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
   //bit gets shifted by 2 as the underlying mechanism inspects the 32bit word address only, doesn't see the 2 lsbs of the address.
-  //0xE000 0000: stm32 segments memory into 8 512M blocks, banding is within a block
-  //0x0200 0000: indicates this is a bitband address
-  //bit to lsbs of address |  byteaddress shifted up far enough for address space to go away | restore address space | bitband indicator.
-  return {(bitnum << 2U) | bandShift(byteAddress&~BandGroup) | (byteAddress & BandGroup) | BandBit};//# leave braces in case Address becomes a real class
+  //bit to lsbs of address |  byteaddress shifted up to make room for bit selector | restore address space | bitband indicator.
+  return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & BandGroup) | BandBit};//# leave braces in case Address becomes a real class
 }
 
-/** when you don't know the address at compile time use one of these, else use an SFRxxx. */
+/** when you don't know the address at compile time use one of these, else use an SFRxxx.
+ * This class essentially warps the Ref<> tempplate with operator overloads */
 class ControlWord {
 
 protected:
@@ -181,14 +181,14 @@ public:
   ControlField() = delete;
 
   // read
-  inline operator unsigned() const {
+  INLINETHIS operator unsigned() const {
     return (word & mask) >> pos;  //the compiler should render this down to a bitfield extract instruction.
   }
 
-  // write
+  /** assign, which for hardware registers might not result in a value equal to the @param value given, @returns the ACTUAL value */
   unsigned operator=(unsigned value) const {
     word = ((value << pos) & mask) | (word & ~mask);  //the compiler should render this down to a bitfield insert instruction.
-    return operator unsigned();
+    return operator unsigned ();
   }
 
   /** increment seems unlikely, someone add a use case else we might make this go away. */
@@ -196,9 +196,11 @@ public:
     operator=(unsigned() + value);
     return operator unsigned();
   }
+  //add more operators as need arises
 };
 
-/** */
+
+/** only works for bitbanded item! */
 struct ControlBit : public ControlWord, BoolishRef {
 
   constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {}
@@ -279,7 +281,7 @@ public:
   }
 
   void operator+=(unsigned value) const {
-    operator = (operator unsigned() + value);//todo:M optimize if compiler doesn't remove the shifts of all but this functions value argument.
+    operator = (operator unsigned() + value);//todo:M optimize if compiler doesn't remove the shifts of all but this function's value argument.
   }
 
 };
