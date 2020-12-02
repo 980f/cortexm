@@ -1,4 +1,10 @@
 #pragma once
+
+
+#if __has_include("utility")
+#include <utility>
+#else
+
 /** This file was extracted from files marked: */
 // Move, forward and identity for C++0x + swap -*- C++ -*-
 
@@ -73,4 +79,4 @@ namespace std  {
 
 } // namespace
 #endif /* _MOVE_H */
-
+#endif
