@@ -1,5 +1,11 @@
 #pragma once
 
+#pragma clang diagnostic push
+//we ignore the following warnings as this file exists to make hardware registers appear to be simple variables
+#pragma ide diagnostic ignored "google-explicit-constructor"
+#pragma ide diagnostic ignored "misc-unconventional-assign-operator"
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+
 #include "cheaptricks.h"
 #include "bitbanger.h"
 #include "boolish.h"
@@ -52,18 +58,18 @@ static constexpr unsigned BandBit = 0x0200'0000;
 
 INLINETHIS constexpr Address bandShift(Address byteOffset) {
   //5: 2^5 bits per 32 bit word. we expect a byte address here, so that one can pass values as read from the stm32 manual.
-  return {byteOffset << 5U};//# leave braces in case Address becomes a real class
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wbraced-scalar-init"  //# leave braces in case Address becomes a real class
+  return {byteOffset << 5U};
 }
 
 /** @return bitband address for given bit (default 0) of @param byte address.
 this assumes that the byte address ends in 00, which all of the ones in the st manual do.
 */
 INLINETHIS constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
-  //bit gets shifted by 2 as the underlying mechanism inspects the 32bit word address only, doesn't see the 2 lsbs of the address.
-  //bit to lsbs of address |  byteaddress shifted up to make room for bit selector | restore address space | bitband indicator.
-  return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & BandGroup) | BandBit};//# leave braces in case Address becomes a real class
+  return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & BandGroup) | BandBit};
 }
-
+#pragma clang diagnostic pop
 /** when you don't know the address at compile time use one of these, else use an SFRxxx.
  * This class essentially warps the Ref<> tempplate with operator overloads */
 class ControlWord {
@@ -111,6 +117,32 @@ public:
   INLINETHIS
   operator unsigned() const ISRISH {
     return item;
+  }
+};
+
+template<class Mustbe32> struct ControlStruct {
+
+protected:
+  volatile unsigned &item;
+public:
+  explicit constexpr ControlStruct(Address dynaddr)
+  : item(Ref<unsigned>(dynaddr)) {
+    //#done
+  }
+
+  /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
+  constexpr ControlStruct(const ControlStruct &other) = default;
+  INLINETHIS
+  void operator=(const Mustbe32 & value) const ISRISH {
+    item = *reinterpret_cast<const unsigned *>(&value);
+  }
+  INLINETHIS
+  void operator=(Mustbe32 && value) const ISRISH {
+    item = *reinterpret_cast<const unsigned *>(&value);
+  }
+  INLINETHIS
+  operator Mustbe32() const ISRISH {
+    return *reinterpret_cast<Mustbe32 *>(&item);
   }
 };
 
@@ -181,7 +213,8 @@ public:
   ControlField() = delete;
 
   // read
-  INLINETHIS operator unsigned() const {
+  INLINETHIS
+  operator unsigned() const {
     return (word & mask) >> pos;  //the compiler should render this down to a bitfield extract instruction.
   }
 
@@ -233,12 +266,14 @@ struct SFRint {
   constexpr SFRint() = default;
 
   // read.
-  INLINETHIS operator Inttype() const {
+  INLINETHIS
+  operator Inttype() const {
     return Ref<Inttype>(sfraddress);
   }
 
   // write
-  INLINETHIS void operator=(Inttype value) const {
+  INLINETHIS
+  void operator=(Inttype value) const {
     Ref<Inttype>(sfraddress) = value;
   }
 };
@@ -271,12 +306,14 @@ public:
   }
 
   // read
-  INLINETHIS operator unsigned() const {  
+  INLINETHIS
+  operator unsigned() const {
     return (Ref<unsigned>(sfraddress) & mask) >> pos;
   }
 
   // write
-  INLINETHIS void operator=(unsigned value) const {  
+  INLINETHIS
+  void operator=(unsigned value) const {
     Ref<unsigned>(sfraddress) = ((value << pos) & mask) | (Ref<unsigned>(sfraddress) & ~mask);
   }
 
@@ -342,3 +379,6 @@ INLINETHIS
 constexpr Address SCB(unsigned offset){
   return 0xE000'ED00 + offset;
 }
+
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
