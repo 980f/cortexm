@@ -45,9 +45,7 @@ uint16_t Port::Field::actual() const {
 
 /** configure the given pin.   */
 void Port::configure(unsigned bitnum, const PinOptions &c) const {
-  if (!isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
-    init(); // must have the whole port running before we can modify a config of any pin.
-  }
+  beEnabled();
   //2 bits from dir into offset 0
   field(0x00, bitnum * 2, 2) = c.dir;
 

@@ -1,5 +1,9 @@
 #pragma once
 
+#pragma clang diagnostic push
+//this is a library, pieces will often be unused.
+#pragma ide diagnostic ignored "modernize-use-nodiscard"
+
 /* stm family common stuff */
 
 #ifndef DEVICE
@@ -56,6 +60,26 @@ constexpr unsigned resetOffset = 0x28;
 constexpr unsigned clockOffset = 0x48;
 #endif
 
+
+//todo:M move much of the rest into this namespace
+namespace stm32 {
+  constexpr bool isRam(AddressCaster address) {
+    return address.number>>29==2>>1;//we exclude CCM at 0x1000 as it is not accessible to DMA and noone else should care about "is ram"
+  }
+
+  constexpr bool isRom(AddressCaster address){
+    return address.number>>29==0;
+  }
+
+  constexpr bool isPeripheral(AddressCaster address){
+    return address.number>>29 == 4>>1 || address.number>>29 == 0xE>>1;//the second is cortex core peripherals
+  }
+
+  constexpr bool isBandable(AddressCaster address){
+    return (address.number>>29 == 4>>1 || address.number>>29 == 2>>1) && (((address.number&~BandGroup)>>20) ==0);
+  }
+}
+
 //type for clock setting.
 using Hertz = unsigned;
 
@@ -106,18 +130,41 @@ public:
     , rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
 
   /** activate and release the module reset */
-  void reset() const;
+  INLINETHIS void reset() const {
+    ControlWord resetter(rccBit(resetOffset));
+    resetter = 1;
+    resetter = 0; //manual is ambiguous as to whether reset is a command or a state.
+  }
+
   /** control the clock, off reduces chip power */
-  void setClockEnable(bool on = true) const;
+  INLINETHIS void setClockEnable(bool on = true) const {
+    ControlWord (rccBit(clockOffset)) = on;
+  }
+
   /** @returns whether clock is on */
-  bool isEnabled() const;
+  INLINETHIS bool isEnabled() const {
+    //  (reset on forces the clock off (I think) so we only have to check one bit)
+    return ControlWord(rccBit(clockOffset));
+  }
+
   /** reset and enable clock */
-  void init() const;
+  INLINETHIS void init() const { //frequently used combination of reset then enable clock.
+    reset();
+    setClockEnable();
+  }
+
+  /** conditionally reset and enable */
+  INLINETHIS
+  void beEnabled() const {
+    if (!isEnabled()) {
+      init();
+    }
+  }
   /** get base clock for this module */
   Hertz getClockRate() const;
 
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
-  constexpr Address registerAddress(unsigned offset) const {
+  INLINETHIS constexpr Address registerAddress(unsigned offset) const {
     return blockAddress + offset;
   }
 
@@ -192,3 +239,6 @@ template<BusNumber stbus, unsigned slot> struct APBperiph {
 };
 
 
+
+
+#pragma clang diagnostic pop

@@ -6,13 +6,7 @@
 
 #include "stm32.h"
 
-#if __has_include("utility")
-
-#include <utility>
-
-#else
 #include "utility.h"
-#endif
 
 struct PinOptions {
 
