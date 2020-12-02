@@ -1,8 +1,24 @@
-#ifndef DEVICE
+#include "uart.h"
+
+#if DEVICE == 103 || DEVICE == 452
+constexpr BusNumber busForUart(unsigned stluno){
+  return stluno==1 ? APB2 : APB1;
+}
+constexpr unsigned slotForUart(unsigned stluno) {
+  return (stluno == 1 ? 14 : (stluno + 15));
+}
+#elif DEVICE == 407
+constexpr BusNumber busForUart(unsigned stluno){
+  return (stluno == 1 || stluno == 6) ? APB2 : APB1;
+}
+constexpr unsigned slotForUart(unsigned stluno) {
+  return (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15));
+}
+#else
 #error "you must define DEVICE to something like 103 or 407"
 #endif
 
-#include "uart.h"
+
 #include "minimath.h"
 
 
@@ -43,7 +59,7 @@ void Uart::setParams(unsigned baud, unsigned numbits, char parityNEO, bool longS
 }
 
 /** part of char time calculation, includes stop and start and parity, not just payload bits */
-unsigned Uart::bitsPerByte(void) const {
+unsigned Uart::bitsPerByte() const {
   unsigned bits = 1; //the start bit
 
   if (b.doubleStop) {
@@ -90,14 +106,7 @@ F103: U1 = 1:14, others on 2:luno+15
 F407: U1 = 2:  U2..5 = 1:lu+15   U6=2:
 */
 
-Uart::Uart(unsigned stluno) :
-#if DEVICE == 103
-  APBdevice(stluno==1 ? APB2 : APB1, stluno == 1 ? 14: (stluno + 15))
-#elif DEVICE == 407
-  APBdevice((stluno == 1 || stluno == 6) ? APB2 : APB1, (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15)))
-#elif DEVICE == 452
-APBdevice((stluno == 1 || stluno == 6) ? APB2 : APB1, (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15)))
-#endif
+constexpr Uart::Uart(unsigned stluno) : APBdevice(busForUart(stluno),slotForUart(stluno))
   , b(*reinterpret_cast <volatile UartBand *> (bandAddress))
   , dcb(*reinterpret_cast <volatile USART_DCB *> (blockAddress))
 //the irq's are the same for the same luno, just needed to add uart6 for F407:
@@ -113,6 +122,11 @@ void Uart::takePins(bool hsout, bool hsin) const {
   b.CTSEnable = hsin;
 }
 
-
+void Uart::txDma(bool beRunning) const {
+  //dma is supposed to be ready so ...
+  b.dmaTransmitter=beRunning;
+  //if we have been doing dma then halt everything, then start again when in interrupt or other mode.
+  beTransmitting(beRunning);//and a dma cycle might happen before this call returns.
+}
 
 //End of file

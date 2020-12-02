@@ -161,8 +161,8 @@ struct Uart: public APBdevice {
 
   const Irq irq;
   const unsigned int stluno;//1..5 etc, 0= invalid
-  
-  Uart(unsigned stluno);
+
+  constexpr Uart(unsigned stluno);
 
   /** we default the handshakes to "not used" as they are nearly useless, as well as having atrociously wrong names.
    * The RTS is nearly useless as it glitches for ane bit time at every stop bit, which makes many remote senders fail.
@@ -186,9 +186,9 @@ struct Uart: public APBdevice {
   void init(unsigned baud = 19200U, char parityNEO = 'N', unsigned  numbits = 8)const;
 
   /** part of char time calculation, includes stop and start and parity, not just payload bits */
-  unsigned bitsPerByte(void) const;
+  unsigned bitsPerByte() const;
   /** bits per second, actual not what you last set :)*/
-  unsigned bitsPerSecond(void) const;
+  unsigned bitsPerSecond() const;
   /** timer ticks required to move the given number of chars. Involves numbits and baud etc.*/
   unsigned ticksForChars(unsigned charcount) const;
 
@@ -196,6 +196,7 @@ struct Uart: public APBdevice {
 
   void beTransmitting(bool yes = true)const;
 
+  void txDma(bool beRunning) const;
 };
 
 //use the following where a decimal number of the interrupt request is needed
