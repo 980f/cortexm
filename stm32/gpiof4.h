@@ -1,4 +1,6 @@
 #pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+#pragma ide diagnostic ignored "misc-unconventional-assign-operator"
 #pragma ide diagnostic ignored "modernize-use-nodiscard"
 #pragma once
 //F4 gpio, significantly different configuration mechanism than F1, same data access but at different offsets.
@@ -34,20 +36,20 @@ struct PinOptions {
   };
   Puller UDFO;
 
-  constexpr explicit PinOptions(Dir dir, Slew slew = slow, Puller UDFO = Float, unsigned altcode = 0) : dir(dir), slew(slew), UDFO(UDFO), altcode(altcode) {
+  constexpr explicit PinOptions(Dir dir, Puller UDFO = Float, Slew slew = slow, unsigned altcode = 0) : dir(dir), slew(slew), UDFO(UDFO), altcode(altcode) {
     //#nada
   }
 
   static PinOptions Input(Puller UDFO = Float) {
-    return PinOptions(input, slow, UDFO);
+    return PinOptions(input, UDFO, slow);
   }
 
   static PinOptions Output(Slew slew = slow, Puller UDFO = Float) {
-    return PinOptions(PinOptions::output, slew, UDFO);
+    return PinOptions(PinOptions::output, UDFO, slew);
   }
 
   static PinOptions Function(unsigned altcode, Slew slew = slow, Puller UDFO = Float) {
-    return PinOptions(PinOptions::function, slew, UDFO, altcode);
+    return PinOptions(PinOptions::function, UDFO, slew, altcode);
   }
 
   unsigned altcode;
@@ -75,21 +77,13 @@ struct Port /*Manager*/ : public APBdevice {
 
   /** a contiguous set of bits in a a single Port */
   struct Field {
-    const Address odr;
-    const Address at;
     const unsigned lsb;
     const unsigned mask; //derived from width
+    const Address odr;
+    const Address at;
     const Port &port;
 
     constexpr Field(const Port &port, unsigned lsb, unsigned msb);
-
-    /** @param pincode is the same as for pin class */
-    void configure(const PinOptions &portcode) {
-      // and actually set the pins to their types
-      for (unsigned abit = lsb; mask & (1u << abit); ++abit) {
-        port.configure(abit, portcode);
-      }
-    }
 
     /** insert @param value into field, shifting and masking herein, i.e always lsb align the value you supply here */
     void operator=(unsigned value) const; // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
@@ -97,28 +91,46 @@ struct Port /*Manager*/ : public APBdevice {
     void operator^=(unsigned value) const;
 
     /** @returns the value set by the last operator =, ie the requested output- not what the physical pins are reporting. */
-    operator uint16_t() const {
+    INLINETHIS
+    operator uint16_t() const { // NOLINT(google-explicit-constructor)
       return (Ref<u16>(odr) & mask) >> lsb;
     }
-    // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     /** read back the actual pins */
     u16 actual() const;
     //more operators only at need
   };// Port::Field
 
+
+  /** @param pincode is the same as for pin class */
+  void configure(const Field&field ,const PinOptions &portcode) const;
+
 };
 
-//these take up little space and it gets annoying to have copies in many places.
-extern const Port PA;
-extern const Port PB;
-extern const Port PC;
-extern const Port PD;
-extern const Port PE;
-extern const Port PF;
-extern const Port PG;
-extern const Port PH;
-extern const Port PI;
-extern const Port PJ;
+// priority must be such that these get created before any application objects, +5 make it be after clocks.
+#define DefinePort(letter) const Port P##letter InitStep(InitHardware + 5)(*#letter)
+//the above macro is why people hate C. The '*' picks out the first letter of the string made by # letter, since the preprocessor insisted on honoring single ticks while parsing the #defined text.
+
+DefinePort(A);
+DefinePort(B);
+DefinePort(C);
+DefinePort(D);
+DefinePort(E);
+DefinePort(F);
+DefinePort(G);
+DefinePort(H);
+DefinePort(I);
+DefinePort(J);
+////these take up little space and it gets annoying to have copies in many places.
+//extern const Port PA;
+//extern const Port PB;
+//extern const Port PC;
+//extern const Port PD;
+//extern const Port PE;
+//extern const Port PF;
+//extern const Port PG;
+//extern const Port PH;
+//extern const Port PI;
+//const Port PJ{'J'};
 
 //GPIO interrupt configuration options. Some devices may not support some options, but most do so this is defined here.
 enum IrqStyle {
@@ -165,7 +177,7 @@ struct Pin /*Manager*/ {
 /** raw access convenience. @see InputPin for business logic version of a pin */
   INLINETHIS
   operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
-    return reader;
+    return reader; //false lint warning about endless loop
   }
 
 /** @returns pass through @param truth after setting pin to that value.
@@ -177,7 +189,8 @@ struct Pin /*Manager*/ {
   }
 };
 
-/** declare a pin used by a peripheral, one that will not get directly manipulated but might be inspectable. */
+/** @deprecated  use a pinconfigurator and a logical pin
+ * declare a pin used by a peripheral, one that will not get directly manipulated but might be inspectable. */
 struct FunctionPin {
   const ControlBit reader;
 
@@ -188,7 +201,7 @@ struct FunctionPin {
   //cannot be constexpr as it hits the configuration registers and that takes real code.
   FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Float) :
     reader(port.registerAddress(0x10), bitnum) {
-    port.configure(bitnum, PinOptions(PinOptions::function, slew, UDFO, nibble));
+    port.configure(bitnum, PinOptions(PinOptions::function, UDFO, slew, nibble));
   }
 };
 
@@ -227,7 +240,7 @@ public:
   }
 };
 
-/**
+/** @deprecated  use a pinconfigurator and a logical pin
 A pin configured and handy to use for logical input, IE the polarity of "1" is set by the declaration not by each point of use.
 */
 class InputPin : public LogicalPin {
@@ -245,7 +258,7 @@ public:
 //  InputPin(const InputPin &copyme) = default;
 };
 
-/**
+/** @deprecated  use a pinconfigurator and a logical pin
 a digital output made to look like a simple boolean.
 Note that these objects can be const while still manipulating the pin.
 */

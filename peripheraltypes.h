@@ -141,8 +141,9 @@ public:
     item = *reinterpret_cast<const unsigned *>(&value);
   }
   INLINETHIS
-  operator Mustbe32() const ISRISH {
-    return *reinterpret_cast<Mustbe32 *>(&item);
+  const Mustbe32 operator() () const ISRISH {
+    unsigned read=item;
+    return *reinterpret_cast<const Mustbe32 *>(&read);
   }
 };
 

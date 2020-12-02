@@ -10,7 +10,7 @@ using namespace Dma;
  *  In circular mode they do not, and doublebuffered mode is a variant of circular.
  *
  *  When pausing a transfer clear the en but then poll for it to actually clear, or perhaps the TCIF is set?
- *  
+ *
  *
  * */
 
@@ -42,7 +42,9 @@ void Stream::configure(Dma::Operation op, Stream::FifoControl fifoing) const {
 
 const Stream &Stream::transfer(AddressCaster target, AddressCaster source, unsigned int quantity) const {
   stop();
-  if (Operation(operation).toPeripheral) {
+  auto opfield=operation();
+  auto toPeriph=opfield.toPeripheral;
+  if (toPeriph) {
     peripheralAddress = target.number;
     memoryAddress = source.number;
   } else {
