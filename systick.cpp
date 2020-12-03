@@ -66,8 +66,8 @@ struct SysTicker {
     return rate(clockRate(CPU), effectiveDivider);
   }
 
-  SysTicks ticksForMicros(unsigned us) const {
-    return (us * ticksPerSecond()) / 1000000;
+  SysTicks ticksForMicros(unsigned us) const { //boost range for 180 seconds used by cg2 timeouts.
+    return (uint64_t(us) *uint64_t( ticksPerSecond())) / 1000000;
   }
 
   SysTicks ticksForMillis(unsigned ms) const {
