@@ -32,8 +32,7 @@ constexpr Port::Field::Field(const Port &port, unsigned lsb, unsigned msb)
 }
 
 void Port::Field::operator=(unsigned value) const {  // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
-  ControlWord field(at);
-  field = mask & (((((~value) << 16) | value)) << lsb);  // read the stm32 manual for this.
+  ControlWord {at} = mask & (((((~value) << 16) | value)) << lsb);  // read the stm32 manual for this.
 }
 
 Port::Field::operator u16() const {
@@ -105,17 +104,6 @@ const Pin &Pin::FN(unsigned nibble, PinOptions::Slew slew, char UDFO) const {
   return *this;
 }
 
-
-//////////////////////////////////
-// compiler didn't produce code into .o file for these so I moved to header file
-//constexpr InputPin::InputPin(const Pin& pin, char UDF, bool lowactive): LogicalPin(pin, lowactive) {
-//  pin.DI(UDF);
-//}
-//
-//constexpr InputPin::InputPin(const Pin& pin, bool lowactive) : InputPin(pin, lowactive ? 'U' : 'D', lowactive) {
-//  /*empty*/
-//}
-
 //////////////////////////////////
 
 void OutputPin::toggle() const {
@@ -123,11 +111,5 @@ void OutputPin::toggle() const {
 }
 
 /////////////////////////////////
-
-//constexpr unsigned gpiobase(unsigned Ais0){
-//  return 0x40020000+0x400*Ais0;
-//}
-
-//constexpr Port::Port(char letter) : APBdevice(1, unsigned(letter - 'A'),gpiobase(letter - 'A')) {}
 
 #pragma clang diagnostic pop
