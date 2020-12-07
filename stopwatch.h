@@ -3,7 +3,7 @@
 
 #include "eztypes.h"
 
-typedef u64 TimeValue;
+using TimeValue = u64;//todo:1 coordinate with project's time base, IE need a 'timer source' concept.
 
 /** an interval timer */
 class StopWatchCore {
@@ -26,6 +26,7 @@ public:
   bool isRunning() const;
 };
 
+/** StopWatchCore interfaces via ticks, this class interfaces via seconds. */
 class StopWatch : public StopWatchCore {
 public:
   using StopWatchCore::StopWatchCore;
@@ -45,6 +46,7 @@ public:
   unsigned wraps(TimeValue ticks, bool andRoll = true);
 };
 
+/** common usage pattern for StopWatch */
 class Timeout : public StopWatch {
 public:
   TimeValue interval;
