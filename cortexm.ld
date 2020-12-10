@@ -89,6 +89,12 @@ SECTIONS {
   } >FLASH
  __exit_table__ = LOADADDR(.exit);
 
+/* sometimes you need to stub out a function using the linker. The following chunk of linker magic creates a callable function extern "C" do_nothing() */
+  .dummy : {
+    LONG(0x47704770)     /*  bx lr followed by bx lr, since we will consume 32 bits and I am not sure which half gets called.  */
+  } >FLASH
+  do_nothing =  LOADADDR(.dummy);
+
 /* fully const'ed data, note that some things declared const end up in .data despite valiant attempts to compile time compute values. */
   .rodata :{
     /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata. 
