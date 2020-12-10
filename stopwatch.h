@@ -52,6 +52,11 @@ public:
   TimeValue interval;
   using StopWatch::StopWatch;
 
+  void runfor(TimeValue amount){
+    interval=amount;
+    start();
+  }
+
   /** @returns whether timeout has expired, and if so either restarts it or stops it */
   bool check(bool andRestart);
 
