@@ -13,7 +13,7 @@
 //__attribute__((alias("__putchar")))
 //__attribute__((alias("__aeabi_read_tp")))
 //__attribute__((alias("abort")))
-void do_nothing(){}
+//void do_nothing(){}
 
 //trace for heap users:
 //libc2.c:(.text.libc.free+0xa0): undefined reference to `__heap_start__'
