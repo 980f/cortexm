@@ -16,7 +16,7 @@ constexpr unsigned MaxAdcClock=
 
 /**
  * The name was changed from ADC to ADCdev due to compilation issues with STM32 Hal using a #define for ADC
- * todo: replace all the structures with ControlWord et al. and ditch the structures.
+ * todo:1 replace all the structures with ControlWord et al. and ditch the structures.
  * If we ever use the "journal" feature we can make an accessor for that which uses ControlWord et al.
  * */
 class ADCdev : public APBdevice {

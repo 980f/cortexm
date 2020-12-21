@@ -7,7 +7,7 @@
 /**
   * wrap an existing array so that all of its attributes are available for dma
   */
-class RawBuffer { //todo:stub class, needs use case analysis!
+class RawBuffer { //todo:M stub class, needs use case analysis!
   u8 *buffer;
   unsigned int allocated;
   unsigned int sizeeach;

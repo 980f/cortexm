@@ -9,7 +9,7 @@ void UartUser::uisr() {
     ++byteErrors;
     //both overruns and framing errors need a read of the DR to reset the error flag:
     u.dcb.DR;   //try to clear an overrun error, manual says so
-    agent(-2);  //todo: symbols
+    agent(-2);  //todo:M symbols
     return;
   }
   if (sr.dataAvailable) {

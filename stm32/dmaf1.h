@@ -44,7 +44,7 @@ public:
     luno(stNumber - (secondaryController ? 8 : 1)), //which channel of the controller
     dcb(theDMA_DCB->chan[luno]),
     sender(forsender),
-    //todo: model specific stuff goes here!
+    //todo:00 model specific stuff goes here!
     irq((stNumber == 12) ? 59 : (stNumber + ((stNumber > 7) ? 48 : 10))){ //channels 4&5 share an interrupt.
     //#done
   }

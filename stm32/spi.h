@@ -95,7 +95,7 @@ public:
 /** clock and other pins get configured here for function and speed*/
   void connect(Pin *sck, Pin *mosi = 0, Pin *miso = 0, Pin *ss = 0);
   /*set clock rate and frame format*/
-  void configure(bool master, unsigned baud, bool sixteen = false /* todo: options for bidirectional etc.*/);
+  void configure(bool master, unsigned baud, bool sixteen = false /* todo:1 options for bidirectional etc.*/);
 };
 
 #endif /* ifndef spiH */

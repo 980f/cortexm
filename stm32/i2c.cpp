@@ -204,7 +204,7 @@ void I2C::errorIsr(void){
   if(sr.nacked) { //typical cause is device not present, NB: eeprom's disappear when they are busy.
     b->nacked = 0;
     stop();
-    notify(false); //this disallows writing to non-existent devices as a debug tool, //todo: let inprogress decided whether to stop.
+    notify(false); //this disallows writing to non-existent devices as a debug tool, //todo:1 let inprogress decided whether to stop.
   }
   if(sr.busError) {
     b->busError = 0;

@@ -42,9 +42,9 @@ void RTC::init(void){
 }
 
 void RTC::configure(u32 crystalHz){
-  //todo: make LSE run
+  //todo:0 make LSE run
   //must use LSE to get battery backing
-  //todo: set conf for LSE
+  //todo:0 set conf for LSE
   //calibrate LSE? --no, we aren't using an external HS clock so we have no basis for calibration.
   //set divisor for 1 second
   setreg(pre, crystalHz - 1);

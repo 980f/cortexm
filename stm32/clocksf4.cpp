@@ -124,7 +124,7 @@ void switchToPll() {
 //      //now is safe to muck with PLL
 //      PLL = 0;//turn it off before dicking with its settings.
 //
-//      //todo: see if we are actually going to be slowing down, if so don't set the flash waits until after new clock is established.
+//      //todo:0 see if we are actually going to be slowing down, if so don't set the flash waits until after new clock is established.
 //      setFlash4Clockrate(sysClock(2)); //must execute before the assignment to SWdesired
 //
 //      PLLsource = !internal;
@@ -195,7 +195,7 @@ Hertz adcClock(Hertz rate){
 
 /** stm32 has a feature to post its own clock on a pin, for reference or use by other devices. */
 void setMCO(unsigned int mode) {
-//todo: implement F4 version
+//todo:M implement F4 version
   Pin MCO(PA, 8); //depends on mcu family ... same for both 103 and 407
   //PC,9 is a second one.
 //

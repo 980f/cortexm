@@ -33,7 +33,7 @@ enum BusNumber: u8 {//#this enum is used for RCC register addressing
 const Address RCCBASE(0x40023800U);//0th offset.
 const unsigned resetOffset = 0x10;
 const unsigned clockOffset = 0x30;
-//todo: low power mode.
+//todo:1 low power mode.
 #endif
 
 //type for clock setting.

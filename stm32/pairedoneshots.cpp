@@ -13,7 +13,7 @@ void PairedOneshots::init(int refFrequency){
 void PairedOneshots::initCC(CCUnit&cc, int ticks){
   cc.setmode(0x10);
   cc.setTicks(ticks);
-  //todo: make this conditional:
+  //todo:1 make this conditional:
   cc.pin().FN();
 }
 /** expects to be called from an isr. Checks and lcears source flags

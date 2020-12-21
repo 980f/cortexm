@@ -41,7 +41,7 @@ enum DebugControlBit {
   TraceOutputEnable,
   TraceMode0,
   TraceMode1,
-//todo: check these against their apb bus and slot
+//todo:0 check these against their apb bus and slot
   Timer2Stop=32,  //following word.
   Timer3Stop,
   Timer4Stop,
