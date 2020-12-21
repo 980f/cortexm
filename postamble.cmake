@@ -2,7 +2,6 @@
 # demand a custom linker script, standard ones are often not particularly standard:
 SET (LINKER_SCRIPT "${PROJECT_NAME}.ld")
 
-#todo: try to eliminate -specs=nosys.specs, we are suppressing routines that are referenced therein but will never execute.
 SET (CMAKE_EXE_LINKER_FLAGS "-L ${PROJECT_SOURCE_DIR} -T ${LINKER_SCRIPT} -nostartfiles  -specs=nano.specs -specs=nosys.specs -Wl,--gc-sections,--print-memory-usage,-Map,${PROJECT_NAME}.map " CACHE INTERNAL "exe link flags")
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES})
