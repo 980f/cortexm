@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title></title>
+    <meta name="author" content="Andy Heilveil (github/980f)">
+  </head>
+  <body>RP2040 PIO <br>
+    There are two independent PIO subsystems.<br>
+    Each has 4 state machines and 32 instruction words which are shared by those 4 machines.<br>
+    <br>
+    Each PIO system is associated with one GPIO bank, they cannot use bits from 2 or more GPIO banks.<br>
+    This is not presently an issue as there is only one appropriate GPIO bank in the parts that are available, the 2nd bank is used for QSPI program memory access.<br>
+    <br>
+    Each state machine has:
+    <ol>
+      <li>an output field, a contiguous subset of GPIO pins</li>
+      <li>a shift register which feeds the output field</li>
+      <li>a fifo which feeds the output shift register</li>
+      <li>a secondary ouput field definition which is used by the sideset feature</li>
+      <li>an input field, a contiguous subset of GPIO pins</li>
+      <li>a shift register which is feed from the input field</li>
+      <li>a fifo which is feed from the input shift register</li>
+      <li>two scratch registers, X and Y. The only difference between the two is that under special conditions X supplies data to the output shift register.</li>
+      <li>a program counter</li>
+      <li>an instruction register</li>
+      <li>a loop bounds definition: when the PC equals the loop end (.wrap) then it gets loaded with the loop begin (.wrap_target) unless the executing instruction is a JMP that is taken.</li>
+    </ol>
+    <br>
+    Document Notes<br>
+    <br>
+    In this document 'processor' is used in the singular although the RP2040 has two processors. Conflicts between two processors trying to interact with PIO state machines is invisible to the state machines.<br>
+    An attempt has been made to use nomenclature from the Raspberry Pi Foundation literature, but some of their terms are too terse or idiosyncratic.<br>
+    <br>
+    <hr>
+    <h4>Instruction Register</h4>
+    The instruction register holds the opcode being executed. <br>
+    It can be written by the cortex processor and the value is executed with the program counter held (unless of course the instruction is a JMP that is taken).<br>
+    It can also be written to via the MOV instruction which supports executing instructions loaded or computed in the X or Y registers, streaming through the Output Register, being received via the Input Shift Register, read from the Input Field, all zeroes, all ones, and uselessly from the Fifo Status.<br>
+    This allows curiosities such as loading up an indefinite length instruction stream in memory and then using DMA to execute it sequentially.<br>
+    <br>
+    <h4>Program Counter (PC)</h4>
+    <p>When the Instruction Register has not been loaded by some other source the Program Counter is used to pick an instruction from the 32 word instruction memory which is shared with the other state machines of the PIO. <br>
+      If the instruction execution is a JMP that is taken then the value from the opcode is loaded into the PC. <br>
+      If the PC value matches the configured loop end then the PC is loaded from the wraptarget configuration register, else it is incremented. If the PC was at the last memory location (31,0x1F) the increment takes it to 0.<br>
+      In addition to being conditionally loaded via the JMP instruction the MOV and OUT instructions can unconditionally load it. <br>
+      Note that OUT with autopull enabled will if the TX fifo is empty feed the value from X into the PC.</p>
+    <h4>Input Shift Register (ISR)</h4>
+    The input shift register is the core of data reception. <br>
+    Shifts of it bring in multiple bits per instruction cycle, the number of bits defined by the opcode.<br>
+    It has a configured direction. Either bits are shifted up/left and new bits are set into the lsbs, or bits are shifted down/right and new bits set into the msbs. The number of such bits always comes from the opcode of the IN instruction.<br>
+    It has a cumulative shift count register and a configured length. <br>
+    These two hidden registers are used solely by the autopush feature which upon execution of an IN instruction checks if the cumulative shift count is &gt;= the configured length and if so effectively executes a PUSH instruction in the same cycle as the IN.<br>
+    PUSH instructions push the ISR into the RX fifo and reset the cumulative shift count.<br>
+    You can shift it using itself as input which becomes a circular shift of the 32 bits, this ignores the configured length.<br>
+    <h4>Output Shift Register (OSR)</h4>
+    The output shift register is the core of data transmission.<br>
+    Shifts of it emit multiple bits per instruction cycle, the number of bits defined by the opcode. It has a configured direction. <br>
+    The bits to emit are either selected from the lsbs and the remainder shifted down/right, or from the msbs and the remainder shifted up/left. The number of such bits always comes from the opcode of the OUT instruction.<br>
+    It has a cumulative shift count register and a configured length.<br>
+    When executing an OUT instruction if the cumulative shift count is &gt;= the configured length then effectively a PULL instruction is executed in the same cycle.<br>
+    A PULL instruction takes data from the TX fifo and puts it into the OSR, clearing the cumulative shift count.<br>
+    PULLing from an empty fifo without blocking resuts in the X register being copied into the OSR.<br>
+    <br>
+    <h4>Scratch Registers (X and Y)</h4>
+    The scratch registers are storage or counters. <br>
+    The counter ability is via the JMP instruction which can test each for zero with an optional decrement. They can also be compared to each other.<br>
+    They can be loaded with:<br>
+    <ol>
+      <li>the bits from the OUT instruction</li>
+      <li>the whole value of the OSR or ISR, optionally inverted or bit reversed (but not both at once)</li>
+      <li>the other scratch register, optionally inverted or bit reversed (but not both at once)</li>
+      <li> themselves, optionally inverted or bit reversed (but not both at once)</li>
+      <li>zeroes</li>
+      <li>all ones (~0)</li>
+      <li>fifo status of all 4 state machines</li>
+      <li>5 bit data (via SET)</li>
+    </ol>
+    In addition to being copied to each other their lsbs can be shifted into the ISR.<br>
+    <br>
+    <br>
+    <h4>Output Pins/Field</h4>
+    The OUT and MOV instructions affect a subset of GPIO pins configured via a start and a count. The bits are contiguous.<br>
+    The OUT sets them from bits shifted out of the OSR.<br>
+    The SET sets them from the instruction register.<br>
+    The MOV sets them from the lsbs of the OSR, ISR, either&nbsp; scratch register, the Input Field, or zeroes, in all cases optionally inverted or bit reversed (but not both at once)<br>
+    <br>
+    <h4>Input Pins/Field</h4>
+    The IN,MOV, and WAIT instructions reference a subset of GPIO pins configured via a start and a count. The bits are contiguous. <br>
+    The IN instruction appends the pins to the Input Shift Register.<br>
+    The WAIT instruction spins until the pin selected via the opcode agrees with the level selected by the opcode.<br>
+    The MOV instruction can write the pins into the Input Shift Register lsbs, msbs are zero. This is quite different than what the IN instruction does.<br>
+    The MOV instruction can write the pins to the lsbs of the X or Y register, the output shift register, or the output pin field.<br>
+    The MOV instruction can also write the pins to the PC allowing for an externally determined next instruction, or even written to the Instruction Register allow you to execute instructions supplied by the pins!<br>
+    <h4>Status Field</h4>
+    <strong><em> TBD</em></strong><br>
+    <h4>Interrupts</h4>
+    There appear to be 8 interrupt flags. <br>
+    They are set by the IRQ instruction and can be waited upon by that instruction, or the WAIT instruction, or indirectly tested via the status field being copied to a register which the JMP an then test.<br>
+    These are conditionally included in either or both of the interrupt signals sent to the processor.<br>
+    <br>
+    <h3> Instruction details </h3>
+    There are three operations that are part of every instruction type, sideset, delay, and loop.<br>
+    There are nominally 9 opcodes: JMP, WAIT, OUT, SET, IN, MOV, PUSH, PULL, IRQ.<br>
+    <h4>Sideset</h4>
+    Each instruction execution can modify a configured subset of output bits, independent of the OUT instructions field definition. The bit field is defined by configuration registers and the data is supplied by the instruction. The bit field width affects instruction interpretation, the delay feature shares a 5 bit opcode fields and is limited to using the bits that sideset does not.<br>
+    The sideset data can be configured so that the msb is a "set enable" IE makes the set conditional. If not then the designated bits are set from the opcode for every instruction executed.<br>
+    <br>
+    <h4>Delay count</h4>
+    Each instruction can after its execution but before the next kill some time. It is configurable whether the sideset operation is repeated during these killed cycles.<br>
+    The number of cycles is in the instruction, with the number of bits available being those left over from configuring sideset.<br>
+    <br>
+    <h4>Looping (aka wrap)</h4>
+    A zero overhead loop is implemented by comparing the PC to the .wrap configuration register and when equal the next PC value is the .wraptarget register unless the instruction is a taken jump.<br>
+    <br>
+    <h4>JMP</h4>
+    The JMP instruction selects a boolean and if true (in the case of the pin high) then the target field of the instruction is the next PC value. <br>
+    The X and Y instructions can optionally be decremented after being tested for zero. If they were zero then execution proceeds with the following instruction and the scratch register is all ones, aka negative one.<br>
+    The pin option references a configured GPIO pin, jumping if it is high. There is no option to invert it/ jump on low.<br>
+    The other booleans are X != Y, output shift register not empty.<br>
+    There is also an unconditional jump.<br>
+    <h4>WAIT</h4>
+    WAIT selects a bit suppressing PC incrementing while that bit is not at the selected level. <br>
+    The bit comes from:<br>
+    <ol>
+      <li>GPIO, one of 32 bits selected by the opcode.</li>
+      <li>The Output Field, opcode field added to Output Field origin to select a GPIO field.</li>
+      <li>Interrupt flags (it is probably a bad idea to use a bit that is configured to generate a processor interrupt)</li>
+    </ol>
+    <h4>OUT</h4>
+    OUT picks a number of bits from the output shift register and delivers them to one of many destinations. See the Output Shift Register section for details.
+    <h4>SET</h4>
+    SET puts an immediate value onto the output pins or the output enable pins, or the lsbs of the X or Y scratch register.<br>
+    <br>
+    <h4>IRQ</h4>
+    IRQ sets or clears an interrupt.<br>
+    The interrupt affected is selected by the index field with the option to add the state machine's index to that field, module 4. This is done to allow a program to be shared by multiple SM's but for each to have its own unique interrupt.<br>
+    If the interrupt is being set then one can optionally wait until it is cleared before proceeding.<br>
+    <h4>IN </h4>
+    <p>IN receives a number of bits into the input shift register from a number of sources. See the Input Shift Register section for details.</p>
+    <h4>PULL</h4>
+    PULL takes words from the TX fifo (written by the processor or DMA) and puts them into the Output Shift Register. <br>
+    It optionally does this only if the OSR cumulative shift count is &gt;= the configured length, IE you can do a PULL for every OUT but this instruction will only remove something from the fifo if the OSR is empty.<br>
+    It optionally blocks if the fifo is empty, else the X scratch register gets copied to the OSR.
+    <h4> PUSH</h4>
+    PUSH puts words from the Input Shift Register into the RX fifo (read by the processor or DMA).<br>
+    It optionally does this only if the ISR cumulative shift count is &gt;= the configured length, IE you can do a PUSH for every IN but only one that has a worthwhile amount of data goes into the fifo.<br>
+    It optionally blocks if the fifo is full, else the incoming data is lost. Such an event is detected and recorded in the interrupt registers.<br>
+    <br>
+    <h4>MOV</h4>
+    For every source it can optionally invert or bit reverse, but not both, before writing to the destination. <br>
+    When the source is the Input Field those bits are put into the lsbs and the msbs are zero.<br>
+    The destination includes the PC allowing you to do computed and indirect jumps, and you can also assemble an instruction in a scratch register then execute it using MOV.<br>
+    The RPi manual has 'nop' instructions in examples that are not documented, they are probably MOV's with the source and destinations the same.<br>
+    <br>
+    <br>
+    <br>
+    <hr><br>
+    (C) 2021 by Andrew Heilveil (Github/980f). <br>
+  </body>
+</html>
