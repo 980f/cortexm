@@ -1,7 +1,7 @@
 /*
-stm32F407:
-512k flash
-128K ram at the normal address
+pi pico core 0
+256k ram512k flash
+128K ram at the normal addres
 64K ram at 1000_0000.
 
 */
