@@ -45,7 +45,7 @@ union AddressCaster {
 
 /* this function exists to hide some verbose casting */
 template<typename Scalar> INLINETHIS constexpr Scalar &Ref(Address address) {
-  AddressCaster pun{address};
+  AddressCaster pun {address};
   return *static_cast<Scalar *>(pun.pointer);
 }
 
@@ -53,7 +53,7 @@ template<typename Scalar> INLINETHIS constexpr Scalar &Ref(Address address) {
  * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
 This replaces a 3-clock operation that is susceptible to interruption into a one clock operation that is not. That is important if an ISR is modifying the same control word as main thread code.
 */
-static constexpr unsigned int BandGroup= 0xE000'0000;//bit banding only applies to 0000 0000 through 000F FFFF in the 2000 and 4000 regions.
+static constexpr unsigned int BandGroup = 0xE000'0000;//bit banding only applies to 0000 0000 through 000F FFFF in the 2000 and 4000 regions.
 static constexpr unsigned BandBit = 0x0200'0000;
 
 INLINETHIS constexpr Address bandShift(Address byteOffset) {
@@ -69,9 +69,12 @@ this assumes that the byte address ends in 00, which all of the ones in the st m
 INLINETHIS constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
   return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & BandGroup) | BandBit};
 }
+
 #pragma clang diagnostic pop
-/** when you don't know the address at compile time use one of these, else use an SFRxxx.
- * This class essentially warps the Ref<> tempplate with operator overloads */
+
+/** A 32 bit item at a known address.
+ * when you don't know the address at compile time use one of these, else use an SFRxxx.
+ * This class essentially wraps the Ref<> template with operator overloads */
 class ControlWord {
 
 protected:
@@ -96,10 +99,12 @@ public:
   void operator=(unsigned value) const ISRISH {
     item = value;
   }
+
   INLINETHIS
   void operator|=(unsigned value) const ISRISH {
     item |= value;
   }
+
   INLINETHIS
   void operator&=(unsigned value) const ISRISH {
     item &= value;
@@ -126,23 +131,26 @@ protected:
   volatile unsigned &item;
 public:
   explicit constexpr ControlStruct(Address dynaddr)
-  : item(Ref<unsigned>(dynaddr)) {
+    : item(Ref<unsigned>(dynaddr)) {
     //#done
   }
 
   /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
   constexpr ControlStruct(const ControlStruct &other) = default;
+
   INLINETHIS
-  void operator=(const Mustbe32 & value) const ISRISH {
+  void operator=(const Mustbe32 &value) const ISRISH {
     item = *reinterpret_cast<const unsigned *>(&value);
   }
+
   INLINETHIS
-  void operator=(Mustbe32 && value) const ISRISH {
+  void operator=(Mustbe32 &&value) const ISRISH {
     item = *reinterpret_cast<const unsigned *>(&value);
   }
+
   INLINETHIS
-  const Mustbe32 operator() () const ISRISH {
-    unsigned read=item;
+  const Mustbe32 operator()() const ISRISH {
+    unsigned read = item;
     return *reinterpret_cast<const Mustbe32 *>(&read);
   }
 };
@@ -168,10 +176,12 @@ public:
   void operator=(IntType value) const ISRISH {
     item = value;
   }
+
   INLINETHIS
   void operator|=(IntType value) const ISRISH {
     item |= value;
   }
+
   INLINETHIS
   void operator&=(IntType value) const ISRISH {
     item &= value;
@@ -206,7 +216,8 @@ class ControlField {
 
 public:
   constexpr ControlField(Address sfraddress, unsigned pos, unsigned width)
-    : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, width)), pos(pos) {}
+    : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, width)), pos(pos) {
+  }
 
 public:
   constexpr ControlField(const ControlField &other) = delete;
@@ -222,7 +233,7 @@ public:
   /** assign, which for hardware registers might not result in a value equal to the @param value given, @returns the ACTUAL value */
   unsigned operator=(unsigned value) const {
     word = ((value << pos) & mask) | (word & ~mask);  //the compiler should render this down to a bitfield insert instruction.
-    return operator unsigned ();
+    return operator unsigned();
   }
 
   /** increment seems unlikely, someone add a use case else we might make this go away. */
@@ -233,11 +244,48 @@ public:
   //add more operators as need arises
 };
 
+/** single bit, ignoring the possibility it is in bitbanded memory.
+ *  This is NOT derived from ControlField as we can do some optimizations that the compiler might miss (or developer might have disabled) */
+
+class ControlBool : public BoolishRef {
+  volatile unsigned &word;
+  /** mask gets pre-positioned */
+  const unsigned mask;
+  const unsigned pos;
+
+public:
+  constexpr ControlBool(Address sfraddress, unsigned pos)
+    : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, 1)), pos(pos) {
+  }
+
+public:
+  constexpr ControlBool(const ControlField &other) = delete;
+
+  ControlBool() = delete;
+
+  // read
+  INLINETHIS
+  operator bool() const override {
+    return word & mask;
+  }
+
+  /** assign, which for hardware registers might not result in a value equal to the @param value given, @returns the ACTUAL value */
+  bool operator=(bool value) const override {
+    if (value) {
+      word |= mask;
+    } else {
+      word &= ~mask;
+    }
+    return operator bool();
+  }
+
+};
 
 /** only works for bitbanded item! */
 struct ControlBit : public ControlWord, BoolishRef {
 
-  constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {}
+  constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {
+  }
 
   // read
   inline operator bool() const override {
@@ -319,9 +367,8 @@ public:
   }
 
   void operator+=(unsigned value) const {
-    operator = (operator unsigned() + value);//todo:M optimize if compiler doesn't remove the shifts of all but this function's value argument.
+    operator=(operator unsigned() + value);//todo:M optimize if compiler doesn't remove the shifts of all but this function's value argument.
   }
-
 };
 
 /** single bit, ignoring the possibility it is in bitbanded memory.
@@ -335,12 +382,12 @@ public:
   constexpr SFRbit() = default;
 
   // read
-  inline operator bool() const override {  
+  inline operator bool() const override {
     return (Ref<unsigned>(sfraddress) & mask) != 0;
   }
 
   // write
-  bool operator=(bool value) const override {  
+  bool operator=(bool value) const override {
     if (value) {
       Ref<unsigned>(sfraddress) |= mask;
     } else {
@@ -354,30 +401,31 @@ public:
 template<unsigned sfraddress, unsigned bitnum>
 struct SFRbandbit : public BoolishRef {
   enum {
-    bandAddress = bandFor(sfraddress, bitnum), };
+    bandAddress = bandFor(sfraddress, bitnum)
+    , };
 
   // read
-  INLINETHIS operator bool() const override {  
+  INLINETHIS operator bool() const override {
     return *(reinterpret_cast<volatile unsigned *>(bandAddress));
   }
 
   // write
-  INLINETHIS bool operator=(bool value) const override {  
+  INLINETHIS bool operator=(bool value) const override {
     *(reinterpret_cast<unsigned *>(bandAddress)) = value;
     return value;
   }
 };
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
-const Address PeripheralBase{0x40000000};  //1<<30
+const Address PeripheralBase {0x40000000};  //1<<30
 
-const Address PeripheralBand{0x42000000};//bandFor(PeripheralBase)
+const Address PeripheralBand {0x42000000};//bandFor(PeripheralBase)
 
 //cortexM 'private peripherals'
 
 // the SCB is kinda like a peripheral, but we may just inline this at each point of use. The manual lists both absolute and relative addresses.
 INLINETHIS
-constexpr Address SCB(unsigned offset){
+constexpr Address SCB(unsigned offset) {
   return 0xE000'ED00 + offset;
 }
 
