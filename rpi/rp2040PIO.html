@@ -5,7 +5,8 @@
     <title></title>
     <meta name="author" content="Andy Heilveil (github/980f)">
   </head>
-  <body>RP2040 PIO <br>
+  <body>
+    <h2>RP2040 PIO </h2>
     There are two independent PIO subsystems.<br>
     Each has 4 state machines and 32 instruction words which are shared by those 4 machines.<br>
     <br>
@@ -17,7 +18,7 @@
       <li>an output field, a contiguous subset of GPIO pins</li>
       <li>a shift register which feeds the output field</li>
       <li>a fifo which feeds the output shift register</li>
-      <li>a secondary ouput field definition which is used by the sideset feature</li>
+      <li>a secondary output field definition which is used by the sideset feature</li>
       <li>an input field, a contiguous subset of GPIO pins</li>
       <li>a shift register which is feed from the input field</li>
       <li>a fifo which is feed from the input shift register</li>
@@ -27,10 +28,11 @@
       <li>a loop bounds definition: when the PC equals the loop end (.wrap) then it gets loaded with the loop begin (.wrap_target) unless the executing instruction is a JMP that is taken.</li>
     </ol>
     <br>
-    Document Notes<br>
+    <h4> Document Notes</h4>
     <br>
     In this document 'processor' is used in the singular although the RP2040 has two processors. Conflicts between two processors trying to interact with PIO state machines is invisible to the state machines.<br>
     An attempt has been made to use nomenclature from the Raspberry Pi Foundation literature, but some of their terms are too terse or idiosyncratic.<br>
+    Most words in all CAPS are instruction mnemonics.<br>
     <br>
     <hr>
     <h4>Instruction Register</h4>
@@ -61,7 +63,6 @@
     When executing an OUT instruction if the cumulative shift count is &gt;= the configured length then effectively a PULL instruction is executed in the same cycle.<br>
     A PULL instruction takes data from the TX fifo and puts it into the OSR, clearing the cumulative shift count.<br>
     PULLing from an empty fifo without blocking resuts in the X register being copied into the OSR.<br>
-    <br>
     <h4>Scratch Registers (X and Y)</h4>
     The scratch registers are storage or counters. <br>
     The counter ability is via the JMP instruction which can test each for zero with an optional decrement. They can also be compared to each other.<br>
@@ -77,14 +78,11 @@
       <li>5 bit data (via SET)</li>
     </ol>
     In addition to being copied to each other their lsbs can be shifted into the ISR.<br>
-    <br>
-    <br>
     <h4>Output Pins/Field</h4>
     The OUT and MOV instructions affect a subset of GPIO pins configured via a start and a count. The bits are contiguous.<br>
     The OUT sets them from bits shifted out of the OSR.<br>
     The SET sets them from the instruction register.<br>
     The MOV sets them from the lsbs of the OSR, ISR, either&nbsp; scratch register, the Input Field, or zeroes, in all cases optionally inverted or bit reversed (but not both at once)<br>
-    <br>
     <h4>Input Pins/Field</h4>
     The IN,MOV, and WAIT instructions reference a subset of GPIO pins configured via a start and a count. The bits are contiguous. <br>
     The IN instruction appends the pins to the Input Shift Register.<br>
@@ -98,8 +96,8 @@
     There appear to be 8 interrupt flags. <br>
     They are set by the IRQ instruction and can be waited upon by that instruction, or the WAIT instruction, or indirectly tested via the status field being copied to a register which the JMP an then test.<br>
     These are conditionally included in either or both of the interrupt signals sent to the processor.<br>
-    <br>
-    <h3> Instruction details </h3>
+    <hr>
+    <h3>Instruction details </h3>
     There are three operations that are part of every instruction type, sideset, delay, and loop.<br>
     There are nominally 9 opcodes: JMP, WAIT, OUT, SET, IN, MOV, PUSH, PULL, IRQ.<br>
     <h4>Sideset</h4>
