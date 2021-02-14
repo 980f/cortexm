@@ -80,9 +80,3 @@ public:
 #define ConfPin(bitnum, ...) MakeObject(PinConfigurator, CONF ## bitnum, bitnum, __VA_ARGS__);
 //in the macro above I used va_args so that we can add constructors with defaults to PinConfigurator
 
-
-//
-//#define OutputPin( bitnum, polarity, ... ) \
-//ConfPin(bitnum, PinOptions::output, PinOptions::slow, PinOptions::Float, 0); \
-//const Pin letter##bitnum {{P##letter, bitnum}};
-
