@@ -10,6 +10,19 @@
 
 #include "utility.h"
 
+//todo: 1 generator like nvicTable.inc
+constexpr unsigned NumberOfPorts=8;
+#define PA Ports[0]
+#define PB Ports[1]
+#define PC Ports[2]
+#define PD Ports[3]
+#define PE Ports[4]
+#define PF Ports[5]
+#define PG Ports[6]
+#define PH Ports[7]
+
+
+
 struct PinOptions {
 
   enum Dir {
@@ -85,7 +98,12 @@ struct Port /*Manager*/ : public APBdevice {
     const Port &port;
 
     /** lsb and msb are both inclusive , eg for bits 6,7,8,9 pass 6,9 */
-    constexpr Field(const Port &port, unsigned lsb, unsigned msb);
+    constexpr Field(const Port &port, unsigned lsb, unsigned msb): idr(port.registerAddress(0x10)), at(port.registerAddress(0x18)),  //bsrr "bit set/reset register"
+  lsb(lsb), mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16), port(port) {
+  /* empty */
+}
+
+
 
     /** @param pincode is the same as for pin class */
     void configure(const PinOptions &portcode) {
@@ -111,24 +129,22 @@ struct Port /*Manager*/ : public APBdevice {
     //more operators only at need
   };// Port::Field
 
+
+  /** given some address withing the port's space we can figure out which port it is*/
+  static constexpr const Port &fromAddress(Address sompiece);
+
+
 };
 
-constexpr unsigned NumberOfPorts=8;
+
 extern const Port Ports[NumberOfPorts];
-/** given some address withing the port's space we can figure out which port it is*/
-const Port &fromAddress(Address sompiece){
+
+
+constexpr const Port &Port::fromAddress(Address sompiece){
   unsigned index = (sompiece>>10)%NumberOfPorts;
   return Ports[index];
 }
 
-#define PA Ports[0]
-#define PB Ports[1]
-#define PC Ports[2]
-#define PD Ports[3]
-#define PE Ports[4]
-#define PF Ports[5]
-#define PG Ports[6]
-#define PH Ports[7]
 
 
 //GPIO interrupt configuration options. Some devices may not support some options, but most do so this is defined here.

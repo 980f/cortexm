@@ -27,12 +27,6 @@ constexpr const Port Ports[]={
   //DefinePort(J),
 };
 
-constexpr Port::Field::Field(const Port &port, unsigned lsb, unsigned msb)
-  : idr(port.registerAddress(0x10)), at(port.registerAddress(0x18)),  //bsrr "bit set/reset register"
-  lsb(lsb), mask(fieldMask(msb, lsb) | fieldMask(msb, lsb) << 16), port(port) {
-  /* empty */
-}
-
 
 void Port::Field::operator^=(unsigned value) const {
   return *this = (value ^ *this);  // uses operator = and operator cast uint16_t.

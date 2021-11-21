@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "gpiof4.h"  //todo:1 merge gpiof1 and then include generic gpio.h
+#include "gpio.h" 
 
 #include "tableofpointers.h"
 
@@ -13,7 +13,7 @@ struct PinConfigurator : public PinOptions {
   uint8_t letter;
   uint8_t bitnum;
 
-  constexpr PinConfigurator(uint8_t letter, uint8_t bitnum, Dir dir,  Puller udfo, Slew slew=PinOptions::slow, unsigned int altcode=0) : PinOptions(dir, udfo,slew,  altcode), letter(letter), bitnum(bitnum) {
+  constexpr PinConfigurator(uint8_t letter, uint8_t bitnum, Dir dir,  Puller udfo, Slew slew=PinOptions::slow, unsigned int altcode=0) : PinOptions(dir, slew, udfo, altcode), letter(letter), bitnum(bitnum) {
     //#nada, we wish to statically construct with data, no function calling (constexpr)
   }
 
