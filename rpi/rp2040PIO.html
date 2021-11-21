@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title></title>
+    <title>RP2040 PIO</title>
     <meta name="author" content="Andy Heilveil (github/980f)">
   </head>
   <body>
@@ -27,9 +27,9 @@
       <li>an instruction register</li>
       <li>a loop bounds definition: when the PC equals the loop end (.wrap) then it gets loaded with the loop begin (.wrap_target) unless the executing instruction is a JMP that is taken.</li>
     </ol>
+    The shift registers have counters of the numbers of shifts, which are cleared by some move operations. The count is referenced by 'auto push/pull' and similar features.<br>
     <br>
     <h4> Document Notes</h4>
-    <br>
     In this document 'processor' is used in the singular although the RP2040 has two processors. Conflicts between two processors trying to interact with PIO state machines is invisible to the state machines.<br>
     An attempt has been made to use nomenclature from the Raspberry Pi Foundation literature, but some of their terms are too terse or idiosyncratic.<br>
     Most words in all CAPS are instruction mnemonics.<br>
@@ -62,7 +62,7 @@
     It has a cumulative shift count register and a configured length.<br>
     When executing an OUT instruction if the cumulative shift count is &gt;= the configured length then effectively a PULL instruction is executed in the same cycle.<br>
     A PULL instruction takes data from the TX fifo and puts it into the OSR, clearing the cumulative shift count.<br>
-    PULLing from an empty fifo without blocking resuts in the X register being copied into the OSR.<br>
+    PULLing from an empty fifo without blocking results in the X register being copied into the OSR.<br>
     <h4>Scratch Registers (X and Y)</h4>
     The scratch registers are storage or counters. <br>
     The counter ability is via the JMP instruction which can test each for zero with an optional decrement. They can also be compared to each other.<br>
@@ -84,7 +84,7 @@
     The SET sets them from the instruction register.<br>
     The MOV sets them from the lsbs of the OSR, ISR, either&nbsp; scratch register, the Input Field, or zeroes, in all cases optionally inverted or bit reversed (but not both at once)<br>
     <h4>Input Pins/Field</h4>
-    The IN,MOV, and WAIT instructions reference a subset of GPIO pins configured via a start and a count. The bits are contiguous. <br>
+    The IN, MOV, and WAIT instructions reference a subset of GPIO pins configured via a start and a count. The bits are contiguous. <br>
     The IN instruction appends the pins to the Input Shift Register.<br>
     The WAIT instruction spins until the pin selected via the opcode agrees with the level selected by the opcode.<br>
     The MOV instruction can write the pins into the Input Shift Register lsbs, msbs are zero. This is quite different than what the IN instruction does.<br>
@@ -94,7 +94,7 @@
     <strong><em> TBD</em></strong><br>
     <h4>Interrupts</h4>
     There appear to be 8 interrupt flags. <br>
-    They are set by the IRQ instruction and can be waited upon by that instruction, or the WAIT instruction, or indirectly tested via the status field being copied to a register which the JMP an then test.<br>
+    They are set by the IRQ instruction and can be waited upon by that instruction, or the WAIT instruction, or indirectly tested via the status field being copied to a register which the JMP can then test.<br>
     These are conditionally included in either or both of the interrupt signals sent to the processor.<br>
     <hr>
     <h3>Instruction details </h3>
@@ -110,29 +110,31 @@
     <br>
     <h4>Looping (aka wrap)</h4>
     A zero overhead loop is implemented by comparing the PC to the .wrap configuration register and when equal the next PC value is the .wraptarget register unless the instruction is a taken jump.<br>
+    Weirdness: One can share a chunk of code between two SM programs by setting the .wraptarget register to the return point of the SM unique code, the .wrap to the exit of the shared code, and then the unique code jmp's to the shared code start.<br>
     <br>
     <h4>JMP</h4>
     The JMP instruction selects a boolean and if true (in the case of the pin high) then the target field of the instruction is the next PC value. <br>
-    The X and Y instructions can optionally be decremented after being tested for zero. If they were zero then execution proceeds with the following instruction and the scratch register is all ones, aka negative one.<br>
+    The X and Y not zero tests can optionally decrement the register after|before? being tested for zero. If they were zero then execution proceeds with the following instruction and the scratch register is all ones, aka negative one.<br>
     The pin option references a configured GPIO pin, jumping if it is high. There is no option to invert it/ jump on low.<br>
-    The other booleans are X != Y, output shift register not empty.<br>
+    The other booleans are <code>X != Y</code>, and <code>output shift register not empty</code>.<br>
     There is also an unconditional jump.<br>
     <h4>WAIT</h4>
     WAIT selects a bit suppressing PC incrementing while that bit is not at the selected level. <br>
     The bit comes from:<br>
     <ol>
       <li>GPIO, one of 32 bits selected by the opcode.</li>
-      <li>The Output Field, opcode field added to Output Field origin to select a GPIO field.</li>
+      <li>The Output Field, opcode field added to Output Field origin to select a GPIO bit.</li>
       <li>Interrupt flags (it is probably a bad idea to use a bit that is configured to generate a processor interrupt)</li>
     </ol>
     <h4>OUT</h4>
     OUT picks a number of bits from the output shift register and delivers them to one of many destinations. See the Output Shift Register section for details.
     <h4>SET</h4>
-    SET puts an immediate value onto the output pins or the output enable pins, or the lsbs of the X or Y scratch register.<br>
+    SET puts an immediate value onto the output pins, the output enable of those pins, or the lsbs of the X or Y scratch register.<br>
     <br>
     <h4>IRQ</h4>
     IRQ sets or clears an interrupt.<br>
-    The interrupt affected is selected by the index field with the option to add the state machine's index to that field, module 4. This is done to allow a program to be shared by multiple SM's but for each to have its own unique interrupt.<br>
+    The interrupt affected is selected by the index field with the option to add the state machine's index to that field, modulo 4. <br>
+    This is done to allow a program to be shared by multiple SM's but for each to have its own unique interrupt.<br>
     If the interrupt is being set then one can optionally wait until it is cleared before proceeding.<br>
     <h4>IN </h4>
     <p>IN receives a number of bits into the input shift register from a number of sources. See the Input Shift Register section for details.</p>
@@ -151,6 +153,353 @@
     The destination includes the PC allowing you to do computed and indirect jumps, and you can also assemble an instruction in a scratch register then execute it using MOV.<br>
     The RPi manual has 'nop' instructions in examples that are not documented, they are probably MOV's with the source and destinations the same.<br>
     <br>
+    <hr><br>
+    Instruction decoder<br>
+    <br>
+    <table border="1">
+      <tbody>
+        <tr>
+          <td><br>
+          </td>
+          <td>15</td>
+          <td>14</td>
+          <td>13</td>
+          <td>12</td>
+          <td>11</td>
+          <td>10</td>
+          <td>9</td>
+          <td>8</td>
+          <td>7</td>
+          <td>6</td>
+          <td>5</td>
+          <td>4</td>
+          <td>3</td>
+          <td>2</td>
+          <td>1</td>
+          <td>0</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>JMP</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td rowspan="10" colspan="5" style="text-align: center; vertical-align: middle;">delay/side set</td>
+          <td rowspan="1" colspan="3">Condition</td>
+          <td rowspan="1" colspan="5">Address</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>WAIT</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>Polarity</td>
+          <td rowspan="1" colspan="2">Source</td>
+          <td rowspan="1" colspan="5">Index</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>IN</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td rowspan="1" colspan="3">Source</td>
+          <td rowspan="2" colspan="5">Bit Count<br>
+            0 == 32</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>OUT</td>
+          <td>0</td>
+          <td>1</td>
+          <td>1</td>
+          <td rowspan="1" colspan="3">Destination</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>PUSH</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>if full<br>
+          </td>
+          <td rowspan="2" colspan="1">Block</td>
+          <td rowspan="2" colspan="5">0</td>
+          <td>IF full is 1 Don't push unless the ISR has the configured number of bits for RX Fifo </td>
+        </tr>
+        <tr>
+          <td>PULL</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>if empty<br>
+          </td>
+          <td>If empty is 1 Don't pull unless the TX fifo has content</td>
+        </tr>
+        <tr>
+          <td>MOV</td>
+          <td>1</td>
+          <td>0</td>
+          <td>1</td>
+          <td colspan="3">Destination</td>
+          <td>Reverse</td>
+          <td>Invert</td>
+          <td rowspan="1" colspan="3">Source</td>
+          <td>Simultaneous reverse and invert not allowed (reserved)</td>
+        </tr>
+        <tr>
+          <td>IRQ clear</td>
+          <td>1</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>x</td>
+          <td rowspan="2" colspan="1">Modulo</td>
+          <td rowspan="2" colspan="4">Index</td>
+          <td>If Modulo is 1 then the state machine's own index is added to the Index field modulo 4. </td>
+        </tr>
+        <tr>
+          <td>IRQ set</td>
+          <td>1</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>Wait</td>
+          <td>Wait=1:&nbsp; set then wait for someone else to clear it.<br>
+            Delay not started until wait is completed.</td>
+        </tr>
+        <tr>
+          <td>SET</td>
+          <td>1</td>
+          <td>1</td>
+          <td>1</td>
+          <td rowspan="1" colspan="3">Destination</td>
+          <td rowspan="1" colspan="5">Data</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td><br>
+          </td>
+          <td>15</td>
+          <td>14</td>
+          <td>13</td>
+          <td>12</td>
+          <td>11</td>
+          <td>10</td>
+          <td>9</td>
+          <td>8</td>
+          <td>7</td>
+          <td>6</td>
+          <td>5</td>
+          <td>4</td>
+          <td>3</td>
+          <td>2</td>
+          <td>1</td>
+          <td>0</td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    Jmp conditions:<br>
+    <br>
+    <table border="1">
+      <tbody>
+        <tr>
+          <td>0</td>
+          <td><br>
+          </td>
+          <td>Always</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>!X</td>
+          <td>X is zero</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>X--</td>
+          <td>X not zero, post decrement</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>!Y</td>
+          <td>Y is zero</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Y--</td>
+          <td>Y not zero, post decrement</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>X!=Y</td>
+          <td>X not equal to Y</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Pin</td>
+          <td>pin, which and polarity are set in ???</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>!OSRE</td>
+          <td>output shift register not empty</td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <br>
+    <table border="1">
+      <tbody>
+        <tr>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td>IN/ MOV source</td>
+          <td><br>
+          </td>
+          <td>OUT, SET (when reasonable)</td>
+          <td><br>
+          </td>
+          <td>MOV dest</td>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>Pins</td>
+          <td>from defined input field</td>
+          <td>Pins</td>
+          <td>to defined output field<br>
+          </td>
+          <td>Pins</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>X</td>
+          <td>from the register</td>
+          <td>X</td>
+          <td>to the register<br>
+          </td>
+          <td>X</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Y</td>
+          <td><br>
+          </td>
+          <td>Y</td>
+          <td><br>
+          </td>
+          <td>Y</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>zeroes</td>
+          <td>all zeroes, good for zero padding while aligning a field</td>
+          <td>bit bucket</td>
+          <td>nowhere<br>
+          </td>
+          <td>reserved</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>reserved</td>
+          <td><br>
+          </td>
+          <td>PINDIRS</td>
+          <td>modifies physical direction of the output pins<br>
+          </td>
+          <td>EXEC</td>
+          <td>source is next instruction executed</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>STATUS</td>
+          <td>not used by IN, all zeros or all ones per configuration<br>
+          </td>
+          <td>PC</td>
+          <td>externally supplied jump<br>
+          </td>
+          <td>PC</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>ISR</td>
+          <td>???<br>
+          </td>
+          <td>ISR</td>
+          <td>loads ISR as if cleared first<br>
+          </td>
+          <td>ISR</td>
+          <td>ISR loaded but marked as empty, used for padding</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>OSR</td>
+          <td>???<br>
+          </td>
+          <td>EXEC</td>
+          <td>OSR content is next instruction executed.<br>
+          </td>
+          <td>OSR</td>
+          <td>OSR marked full</td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <br>
+    <br>
+    Wait sources:<br>
+    <table style="width: 100%" border="1">
+      <tbody>
+        <tr>
+          <td>0</td>
+          <td>GPIO</td>
+          <td>index is gpio pin number, ignores input field definition</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>PIN</td>
+          <td>index is into input field definition</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>IRQ</td>
+          <td>index is which IRQ flag, if MSB is set (there are 8 IRQ's) then add machine's own index to irq number modulo 4.<br>
+            Polarity 1 is wait for interrupt and clear flag when wait is ended.<br>
+            Polarity 0 is waiting for interrupt to be handled.</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>reserved</td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <br>
     <br>
     <hr><br>
