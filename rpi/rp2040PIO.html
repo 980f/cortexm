@@ -20,8 +20,8 @@
       <li>a fifo which feeds the output shift register</li>
       <li>a secondary output field definition which is used by the sideset feature</li>
       <li>an input field, a contiguous subset of GPIO pins</li>
-      <li>a shift register which is feed from the input field</li>
-      <li>a fifo which is feed from the input shift register</li>
+      <li>a shift register which is fed from the input field</li>
+      <li>a fifo which is fed from the input shift register</li>
       <li>two scratch registers, X and Y. The only difference between the two is that under special conditions X supplies data to the output shift register.</li>
       <li>a program counter</li>
       <li>an instruction register</li>
@@ -91,22 +91,22 @@
     The MOV instruction can write the pins to the lsbs of the X or Y register, the output shift register, or the output pin field.<br>
     The MOV instruction can also write the pins to the PC allowing for an externally determined next instruction, or even written to the Instruction Register allow you to execute instructions supplied by the pins!<br>
     <h4>Status Field</h4>
-    <strong><em> TBD</em></strong><br>
+    The MOV instruction can use as source data all zeroes or all ones according to a selected fill level of a selected fifo. One choose the fifo and how deep is interesting and polls that depth via MOV status =&gt; X, Y and then branch on whether that is not zero, branch taken if fifo is at or above the selected level.<br>
     <h4>Interrupts</h4>
     There appear to be 8 interrupt flags. <br>
-    They are set by the IRQ instruction and can be waited upon by that instruction, or the WAIT instruction, or indirectly tested via the status field being copied to a register which the JMP can then test.<br>
+    They are set by the IRQ instruction and can be waited upon by that instruction, or the WAIT instruction.<br>
     These are conditionally included in either or both of the interrupt signals sent to the processor.<br>
     <hr>
     <h3>Instruction details </h3>
     There are three operations that are part of every instruction type, sideset, delay, and loop.<br>
     There are nominally 9 opcodes: JMP, WAIT, OUT, SET, IN, MOV, PUSH, PULL, IRQ.<br>
     <h4>Sideset</h4>
-    Each instruction execution can modify a configured subset of output bits, independent of the OUT instructions field definition. The bit field is defined by configuration registers and the data is supplied by the instruction. The bit field width affects instruction interpretation, the delay feature shares a 5 bit opcode fields and is limited to using the bits that sideset does not.<br>
-    The sideset data can be configured so that the msb is a "set enable" IE makes the set conditional. If not then the designated bits are set from the opcode for every instruction executed.<br>
+    Each instruction execution can modify a configured subset of output bits, independent of the OUT instructions field definition. The bit field is defined by configuration registers and the data is supplied by the instruction. The bit field width affects instruction interpretation, the delay feature shares a 5 bit opcode field and is limited to using the bits that sideset does not.<br>
+    The sideset data can be configured so that the msb is a "set enable" IE makes the set conditional. If not then the designated bits are set from the opcode for every instruction executed. Typical use is the SPI data clock.<br>
     <br>
     <h4>Delay count</h4>
     Each instruction can after its execution but before the next kill some time. It is configurable whether the sideset operation is repeated during these killed cycles.<br>
-    The number of cycles is in the instruction, with the number of bits available being those left over from configuring sideset.<br>
+    The number of cycles is in the instruction, with the number of bits available being those left over from configuring sideset. Typical use is to trim an SPI clock or provide setup and hold times for it.<br>
     <br>
     <h4>Looping (aka wrap)</h4>
     A zero overhead loop is implemented by comparing the PC to the .wrap configuration register and when equal the next PC value is the .wraptarget register unless the instruction is a taken jump.<br>
@@ -114,7 +114,7 @@
     <br>
     <h4>JMP</h4>
     The JMP instruction selects a boolean and if true (in the case of the pin high) then the target field of the instruction is the next PC value. <br>
-    The X and Y not zero tests can optionally decrement the register after|before? being tested for zero. If they were zero then execution proceeds with the following instruction and the scratch register is all ones, aka negative one.<br>
+    The X and Y not zero tests can optionally decrement the register after being tested for zero. If they were zero then execution proceeds with the following instruction and the scratch register is all ones, aka negative one.<br>
     The pin option references a configured GPIO pin, jumping if it is high. There is no option to invert it/ jump on low.<br>
     The other booleans are <code>X != Y</code>, and <code>output shift register not empty</code>.<br>
     There is also an unconditional jump.<br>
@@ -123,7 +123,7 @@
     The bit comes from:<br>
     <ol>
       <li>GPIO, one of 32 bits selected by the opcode.</li>
-      <li>The Output Field, opcode field added to Output Field origin to select a GPIO bit.</li>
+      <li>The Input Field, opcode field added to Input Field origin to select a GPIO bit.</li>
       <li>Interrupt flags (it is probably a bad idea to use a bit that is configured to generate a processor interrupt)</li>
     </ol>
     <h4>OUT</h4>
@@ -153,9 +153,9 @@
     The destination includes the PC allowing you to do computed and indirect jumps, and you can also assemble an instruction in a scratch register then execute it using MOV.<br>
     The RPi manual has 'nop' instructions in examples that are not documented, they are probably MOV's with the source and destinations the same.<br>
     <br>
-    <hr><br>
-    Instruction decoder<br>
-    <br>
+    <hr>
+    <h3>Instruction decoder </h3>
+    <h3> </h3>
     <table border="1">
       <tbody>
         <tr>
@@ -185,22 +185,49 @@
           <td>0</td>
           <td>0</td>
           <td>0</td>
-          <td rowspan="10" colspan="5" style="text-align: center; vertical-align: middle;">delay/side set</td>
+          <td rowspan="14" colspan="5" style="text-align: center; vertical-align: middle;">delay/side set</td>
           <td rowspan="1" colspan="3">Condition</td>
           <td rowspan="1" colspan="5">Address</td>
           <td><br>
           </td>
         </tr>
         <tr>
-          <td>WAIT</td>
-          <td>0</td>
-          <td>0</td>
-          <td>1</td>
+          <td rowspan="5" colspan="1">WAIT</td>
+          <td rowspan="5" colspan="1">0</td>
+          <td rowspan="5" colspan="1">0</td>
+          <td rowspan="5" colspan="1">1</td>
           <td>Polarity</td>
           <td rowspan="1" colspan="2">Source</td>
           <td rowspan="1" colspan="5">Index</td>
           <td><br>
           </td>
+        </tr>
+        <tr>
+          <td rowspan="2" colspan="1">level to wait for</td>
+          <td rowspan="2" colspan="1">0</td>
+          <td>0</td>
+          <td rowspan="1" colspan="5">gpio bit number</td>
+          <td>picks a gpio pin</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td rowspan="1" colspan="5">input field bit number</td>
+          <td>gpio pin is given value + base of input field definition</td>
+        </tr>
+        <tr>
+          <td rowspan="2" colspan="1">0=wait for handled<br>
+            1=wait for occurs and clears it.</td>
+          <td rowspan="2" colspan="1">1</td>
+          <td rowspan="2" colspan="1">0</td>
+          <td>0</td>
+          <td style="background-color: #cccccc;" rowspan="2" colspan="1"><br>
+          </td>
+          <td rowspan="2" colspan="3">irq number</td>
+          <td>use irq number as given</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>add machine's index to given irq number modulo 4 (number of machines)</td>
         </tr>
         <tr>
           <td>IN</td>
@@ -231,8 +258,9 @@
           <td>if full<br>
           </td>
           <td rowspan="2" colspan="1">Block</td>
-          <td rowspan="2" colspan="5">0</td>
-          <td>IF full is 1 Don't push unless the ISR has the configured number of bits for RX Fifo </td>
+          <td rowspan="2" colspan="5" style="background-color: #cccccc;"><br>
+          </td>
+          <td>If full is 1 Don't push unless the ISR has the configured number of bits for RX Fifo </td>
         </tr>
         <tr>
           <td>PULL</td>
@@ -262,10 +290,13 @@
           <td>0</td>
           <td>0</td>
           <td>0</td>
-          <td>x</td>
-          <td rowspan="2" colspan="1">Modulo</td>
-          <td rowspan="2" colspan="4">Index</td>
-          <td>If Modulo is 1 then the state machine's own index is added to the Index field modulo 4. </td>
+          <td style="background-color: #cccccc;"><br>
+          </td>
+          <td rowspan="2" colspan="5">Modulo-Index<br>
+            <br>
+            (See WAIT Source = 10)</td>
+          <td><br>
+          </td>
         </tr>
         <tr>
           <td>IRQ set</td>
@@ -351,7 +382,7 @@
         <tr>
           <td>6</td>
           <td>Pin</td>
-          <td>pin, which and polarity are set in ???</td>
+          <td>pin, selected in execctrl register, apparently jump if 1?</td>
         </tr>
         <tr>
           <td>7</td>
@@ -367,15 +398,9 @@
         <tr>
           <td><br>
           </td>
-          <td><br>
-          </td>
-          <td>IN/ MOV source</td>
-          <td><br>
-          </td>
-          <td>OUT, SET (when reasonable)</td>
-          <td><br>
-          </td>
-          <td>MOV dest</td>
+          <td rowspan="1" colspan="2" style="text-align: center; background-color: white;">IN/ MOV source</td>
+          <td rowspan="1" colspan="2" style="text-align: center; background-color: white;">OUT, SET (when reasonable)</td>
+          <td rowspan="1" colspan="2" style="text-align: center; background-color: white;">MOV dest</td>
         </tr>
         <tr>
           <td>0</td>
@@ -391,25 +416,22 @@
         <tr>
           <td>1</td>
           <td>X</td>
-          <td>from the register</td>
-          <td>X</td>
-          <td>to the register<br>
+          <td rowspan="2" colspan="1">from the register<br>
           </td>
           <td>X</td>
-          <td><br>
+          <td rowspan="2" colspan="1">to the register<br>
+            <br>
+          </td>
+          <td>X</td>
+          <td rowspan="2" colspan="1"><br>
+            <br>
           </td>
         </tr>
         <tr>
           <td>2</td>
           <td>Y</td>
-          <td><br>
-          </td>
           <td>Y</td>
-          <td><br>
-          </td>
           <td>Y</td>
-          <td><br>
-          </td>
         </tr>
         <tr>
           <td>3</td>
@@ -418,15 +440,15 @@
           <td>bit bucket</td>
           <td>nowhere<br>
           </td>
-          <td>reserved</td>
           <td><br>
           </td>
+          <td>reserved </td>
         </tr>
         <tr>
           <td>4</td>
-          <td>reserved</td>
           <td><br>
           </td>
+          <td>reserved </td>
           <td>PINDIRS</td>
           <td>modifies physical direction of the output pins<br>
           </td>
@@ -436,14 +458,14 @@
         <tr>
           <td>5</td>
           <td>STATUS</td>
-          <td>not used by IN, all zeros or all ones per configuration<br>
+          <td>not used by IN, <br>
+            all zeros or all ones per configuration of which fifo and what level is interesting<br>
           </td>
           <td>PC</td>
-          <td>externally supplied jump<br>
+          <td>computed/supplied jump<br>
           </td>
           <td>PC</td>
-          <td><br>
-          </td>
+          <td>computed/supplied jump </td>
         </tr>
         <tr>
           <td>6</td>
@@ -483,7 +505,7 @@
         <tr>
           <td>1</td>
           <td>PIN</td>
-          <td>index is into input field definition</td>
+          <td>index is into input field definition (add instruction's argument to input field definition's base)</td>
         </tr>
         <tr>
           <td>2</td>
@@ -494,9 +516,9 @@
         </tr>
         <tr>
           <td>3</td>
-          <td>reserved</td>
           <td><br>
           </td>
+          <td>reserved </td>
         </tr>
       </tbody>
     </table>
