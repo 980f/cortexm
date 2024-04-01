@@ -199,11 +199,11 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  constexpr explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true) : LogicalPin(pin, active) {
+  explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true) : LogicalPin(pin, active) {
     pin.DI(UDF);
   }
   /** pull the opposite way of the 'active' level. */
-  constexpr explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? 'D' : 'U', active) {
+  explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? 'D' : 'U', active) {
     //#nada
   }
 
@@ -216,7 +216,7 @@ Note that these objects can be const while still manipulating the pin.
 */
 class OutputPin : public LogicalPin {
 public:
-  constexpr OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
+  OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
     LogicalPin(pin, active) {
     pin.DO(slew, openDrain);
   }
