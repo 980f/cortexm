@@ -22,7 +22,7 @@
   * we can't simply make a struct that represents the hardware register content.
   */
 
-typedef u16 *TIMER_DCB;
+using TIMER_DCB = volatile uint16_t *;
 
 struct CC_BAND {
   unsigned int mode[2]; //determines meaning of fields that follow
@@ -137,23 +137,22 @@ struct TIMER_BAND {
 
 };
 
-#include "debugger.h"
 
 struct Timer {
-  TIMER_BAND *b;
-  TIMER_DCB dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
+  int luno; //handy for debug, and pin setter routine
   APBdevice apb;
   Irq irq;
-  int luno; //handy for debug, and pin setter routine
+  volatile TIMER_BAND &b;
+  volatile TIMER_DCB &dcb; //access as dcb[databook's offset/2] (beware hex vs decimal)
 
-  bool isAdvanced(void) const {
+  bool isAdvanced() const {
     return luno == 1 || luno == 8;
   }
 
   Timer(int stLuno);
   /** input to timer's 16 bit counter in integer Hz,
     * appears to truncate rather than round.*/
-  u32 baseRate(void) const;
+  u32 baseRate() const;
 
   /**sets the prescalar to generate the given hz.*/
   void setPrescaleFor(double hz) const;
@@ -173,7 +172,7 @@ struct Timer {
 
   /**most uses will have to turn on some of the interrupts before calling this function.*/
   virtual void beRunning(bool on = true) const {
-    b->enabled = on;
+    b.enabled = on;
   }
 
   inline void clearEvents(void) const {
@@ -189,14 +188,14 @@ struct Timer {
 
   /**clear the counter and any flags then enable counting*/
   inline void startRunning(void) const {
-    b->enabled = 0; //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
+    b.enabled = 0; //to ensure events are honored on very short counts when interrupted between clearing counts and clearing events.
     *counter() = 0;
     clearEvents();
     beRunning(true);
   }
 
   inline void UIE(bool on) const {
-    b->updateIE = on;
+    b.updateIE = on;
   }
 
   inline void Interrupts(bool on){
@@ -208,6 +207,7 @@ struct Timer {
   }
 };
 
+#include "gpio.h" //for Pin
 struct CCUnit {
   const Timer&timer;
   int zluno;
@@ -216,23 +216,23 @@ struct CCUnit {
   /** set the mode of this capture compare unit */
   void setmode(u8 cc) const;
 
-  inline bool happened(void) const {
-    return timer.b->ccHappened[zluno];
+  bool happened() const {
+    return timer.b.ccHappened[zluno];
   }
 
-  inline void clear(void) const {
-    timer.b->ccHappened[zluno] = 0;
+  void clear() const {
+    timer.b.ccHappened[zluno] = 0;
   }
 
-  inline void IE(bool on) const {
-    timer.b->ccIE[zluno] = on;
+  void IE(bool on) const {
+    timer.b.ccIE[zluno] = on;
   }
 
-  inline CCER& ccer(void) const {
-    return timer.b->ccer[zluno];
+  volatile CCER& ccer() const {
+    return timer.b.ccer[zluno];
   }
 
-  int saturateTicks(int ticks) const { //todo:M replace with inline use of minimath::saturate
+  unsigned saturateTicks(int ticks) const { //todo:M replace with inline use of minimath::saturate
     if(ticks < 0) {
       return 0;
     } else if(ticks > 65535) {
@@ -241,23 +241,23 @@ struct CCUnit {
     return ticks;
   }
 private:
-  inline u16 *ticker(void) const {
+  volatile u16 *ticker() const {
     return &timer.dcb[2 * zluno + 26];
   }
 public:
   /** unguarded tick setting, see saturateTicks() for when you can't prove your value will be legal.*/
-  inline void setTicks(int ticks) const {
+  void setTicks(int ticks) const {
     *ticker() = ticks;
   }
 
-  inline u16 getTicks(void) const {
+  u16 getTicks() const {
     return *ticker();
   }
 
   /** @return physical pin configuration object for this unit*/
   Pin pin(unsigned alt = 0, bool complementaryOutput = false) const;
   //some cc units have complementary outputs:
-  bool amDual(void) const;
+  bool amDual() const;
   //set polarity
   //force on or off using cc config rather than gpio.
   //if timer is #1 or #8 then there are more bits:
@@ -312,23 +312,23 @@ struct PulseCounter : public Timer {
 
 
   /** to be called from the timer's isr*/
-  void isr(void){
+  void isr(){
     clearEvents(); //kill all possible interrupts, in case we accidentally enable unexpected ones.
     count += 1 << 16; //or add in the reload value if we don't do a binary divide (ARR register not FFFF).
   }
 
   /**use this to continue after having been paused with stop, can't call it continue as that is a keyword :)*/
-  void proceed(void) const {
+  void proceed() const {
     clearEvents();
     beRunning(1);
   }
 
-  void start(void){
+  void start(){
     count = 0;
     startRunning();
   }
 
-  void stop(void){
+  void stop(){
     beRunning(0);
     count += *counter();
   }

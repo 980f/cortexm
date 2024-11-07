@@ -3,7 +3,7 @@
 #include "lpcperipheral.h"
 
 #include "wdt.h"
-#include "bitbanger.h"
+#include "bitbasher.h"
 #include "minimath.h" //multiply divide
 
 //LPC common IR frequency

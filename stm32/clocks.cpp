@@ -8,87 +8,87 @@
 #define HSI_Hz 8000000
 
 struct ClockControl {
-  unsigned int HSIon : 1;
-  volatile unsigned int HSIRDY : 1;
-  unsigned int : 1;
-  unsigned int HSITrim : 5;
-  unsigned int HSICal : 8;
-  unsigned int HSEon : 1;
-  volatile unsigned int HSErdy : 1;
-  unsigned int HSEBypass : 1;
-  unsigned int CSSon : 1;
-  unsigned int : 4;
-  unsigned int PLLon : 1;
-  volatile unsigned int PLLrdy : 1;
-  unsigned int : 32 - 26;
+  unsigned HSIon : 1;
+  volatile unsigned HSIRDY : 1;
+  unsigned : 1;
+  unsigned HSITrim : 5;
+  unsigned HSICal : 8;
+  unsigned HSEon : 1;
+  volatile unsigned HSErdy : 1;
+  unsigned HSEBypass : 1;
+  unsigned CSSon : 1;
+  unsigned : 4;
+  unsigned PLLon : 1;
+  volatile unsigned PLLrdy : 1;
+  unsigned : 32 - 26;
 
-  unsigned int SWdesired : 2;
-  volatile unsigned int SWactual : 2;
-  unsigned int ahbPrescale : 4;
-  unsigned int apb1Prescale : 3; //36MHz max
-  unsigned int apb2Prescale : 3;
-  unsigned int adcPrescale : 2;
-  unsigned int PLLsource : 1;
-  unsigned int PLLExternalPRE : 1;
-  unsigned int pllMultiplier : 4;
-  unsigned int USBPrescale : 1;
-  unsigned int : 1;
-  unsigned int MCOselection : 3;
-  unsigned int : 32 - 27;
+  unsigned SWdesired : 2;
+  volatile unsigned SWactual : 2;
+  unsigned ahbPrescale : 4;
+  unsigned apb1Prescale : 3; //36MHz max
+  unsigned apb2Prescale : 3;
+  unsigned adcPrescale : 2;
+  unsigned PLLsource : 1;
+  unsigned PLLExternalPRE : 1;
+  unsigned pllMultiplier : 4;
+  unsigned USBPrescale : 1;
+  unsigned : 1;
+  unsigned MCOselection : 3;
+  unsigned : 32 - 27;
 
-  volatile unsigned int lsiReady : 1;
-  volatile unsigned int lseReady : 1;
-  volatile unsigned int hsiReady : 1;
-  volatile unsigned int hseReady : 1;
-  volatile unsigned int pllReady : 1;
-  unsigned int : 2;
-  volatile unsigned int cssFaulted : 1;
+  volatile unsigned lsiReady : 1;
+  volatile unsigned lseReady : 1;
+  volatile unsigned hsiReady : 1;
+  volatile unsigned hseReady : 1;
+  volatile unsigned pllReady : 1;
+  unsigned : 2;
+  volatile unsigned cssFaulted : 1;
 
-  unsigned int lsiIE : 1;
-  unsigned int lseIE : 1;
-  unsigned int hsiIE : 1;
-  unsigned int hseIE : 1;
-  unsigned int pllIE : 1;
-  unsigned int : 3;
+  unsigned lsiIE : 1;
+  unsigned lseIE : 1;
+  unsigned hsiIE : 1;
+  unsigned hseIE : 1;
+  unsigned pllIE : 1;
+  unsigned : 3;
 
-  unsigned int lsiClear : 1;
-  unsigned int lseClear : 1;
-  unsigned int hsiClear : 1;
-  unsigned int hseClear : 1;
-  unsigned int pllClear : 1;
-  unsigned int : 2;
-  unsigned int cssClear : 1;
-  unsigned int : 32 - 24;
+  unsigned lsiClear : 1;
+  unsigned lseClear : 1;
+  unsigned hsiClear : 1;
+  unsigned hseClear : 1;
+  unsigned pllClear : 1;
+  unsigned : 2;
+  unsigned cssClear : 1;
+  unsigned : 32 - 24;
 
-  unsigned int apb2Resets; //accessed formulaically
-  unsigned int apb1Resets; //accessed formulaically
+  unsigned apb2Resets; //accessed formulaically
+  unsigned apb1Resets; //accessed formulaically
 
-  unsigned int ahbClocks; //accessed formulaically
+  unsigned ahbClocks; //accessed formulaically
 
-  unsigned int apb2Clocks; //accessed formulaically
-  unsigned int apb1Clocks; //accessed formulaically
+  unsigned apb2Clocks; //accessed formulaically
+  unsigned apb1Clocks; //accessed formulaically
 
-  unsigned int LSEon : 1; //32kHz crystal driver
-  volatile unsigned int LSErdy : 1;
-  unsigned int LSEbypass : 1;
-  unsigned int : 5;
-  unsigned int RTCsource : 2;
-  unsigned int : 5;
-  unsigned int RTCenable : 1;
-  unsigned int BDreset : 1; //reset all battery powered stuff
-  unsigned int : 32 - 17;
+  unsigned LSEon : 1; //32kHz crystal driver
+  volatile unsigned LSErdy : 1;
+  unsigned LSEbypass : 1;
+  unsigned : 5;
+  unsigned RTCsource : 2;
+  unsigned : 5;
+  unsigned RTCenable : 1;
+  unsigned BDreset : 1; //reset all battery powered stuff
+  unsigned : 32 - 17;
 
-  unsigned int LSIon : 1;
-  volatile unsigned int LSIrdy : 1;
-  unsigned int : 24 - 2;
-  unsigned int ResetOccuredFlags : 1; //write a 1 to clear all the other flags
-  unsigned int : 1;
-  volatile unsigned int PINresetOccured : 1; //the actual reset pin
-  volatile unsigned int PORresetOccured : 1;
-  volatile unsigned int SoftResetOccured : 1;
-  volatile unsigned int IwatchdogResetOccured : 1;
-  volatile unsigned int WwatchdogResetOccured : 1;
-  volatile unsigned int LowPowerResetOccured : 1;
+  unsigned LSIon : 1;
+  volatile unsigned LSIrdy : 1;
+  unsigned : 24 - 2;
+  unsigned ResetOccuredFlags : 1; //write a 1 to clear all the other flags
+  unsigned : 1;
+  volatile unsigned PINresetOccured : 1; //the actual reset pin
+  volatile unsigned PORresetOccured : 1;
+  volatile unsigned SoftResetOccured : 1;
+  volatile unsigned IwatchdogResetOccured : 1;
+  volatile unsigned WwatchdogResetOccured : 1;
+  volatile unsigned LowPowerResetOccured : 1;
 
   /**set all clocks for their fastest possible, given the reference source of internal 8MHz else external RefOsc.
   * todo:M check hardware identification registers to determine max speeds.
@@ -140,7 +140,7 @@ struct ClockControl {
     }
   }
 
-  u32 sysClock(unsigned int SWcode){
+  u32 sysClock(unsigned SWcode){
     switch(SWcode) {
     case 0: return HSI_Hz ; //HSI
     case 1: return EXTERNAL_HERTZ;  //HSE, might be 0 if there is none
@@ -149,11 +149,11 @@ struct ClockControl {
     return 0; //defective call argument
   }
 
-  u32 clockRate(unsigned int bus){
+  u32 clockRate(unsigned bus){
     u32 rate = sysClock(SWactual);
 
     switch(bus) {
-    case - 1: return rate;
+    case ~0U: return rate;
     case 0: return rate >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));
     case 1: return rate >> (apb1Prescale >= 4 ? (apb1Prescale - 3) : 0);
     case 2: return rate >> (apb2Prescale >= 4 ? (apb2Prescale - 3) : 0);
@@ -173,12 +173,12 @@ void warp9(bool internal){
   theClockControl.maxit(internal);
 }
 
-u32 clockRate(unsigned int bus){
+u32 clockRate(unsigned bus){
   return theClockControl.clockRate(bus);
 }
 
 /** stm32 has a feature to post its own clock on a pin, for reference or use by other devices. */
-void setMCO(unsigned int mode){
+void setMCO(unsigned mode){
   Pin MCO(PA, 8); //depends on mcu family ...
 
   if(mode >= 4) { //bit 2 is 'enable'

@@ -1,7 +1,14 @@
 #include "core-atomic.h"
 
-/** cortex M atomic operations */
-#if __linux__
+
+#if __has_include(<atomic>)
+#include <atomic>  //todo:1 actually use it rather than our own cortexm3.s file.
+#endif
+
+/** cortex M atomic operations
+ * todo:1 see if compiler vintage includes atomic.h
+ */
+#if __linux__  //fake the asm routines to get a link on PC platform,
 bool atomic_increment(unsigned &alignedDatum){
   ++alignedDatum;
   return false;

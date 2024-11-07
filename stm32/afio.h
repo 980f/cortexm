@@ -51,11 +51,13 @@ public:
   volatile AfioBand &b;
   Shadowed<AfioRemap,u32> remap;
 public:
-  AfioManager(void);
+  AfioManager();
   /* make @param pin 's port the source for the pin's bitnumber's event, blowing off any previous selection for this exti channel */
   void selectEvent(const Pin &pin);
 };
 
 /** there can be only one, might as well publish it */
-extern AfioManager theAfioManager;
+extern AfioManager theAfioManager; //just before ports and pins
+
+// extern AfioManager theAfioManager;
 

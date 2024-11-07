@@ -1,7 +1,6 @@
 #ifndef COREATOMIC_H
 #define COREATOMIC_H
 
-
 /** @return whether the alignedDatum FAILED to increment.
  * The most common reason for a failure would be that an interrupt occurred during the operation.
 If you are sure the cause of failure isn't permanent then: do{}while(atomic_increment(arg));

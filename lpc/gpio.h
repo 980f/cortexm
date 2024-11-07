@@ -3,7 +3,7 @@
 #include "lpcperipheral.h"
 #include "cheaptricks.h"
 #include "boolish.h"
-#include "bitbanger.h"
+#include "bitbasher.h"
 
 /** the ports are numbered from 0. Making them unsigned gives us a quick bounds check via a single compare*/
 typedef u8 PortNumber;

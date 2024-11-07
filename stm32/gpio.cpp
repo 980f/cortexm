@@ -1,14 +1,13 @@
 #include "gpio.h"
 #include "peripheral.h" //deprecated bandFor
-#include "bitbanger.h"
+#include "bitbasher.h"
 // priority must be such that these get created before any application objects.
-
-const Port PA InitStep(InitHardware) ('A');
-const Port PB InitStep(InitHardware) ('B');
-const Port PC InitStep(InitHardware) ('C');
-const Port PD InitStep(InitHardware) ('D');
-const Port PE InitStep(InitHardware) ('E');
-// todo:3 use device define to add ports up to G.
+// cannow init in .h file
+// const Port PA InitStep(InitHardware) ('A');
+// const Port PB InitStep(InitHardware) ('B');
+// const Port PC InitStep(InitHardware) ('C');
+// const Port PD InitStep(InitHardware) ('D');
+// const Port PE InitStep(InitHardware) ('E');
 
 
 Port::Field::Field(unsigned pincode, const Port &port, unsigned lsb, unsigned msb):
@@ -66,14 +65,14 @@ const Pin &Pin::AI() const {
 }
 
 volatile u32 &Pin::DI(char UDF) const { // default Down as that is what meters will do.
-  writer() = bit(UDF, 0); // ODR determines whether a pullup else a pulldown is connected ... this takes advantage of the ascii codes for U and D differing in the lsb.
+  writer() = bitFrom(UDF, 0); // ODR determines whether a pullup else a pulldown is connected ... this takes advantage of the ascii codes for U and D differing in the lsb.
   // NB: if the pin is already an output then the above line pulses current into it a moment before the next line turns off the driver. This is typically a good thing.
   configureAs((UDF == 'F') ? 4 : 8); // ... this determines if the pin actually gets pulled.
   return reader();
 }
 
 volatile u32 &Pin::highDriver() const { // volatile to prevent removal by optimizer
-  volatile u32 *confword = port.registerAddress((bitnum >= 8) ? 4 : 0);
+  auto confword = port.registerAddress((bitnum >= 8) ? 4 : 0);
   int bitoff = (bitnum & 7) * 4 + 2;
 
   return *bandAddress(confword, bitoff);

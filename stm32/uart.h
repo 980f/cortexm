@@ -150,13 +150,12 @@ struct UartBand {
 };
 
 struct Uart:public APBdevice {
-  volatile UartBand &b;
-  volatile USART_DCB &dcb;
+  const unsigned zluno;   //zluno is ST's nomenclature -1
+  UartBand &b;
+  USART_DCB &dcb;
 
   Irq irq;
-  unsigned int zluno;
   unsigned int altpins;
-  //zluno is ST's nomenclature -1
   Uart(unsigned int zluno, unsigned int alt = 0);
 
   /** we default the handshakes to "not used" as they are nearly useless, as well as having atrociously wrong names.*/

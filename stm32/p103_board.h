@@ -7,6 +7,9 @@
 
 /**
 olimex/iar stm32-P103 board devices
+usart2 is on 9 pin D
+usart1 is on ext connector
+
 */
 struct P103_board {
   Pin ledPin;
@@ -21,5 +24,7 @@ struct P103_board {
   /** toggle it so that we see activity without having to externally track its state */
   void toggleLed();
 };
+
+const unsigned EXTERNAL_HERTZ=8000000;
 
 #endif // P103_BOARD_H

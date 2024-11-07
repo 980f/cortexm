@@ -83,8 +83,8 @@ void Uart::init(unsigned int baud, char parityNEO, unsigned int numbits){
 
 //uart0 is on bus2, others on bus 1    slot is 14 for uart0  16+luno for others
 Uart::Uart(unsigned int zluno, unsigned int alt): APBdevice(zluno ? 1: 2, zluno ? (zluno + 16): 14),
-  b  (*reinterpret_cast <volatile UartBand *> (bandAddress)),
-  dcb (*reinterpret_cast <volatile USART_DCB *> (blockAddress)),
+  b  (*reinterpret_cast < UartBand *> (bandAddress)),
+  dcb (*reinterpret_cast < USART_DCB *> (blockAddress)),
   irq((zluno < 3 ? 37: 49) + zluno),
   zluno(zluno),
   altpins(alt){

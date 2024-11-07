@@ -9,7 +9,10 @@
 This replaces a 3-clock operation that is susceptible to interruption into a one clock operation that is not. That is important if an ISR is modifying the same control word as main thread code.
 */
 
-inline constexpr u32 bandShift(u32 byteOffset){
+constexpr u32 bandShift(u32 *byteOffset){
+  return reinterpret_cast<u32>(byteOffset)<<5;
+}
+constexpr u32 bandShift(u32 byteOffset){
   return byteOffset<<5;
 }
 
@@ -36,8 +39,8 @@ constexpr volatile unsigned *bandFor(unsigned byteAddress, unsigned bitnum = 0){
 /** @return bitband address for given bit (default 0) of @param byte address.
 this assumes that the byte address ends in 00, which all of the ones in the st manual do.
 */
-constexpr volatile unsigned *bandAddress(unsigned * byteAddress, unsigned bitnum = 0){
-  return bandFor(unsigned(byteAddress),bitnum);
+constexpr volatile unsigned *bandAddress(unsigned byteAddress, unsigned bitnum = 0){
+  return bandFor(byteAddress,bitnum);
 }
 
 const unsigned PeripheralBand(0x42000000);

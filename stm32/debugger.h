@@ -1,5 +1,8 @@
 #pragma once
-/** the processor's debug hardware controls*/
+/** the processor's debug hardware controls
+ * At the moment only F103's content is here, need to do an ifdef switch on processor define.
+ *
+ */
 
 //#include "stm32.h"
 

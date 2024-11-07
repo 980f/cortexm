@@ -1,7 +1,7 @@
 #pragma once
 
 #include "eztypes.h"
-#include "bitbanger.h"
+#include "bitbasher.h"
 #include "boolish.h"
 
 /**

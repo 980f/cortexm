@@ -20,16 +20,16 @@ struct APBdevice {
   const u8 bus2; //boolean, packed
   const u8 slot; //max 32 items (value is 0..31)
   /** base device address @see registerAddress() for multibit control */
-  volatile u32 * const blockAddress;
+  u32  blockAddress;
   /** base bit band address. @see bit() to access a single bit control */
-  volatile u32 * const bandAddress;
+  u32  bandAddress;
   /** base used for calculating this devices bits in RCC device. */
-  volatile u32 * const rccBitter;
+  u32  const rccBitter;
 
 protected:
   /** @return bit address given the register address of the apb2 group*/
   inline volatile u32 &rccBit(unsigned basereg) const {
-    return atAddress(u32(rccBitter)| bandShift(basereg));
+    return *atAddress(u32(rccBitter)| bandShift(basereg));
   }
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
   APBdevice(const APBdevice &other)=default;
@@ -49,11 +49,11 @@ public:
   u32 getClockRate(void) const;
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
   volatile u32 *registerAddress(unsigned int offset) const {
-    return &blockAddress[offset>>2]; //compiler sees offset as an array index .
+    return & reinterpret_cast<u32 *>( blockAddress)[offset>>2]; //compiler sees offset as an array index .
   }
   /** @returns bit band address of bit of a register, @param offset is value from st's manual (byte address) */
   volatile u32 &bit(unsigned offset, unsigned bit)const{
-    volatile u32 &bitter(bandAddress[(offset<<3)+bit]);//compiler adds another shift of 2 places, ie the 3 is bandShift's 5 minus 2 that the compiler imputes.
+    volatile u32 &bitter(reinterpret_cast<u32 *>(bandAddress)[(offset<<(5-2))+bit]);//compiler adds another shift of 2 places, bandShift requires 5
     return bitter;
   }
 };

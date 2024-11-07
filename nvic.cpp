@@ -119,7 +119,7 @@ void configurePriorityGrouping(int code){
 
 extern "C" { // to keep names simple for "alias" processor
   void unhandledFault(void){
-    register int num = theInterruptController.active;
+    const int num = theInterruptController.active;
 
     if(num >= 4) {
       theInterruptController.priority[num - 4] = 0xFF; // lower them as much as possible
@@ -217,7 +217,7 @@ Handler FaultTable[] __attribute__((section(".vectors.2"))) = {//0 is stack top,
 #define stub(irq) void IRQ ## irq(void) __attribute__((weak, alias("unhandledInterruptHandler")))
 
 //if the following table doesn't exist use mkIrqs to build it for your processor
-#include "../nvicTable.link" //table in parent directory as it is project specific. 
+#include "nvicTable.link" //only one of these should be in your path
 //I've named the above .link as I am prebuilding tables for various processors and using a soft link to pick one.
 
 
@@ -233,12 +233,7 @@ void generateHardReset(){
 }
 
 
-#ifdef __linux__ //just compiling for syntax checking
-bool IRQEN;
-#else
-//shared instances need this treatment.
-const CPSI_i IRQEN;
-#endif
+
 
 ///* ##########################   NVIC functions  #################################### */
 ///** \ingroup  CMSIS_Core_FunctionInterface

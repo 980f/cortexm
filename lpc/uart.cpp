@@ -5,7 +5,7 @@
 #include "gpio.h" // to gain control of pins
 #include "clocks.h"
 #include "minimath.h" // checked divide
-#include "bitbanger.h" // for BitField
+#include "bitbasher.h" // for BitField
 #include "nvic.h"  // for isr
 
 const Irq<uartIrq> uirq;

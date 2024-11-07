@@ -42,61 +42,60 @@ constexpr unsigned bitFor(unsigned number){
 }
 
 /** Controls for an irq, which involves bit picking in a block of 32 bit registers */
-template <unsigned number> class Irq {
+class Irq {
 public:
-  enum {
+  const unsigned number;
     /** which member of group of 32 this is */
-    bit=bitFor(number),
+    const unsigned bit;
     /** memory offset for which group of 32 this is in */
-    bias=biasFor(number),
+    const unsigned bias;
     /** bit pattern to go with @see bit index, for anding or oring into 32 bit grouped registers blah blah.*/
-    mask=bitMask(bit)
-  };
+    const unsigned mask;
 
 protected:
-
   /** @returns reference to word related to the feature. */
-  inline constexpr unsigned &controlWord(unsigned grup)const{
+  constexpr volatile unsigned &controlWord(unsigned grup)const{
     return *atAddress(grup | bias);
   }
 
   /** this is for the registers where you write a 1 to a bit to make something happen. */
-  inline void strobe(unsigned grup)const{
+  void strobe(unsigned grup)const{
     controlWord(grup) = mask;
   }
 
 public:
+  Irq(const unsigned number):number(number),bit(bitFor(number)),bias(biasFor(number)),mask(bitMask(bit)){}
 
-  bool irqflag(unsigned grup)const{
+  bool irqflag(const unsigned grup) const {
     return (mask & controlWord(grup))!=0;
   }
 
-  u8 setPriority(u8 newvalue){
+  u8 setPriority(const u8 newvalue) const {
     return setInterruptPriorityFor(number,newvalue);
   }
 
 
-  bool isActive(void) const {
+  bool isActive() const {
     return irqflag(0x300);
   }
 
-  bool isEnabled(void) const {
+  bool isEnabled() const {
     return irqflag(0x100);
   }
 
-  void enable(void) const {
+  void enable() const {
     strobe(0x100);
   }
 
-  void fake(void) const {
+  void fake() const {
     strobe(0x200);
   }
 
-  void clear(void) const {
+  void clear() const {
     strobe(0x280);
   }
 
-  void disable(void) const {
+  void disable() const {
     strobe(0x180);
   }
 
@@ -105,7 +104,7 @@ public:
     enable();
   }
 
-  void operator=(bool on) const {
+  void operator=(const bool on) const {
     if(on){
       enable();
     } else {
@@ -113,33 +112,32 @@ public:
     }
   }
 
-
 };
 
 /** instantiating more than one of these for a given interrupt defeats the nesting nature of its enable. */
-template <unsigned number> class GatedIrq: public Irq<number> {
+class GatedIrq: public Irq {
   int locker; //tracking nested attempts to lock out the interrupt.
 public:
-  GatedIrq():locker(0){}
+  GatedIrq(unsigned number):Irq(number),locker(0){}
 
-  void enable(void){
+  void enable(){
     if(locker > 0) { // if locked then reduce the lock such that the unlock will cause an enable
       --locker;  // one level earlier than it would have. This might be surprising so an
       // unmatched unlock might be the best enable.
     }
     if(locker == 0) { // if not locked then actually enable
-      Irq<number>::enable();
+      Irq::enable();
     }
   }
 
   void lock(){
     if(locker++ == 0) {
-      Irq<number>::disable();
+      Irq::disable();
     }
   }
 
   void prepare(){
-    Irq<number>::clear(); // acknowledge to hardware
+    Irq::clear(); // acknowledge to hardware
     enable(); // allow again
   }
 
@@ -152,10 +150,10 @@ public:
   *  Since each interrupt can be stifled at its source this should not be a problem.
   *  future: automate detection of being in the irq service and drop the argument.
   */
-template <unsigned number> struct IRQLock {
-  GatedIrq<number> &irq;
+struct IRQLock {
+  GatedIrq &irq;
 public:
-  IRQLock(bool inIrq = false){
+  IRQLock(GatedIrq &irq,bool inIrq = false):irq(irq){
     if(! inIrq) {
       irq.lock();
     }
@@ -168,14 +166,15 @@ public:
 
 
 #ifdef __linux__ //just compiling for syntax checking
-extern bool IRQEN;
+inline bool IRQEN;
 #define IRQLOCK(irq)
 
-#else
+#else//have to name an object to ensure compiler doesn't optimize it into nothingness.
 #include "core_cmFunc.h"
-extern const CPSI_i IRQEN;
+const CPSI_i IRQEN;
 #define IRQLOCK(irqVarb) IRQLock IRQLCK ## irqVarb(irqVarb)
 #endif
+
 
 //this does not allow for static locking, only for within a function's execution (which is a good thing!):
 #define LOCK(somename) CriticalSection somename ## _locker
@@ -185,13 +184,13 @@ extern const CPSI_i IRQEN;
 class CriticalSection {
   static volatile unsigned nesting;
 public:
-  CriticalSection(void){
+  CriticalSection(){
     if(!nesting++){
       IRQEN=0;
     }
   }
 
-  ~CriticalSection (void){
+  ~CriticalSection (){
     if(nesting) { //then interrupts are globally disabled
       if(--nesting == 0) {
         IRQEN=1;

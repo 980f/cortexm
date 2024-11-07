@@ -1,6 +1,10 @@
 #include "timer.h"
+
+#include <clocks.h>
+
 #include "minimath.h"
 #include "afio.h"
+#include "debugger.h"
 
 #define PSC dcb[20]
 #define ARR dcb[22]
@@ -26,9 +30,11 @@ static const TimerConstant T[] = {
   { 2, 13, 44, Timer8Stop },
 };
 
-Timer::Timer(int stLuno): apb(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq){
-  dcb = reinterpret_cast <TIMER_DCB> (apb.getAddress());
-  b = reinterpret_cast <TIMER_BAND *> (apb.getBand());
+Timer::Timer(int stLuno):luno(stLuno), apb(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq),
+  dcb (* reinterpret_cast<TIMER_DCB*>(apb.blockAddress)),
+  b(*reinterpret_cast<TIMER_BAND*>(apb.bandAddress))
+{
+
   luno = stLuno;
   apb.init(); //for most extensions this is the only time we do the init.
 }
@@ -37,11 +43,11 @@ Timer::Timer(int stLuno): apb(T[stLuno].apb, T[stLuno].slot), irq(T[stLuno].irq)
 void Timer::configureCountExternalInput(enum Timer::ExternalInputOption which, unsigned filter) const {
   apb.init(); //wipe all previous settings
   //47 = t1edge, external mode 1. ?:1 gives a 1 for 0 or 1, a 2 for 2.
-  dcb[4] = 0x0047 + ((which ? : 1) << 4); //smcr
+  dcb[4] = 0x0047 + ((which ? which : 1) << 4); //smcr
   if(which == Xor) {
-    b->in1Xored = 1;
+    b.in1Xored = 1;
   }
-  b->updateIE = 1; //enabling just the update interrupt for carry-outs
+  b.updateIE = 1; //enabling just the update interrupt for carry-outs
   dcb[12] |= filter << (which == CH2 ? 12 : 4);
 } /* configureCountExternalInput */
 
@@ -68,7 +74,7 @@ double Timer::secondsInTicks(u32 ticks) const{
 void Timer::setPrescaleFor(double hz) const {
   PSC = static_cast <u16> ( ratio( baseRate(), hz)) - 1; //e.g. 36MHz/10kHz = 35999
   //if we don't force an update cycle then we are at the mercy of other operations to allow an update event to occur. In onePulseMode that seems to never happen.
-  b->fake_update = 1; //UG: an auto clearing bit.  UEV
+  b.fake_update = 1; //UG: an auto clearing bit.  UEV
 }
 
 void Timer::setCycler(u32 ticks) const {
@@ -128,10 +134,10 @@ Pin CCUnit::pin(unsigned alt, bool complementaryOutput ) const {
     }
   case 2:
     switch(zluno){
-    case 0: return Pin(PA,bit(alt,0)?15:0);
-    case 1: return bit(alt,0)?Pin(PB,3):Pin(PA,1);
-    case 2:return bit(alt,1)?Pin(PB,10):Pin(PA,2);
-    case 3:return bit(alt,1)?Pin(PB,11):Pin(PA,3);
+    case 0: return Pin(PA,bitFrom(alt,0)?15:0);
+    case 1: return bitFrom(alt,0)?Pin(PB,3):Pin(PA,1);
+    case 2:return bitFrom(alt,1)?Pin(PB,10):Pin(PA,2);
+    case 3:return bitFrom(alt,1)?Pin(PB,11):Pin(PA,3);
     } break;
   case 3:   //todo:3 ignoring alt for a bit:
     return zluno < 2 ? Pin(PA, 4 + zluno) : Pin(PB, zluno - 2);
@@ -149,24 +155,24 @@ bool CCUnit::amDual(void) const {
 //force on or off using cc config rather than gpio.
 //if timer is #1 or #8 then there are more bits:
 void CCUnit::takePin(unsigned alt,bool inverted) const { //todo:3 options to only take one of a pair.
-  CCER&myccer = ccer();
+  volatile CCER& myccer = ccer();
 
   switch(timer.luno){
-  case 1:theAfioManager.field.tim1=alt; break;
-  case 2:theAfioManager.field.tim2=alt; break;
-  case 3:theAfioManager.field.tim3=alt; break;
-  case 4:theAfioManager.field.tim4=alt; break;
-  case 5:theAfioManager.field.tim5=alt; break;
+  case 1:theAfioManager.remap.tim1=alt; break;
+  case 2:theAfioManager.remap.tim2=alt; break;
+  case 3:theAfioManager.remap.tim3=alt; break;
+  case 4:theAfioManager.remap.tim4=alt; break;
+  case 5:theAfioManager.remap.tim5=alt; break;
     //no remaps for other timers, could wtf if alt!=0
   }
-  theAfioManager.update();
+  theAfioManager.remap.update();
 
   pin(alt, 0).FN();
   if(amDual()) { //todo:3 'and Take complementary pin as well'
     pin(alt, 1).FN();
     myccer.NE = 0; //+adv 1..3
     myccer.NP = 0; //+adv 1..3
-    timer.b->MOE = 1;
+    timer.b.MOE = 1;
     //don't care about idle state...
   }
   myccer.Enabled = 1;
@@ -174,7 +180,7 @@ void CCUnit::takePin(unsigned alt,bool inverted) const { //todo:3 options to onl
 } /* takePin */
 
 void CCUnit::setmode(u8 cc) const {
-  u16&pair(timer.dcb[12 + (2 * (zluno >= 2))]); //damned 16 bit access is painful
+  volatile u16 &pair(timer.dcb[12 + (2 * (zluno >= 2))]); //damned 16 bit access is painful
 
   if(zluno & 1) { //odd members are high half
     pair = (pair & ~0xFF00) | (cc << 8);

@@ -30,26 +30,25 @@ struct Port /*Manager*/ : public APBdevice {
   };
 
   /** @param letter is the uppercase character from the stm32 manual */
-  Port(const char letter);
+  Port(char letter);
   /**
     * configure the given pin.
     todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
     */
   void configure(unsigned bitnum, unsigned code) const;
-  volatile u16 &odr(void) const;
+  volatile u16 &odr() const;
 
 };
 
 
 //these take up little space and it gets annoying to have copies in many places.
-extern const Port PA;
-extern const Port PB;
-extern const Port PC;
-extern const Port PD;
-extern const Port PE;
-//extern const Port F;
-//extern const Port G;
+const Port PA InitStep(InitHardware) ('A');
+const Port PB InitStep(InitHardware) ('B');
+const Port PC InitStep(InitHardware) ('C');
+const Port PD InitStep(InitHardware) ('D');
+const Port PE InitStep(InitHardware) ('E');
 
+// // todo:3 use device define to add ports up to G.
 /**
   * this class manages the nature of a pin, and provides cacheable accessors for the pin value.
   * there is no point in using const in declaring a Pin, the internals are all const.
@@ -62,25 +61,25 @@ struct Pin /*Manager*/ {
 
   Pin(const Port &port, const unsigned int bitnum);
   /** @returns this after configuring it for analog input */
-  const Pin& AI(void) const;
+  const Pin& AI() const;
   /** @returns bitband address for input after configuring as digital input, pull <u>U</u>p, pull <u>D</u>own, or leave <u>F</u>loating*/
   volatile u32 &DI(char UDF = 'D') const;
   /** @returns bitband address for controlling high drive capability [rtfm] */
-  volatile u32 &highDriver(void) const;
+  volatile u32 &highDriver() const;
   /** configure as simple digital output */
   volatile u32 &DO(unsigned int mhz = 2, bool openDrain = false) const;
   /** configure pin as alt function output*/
   const Pin& FN(unsigned int mhz = 2, bool openDrain = false) const;
   /** declare your variable volatile, reads the actual pin, writing does nothing */
-  volatile u32 &reader(void) const;
+  volatile u32 &reader() const;
   /** @returns reference for writing to the phyiscal pin, reading this reads back the DESIRED output */
-  volatile u32 &writer(void) const;
+  volatile u32 &writer() const;
 
   /** for special cases, try to use one of the above which all call this one with well checked argument */
   void configureAs(unsigned int code) const;
 
   /** raw access convenience. @see InputPin for business logic version of a pin */
-  inline operator bool(void)const{
+  inline operator bool()const{
     return reader();
   }
 
@@ -94,13 +93,15 @@ struct Pin /*Manager*/ {
 
 };
 
-/** base class for InputPin and OutputPin that adds polaarity at construction time */
+/** base class for InputPin and OutputPin that adds polarity at construction time */
 class LogicalPin {
 protected:
   volatile u32& bitbanger;
   /** a 1 for LOWACTIVE output, ie: setting this element to a 1 sets the physical pin low */
   const u32 lowactive; //not templated as we want to be able to pass Pin's around. not a hierarchy as we don't want the runtime cost of virtual table lookup.
-  inline u32 polarized(bool operand)const{
+
+ /** converts logical 'on' to what pin needs, but doesn't actually alter the pin's state.*/
+  u32 polarized(bool operand)const{
     return lowactive^operand;
   }
 
@@ -108,7 +109,7 @@ protected:
 public:
 
   /** @returns for outputs REQUESTED state of pin, for inputs the acutal pin */
-  inline operator bool(void)const{
+  operator bool()const{
     return polarized(bitbanger);
   }
 };
