@@ -1,8 +1,8 @@
 #pragma once
-#include "buffer.h"
+//#include "buffer.h"
 #include "stm32.h"
 #include "nvic.h"
-#define I2C_TRACE 1
+//define in compiler options: #define I2C_TRACE 0
 /**
   * module usage:
   *
@@ -15,7 +15,7 @@
   *
   * SLAVE NOT IMPLEMENTED!
   *
-  * DMA removed as just not relevent for a master when so much diddling needs to be done for 'paged read'
+  * DMA removed as just not relevant for a master when so much diddling needs to be done for 'paged read'
   *
   */
 #define TakeI2cIrqs1(myi2c)             \
@@ -26,7 +26,7 @@
   ObjectInterrupt(myi2c.dataIsr(), 33); \
   ObjectInterrupt(myi2c.errorIsr(), 34)
 
-; //#this semi colon fixes a bug in the source code indenter.
+; //#this semi colon fixes a bug in the qt source code indenter.
 /**
   * reading the SR1 has non-trivial side effects, so init a local Flags structure with dcb->sr1 then interpret the bits.
   * however, write using the BAND else you have to remember to copy the Flags back to the sr1 (but never the sr2).
@@ -152,16 +152,14 @@ struct I2C_BAND {
 };
 
 /**
-  * first use is to master read and write eeprom.
+  * first use is to master read and write an eeprom.
   */
 class I2C : public APBdevice {
 public:
-#if I2C_TRACE
+  //debug is hopeless without these:
   enum Stage { Idle, Starting, Addressing, Sending, Restarting, Receiving, Stopping } stage;
   void setStage(I2C::Stage stageCode);
-#else
-#define setStage(stag)
-#endif
+
 private:
   I2C_BAND *b;
   I2C_DCB *dcb;

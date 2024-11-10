@@ -1,0 +1,13 @@
+# This is tested on the JZ-F407VET6 board, file copied from one for one of the ST boards
+#NOTE: 'sourced' files are in /usr/share/openocd/scripts
+
+source [find interface/stlink-v2-1.cfg]
+
+transport select hla_swd
+
+# increase working area to 64KB
+set WORKAREASIZE 0x10000
+
+source [find target/stm32f4x.cfg]
+
+reset_config srst_only

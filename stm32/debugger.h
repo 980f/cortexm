@@ -7,7 +7,7 @@
 //#include "stm32.h"
 
 //DBGMCU_CR, Only 32-bit access supported
-
+#if DEVICE == 103
 enum DebugControlBit {
   WhileSleeping, //Hclk stays running, is connected to Fclk
   WhileStopped, //H&F clocks run by rc oscillator, power is left on to digital stuff
@@ -34,8 +34,48 @@ enum DebugControlBit {
   //22..31 not used.
 
 };
+#else
+enum DebugControlBit {
+  WhileSleeping, //Hclk stays running, is connected to Fclk
+  WhileStopped, //H&F clocks run by rc oscillator, power is left on to digital stuff
+  WhileStandingBy, //H&F clocks run by rc oscillator
+  skip3,
+  skip4,
+  TraceOutputEnable,
+  TraceMode0,
+  TraceMode1,
+//todo: check these against their apb bus and slot
+  Timer2Stop=32,  //following word.
+  Timer3Stop,
+  Timer4Stop,
+  Timer5Stop,
+  Timer6Stop,
+  Timer7Stop,
+  Timer12Stop,
+  Timer13Stop,
+  Timer14Stop,
+  skipanother,
+  RtcStop,
+  WindowWatchdogStop,
+  WatchdogStop,
 
+  I2c1TimeoutStop=32+21,
+  I2c2TimeoutStop,
+  I2c3TimeoutStop,
+  yetanother,
+  Can1Stop,
+  Can2Stop,
+
+  Timer1Stop=64,
+  Timer8Stop,
+
+  Timer9Stop=80,
+  Timer10Stop,
+  Timer11Stop,
+
+};
+#endif
 inline void setDebugControl(enum DebugControlBit cbit){
-  *reinterpret_cast <u32 *> (0xE0042004) |= 1 << cbit;
+  Ref<unsigned>(0xE0042004+cbit/32) |= 1 << (cbit%32);
 }
 //end of file.

@@ -7,7 +7,7 @@ namespace LPC {
 
 /** 16k blocks of address space are allocated per apb device */
 constexpr unsigned apb0Device(unsigned unitNumber){
-  return 0x40000000UL + (unitNumber << 14);
+  return PeripheralBase + (unitNumber << 14);
 }
 
 /** a control register given documentation of its offset */
@@ -26,11 +26,11 @@ constexpr unsigned *sysConReg(unsigned byteOffset){
   return atAddress(sysConBase(byteOffset));
 }
 
-inline void powerUp(int which){
+inline void powerUp(unsigned which){
   clearBit(sysConReg(0x238),which);
 }
 
-inline void powerDown(int which){
+inline void powerDown(unsigned which){
   setBit(sysConReg(0x238),which);
 }
 
@@ -41,7 +41,7 @@ constexpr unsigned ioConReg(unsigned byteOffset){
 
 /** enable the selected device clock. Since each will only be referenced in its own module there is no need for formal enum.  */
 inline void enableClock(unsigned bit){
-  setBit(*sysConReg(0x80), bit);
+  setBit(sysConReg(0x80), bit);
 }
 
 /** enable the selected device clock. Since each will only be referenced in its own module there is no need for formal enum.  */
@@ -49,6 +49,7 @@ inline void disableClock(unsigned bit){
   clearBit(sysConReg(0x80), bit);
 }
 
+template <unsigned ckbit> using ClockEnable = SFRbit<sysConBase(0x80), ckbit>;
 
 /** there are only 3 items with resets: 0: ssp0, 1:I2c 2:ssp1 */
 inline void reset(unsigned bit){

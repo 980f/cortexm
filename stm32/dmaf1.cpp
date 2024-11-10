@@ -1,4 +1,4 @@
-#include "dma.h"
+#include "dmaf1.h"
 
 void DmaChannel::setupStream(const StreamDefinition &def){
   dcb.enable = 0;

@@ -9,21 +9,6 @@
   */
 
 struct USART_DCB {
-  union Status {
-    struct  {
-      unsigned int parityError : 1;
-      unsigned int framingError : 1;
-      unsigned int noiseError : 1;
-      unsigned int overrunError : 1;
-      unsigned int idleLine : 1;
-      unsigned int dataAvailable : 1;
-      unsigned int transmitCompleted : 1;
-      unsigned int transmitBufferEmpty : 1;
-      unsigned int LINBreakDetected : 1;
-      unsigned int clearToSendChanged : 1;
-    };
-    u32 flags;
-  };
 
   volatile u32 SR; //for parallel read,
   volatile u32 DR; //up to 9 bits are meaningful
@@ -149,43 +134,85 @@ struct UartBand {
 
 };
 
-struct Uart:public APBdevice {
+
+struct Uart: public APBdevice {
   const unsigned zluno;   //zluno is ST's nomenclature -1
-  UartBand &b;
-  USART_DCB &dcb;
+  volatile UartBand &b;
+  volatile USART_DCB &dcb;
 
-  Irq irq;
-  unsigned int altpins;
-  Uart(unsigned int zluno, unsigned int alt = 0);
+  /** the status register clears on read, so we must read it then check the bits in the cached read.
+   * No doc exists as to what happens if we bit band read single bits. */
+  union Status {
+    struct  {
+      unsigned int parityError : 1;
+      unsigned int framingError : 1;
+      unsigned int noiseError : 1;
+      unsigned int overrunError : 1;
+      unsigned int idleLine : 1;
+      unsigned int dataAvailable : 1;
+      unsigned int transmitCompleted : 1;
+      unsigned int transmitBufferEmpty : 1;
+      unsigned int LINBreakDetected : 1;
+      unsigned int clearToSendChanged : 1;
+    };
+    unsigned flags;
+  };
 
-  /** we default the handshakes to "not used" as they are nearly useless, as well as having atrociously wrong names.*/
-  void takePins(bool tx, bool rx, bool hsout = false, bool hsin = false);
+
+  const Irq irq;
+  unsigned int altpins;//not const so that we can dynamically attach to different pins. If we normally could const it then we could create different objects and hope that our program logic doesn't get too confusing.
+
+  constexpr Uart(unsigned int zluno, unsigned int alt = 0);
+
+  /** we default the handshakes to "not used" as they are nearly useless, as well as having atrociously wrong names.
+   * The RTS is nearly useless as it glitches for ane bit time at every stop bit, which makes many remote senders fail.
+   * */
+  void takePins(bool hsout = false, bool hsin = false) const;
   /** use this if you are changing the rate while the program is running, else @see setParams
     *  this will disable the uart if the baud rate is changed, you must re-enable it after you have finished other configuration actions.
     */
-  void setBaudrate(unsigned int desired);
-  /**use this one for initial setup.
+  void setBaudrate(unsigned desired) const;
+  /** use this one for initial setup.
     * this will disable the uart, you must re-enable it after you have finished other configuration actions.
     * longStop adds a stop bit,
     * shortStop removes half of one.
     * NEO is the parity control: None Even Odd.
     */
-  void setParams(unsigned int baud = 19200U, unsigned int numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false); //19200,n,8,1
+  void setParams(unsigned baud = 19200U, unsigned numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false)const; //19200,n,8,1
 
   /** hard reset then setParams*/
-  void reconfigure(unsigned int baud = 19200U, unsigned int numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false); //19200,n,8,1
+  void reconfigure(unsigned baud = 19200U, unsigned numbits = 8, char parityNEO = 'N', bool longStop = false, bool shortStop = false)const; //19200,n,8,1
 
-  void init(unsigned int baud = 19200U, char parityNEO = 'N', unsigned int numbits = 8);
+  void init(unsigned baud = 19200U, char parityNEO = 'N', unsigned  numbits = 8)const;
 
   /** part of char time calculation, includes stop and start and parity, not just payload bits */
-  u32 bitsPerByte(void) const;
+  unsigned bitsPerByte() const;
   /** bits per second, actual not what you last set :)*/
-  u32 bitsPerSecond(void) const;
+  unsigned bitsPerSecond() const;
   /** timer ticks required to move the given number of chars. Involves numbits and baud etc.*/
-  u32 ticksForChars(unsigned charcount) const;
+  unsigned ticksForChars(unsigned charcount) const;
 
-  void beReceiving(bool yes = true);
+  void beReceiving(bool yes = true)const;
 
-  void beTransmitting(bool yes = true);
+  void beTransmitting(bool yes = true)const;
+
+  void txDma(bool beRunning) const;
 };
+
+//use the following where a decimal number of the interrupt request is needed
+#define UartIrq(luno) MACRO_wrap (UART , luno , _irq)
+
+#define  UART1_irq  37
+#define  UART2_irq  38
+#define  UART3_irq  39
+#define  UART4_irq  52
+#define  UART5_irq  53
+#define  UART6_irq  71
+//po tay toe , po tah toe
+#define  USART1_irq  UART1_irq
+#define  USART2_irq  UART2_irq
+#define  USART3_irq  UART3_irq
+#define  USART4_irq  UART4_irq
+#define  USART5_irq  UART5_irq
+#define  UsART6_irq  UART6_irq
 

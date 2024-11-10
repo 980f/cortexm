@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>pioasm.html</title>
+    <meta name="author" content="Andy Heilveil (github/980f)">
+  </head>
+  <body>
+    <p>RP2040 <br>
+      PIO programming library</p>
+    <p><br>
+      The goal of this development is to be able to create C++ objects which generate the binary to put into the PIO state machine configuration and instruction memories.<br>
+      This is to not have to use a make program to run the vendor's pio assembler tools to create C++ source files.<br>
+      It is also an avenue to dynamically modifying pio programs as the application discovers useful things.</p>
+    <p>Construction of a program object will record options needed for configuration, such as sideset number of bits. <br>
+      The program object will have an array of instruction objects which are at runtime used to create the instruction memory contents.<br>
+      There is a chance that templates will be able to do the 'compilation', we shall see. The difficulty there is forward referenced jump targets.</p>
+    <p>One approach would be to have an indefinite sized array of assembler directive objects. Iteration over them would generate the assembled binary.<br>
+      Such objects would sometimes just update the configuration image.</p>
+    <p>A big caveat is that you cannot reliably use structs with bit fields for the actual configuration registers as the C++ compiler cannot be told that all must be accessed as 32 bit objects. This is a common problem with cortex parts, peripheral registers that must be accessed as specific widths that might be wider than the compiler thinks it can get by with.</p>
+    <p>The non optimized approach is to use such structs but in regular memory, then copy as a block into the peripherals. In the case of an application downloading different programs at different times that is actually an optimal approach.</p>
+    <p><br>
+      <br>
+    </p>
+    <hr><br>
+    <hr><br>
+    To get the linker to supply JMP target addresses we can implement program chunks via an array of init'ed objects.<br>
+    Targets are the public name of an array of init statements.<br>
+    Each such chunk of inits is given an attribute of being in the program segment defined for each GPIO program bank.<br>
+    <br>
+    The linker will be told to build these in a memory that is not implemented and is designated "noload" so that offsets are calculated like for rom that inits ram but nothing is loaded into the init stuff.<br>
+    IE we build an actual rom segment but the addresses are set to start at 0 in some segment that is not loaded by the elf file parser itself.<br>
+    <br>
+    <br>
+    <br>
+    initialized data, goes into rom but with addresses as if in ram:<br>
+    <br>
+    /* data with non-zero initializers */<br>
+    &nbsp; .data :{<br>
+    &nbsp;&nbsp;&nbsp; . = ALIGN(4); /* alignment padding for startupCopy disappeared spontaneously, causing an elf file load error- shifting bytes to boundary.<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; apparently we have been lucky for years that the segments naturally aligned. */<br>
+    &nbsp;&nbsp;&nbsp; *(SORT(.data.*))<br>
+    &nbsp;&nbsp;&nbsp; *(.data)<br>
+    &nbsp;&nbsp;&nbsp; /* *(.gnu.linkonce.d.*) /* these should not get produced. If they do expose this and fix its syntax errors, and documented what generated them */<br>
+    &nbsp; } &gt;SRAM AT&gt;FLASH<br>
+    <br>
+    &nbsp; .startupCopy : { /* this initializes an instance of what cstartup.cpp calls 'struct RamInitBlock' */<br>
+    &nbsp;&nbsp;&nbsp; LONG(LOADADDR(.data))<br>
+    &nbsp;&nbsp;&nbsp; LONG(ADDR(.data))<br>
+    &nbsp;&nbsp;&nbsp; LONG((SIZEOF(.data)+3)&gt;&gt;2)<br>
+    &nbsp; } &gt;FLASH<br>
+    &nbsp; __data_segment__ = LOADADDR(.startupCopy);<br>
+    <br>
+    <br>
+    In MEMORY command :<br>
+    <br>
+    PIOSPACE (wx) : ORIGIN = 0, LENGTH = 32<br>
+    <br>
+    In SECTION :<br>
+    <br>
+    .piocode: {<br>
+    &nbsp; *(.rpiocode)<br>
+    } &gt;PIOSPACE AT&gt;FLASH<br>
+    <br>
+    <br>
+    In your program<br>
+    <br>
+    __attribute((segment=.piocode)) <br>
+    PioThingy myroutine[]={<br>
+    &nbsp;{MOV, X, Y },<br>
+    &nbsp;{JMP, otherroutine }<br>
+    };<br>
+    <br>
+    __attribute((segment=.piocode)) <br>
+    PioThingy otheroutine[]={<br>
+    &nbsp;{more code}<br>
+    };<br>
+    <br>
+    So we need macros:<br>
+    <br>
+    #define Program( name)&nbsp;&nbsp; __attribute((segment=.piocode))&nbsp; PioThingy name []={<br>
+    #define Label( name)&nbsp;&nbsp; };&nbsp; __attribute((segment=.piocode))&nbsp; PioThingy name []={<br>
+    #define EndProgram&nbsp;&nbsp; };<br>
+    <br>
+    It would be handy if we can make an array of ints init by constexpr functions.<br>
+    <hr><br>
+    run time linking loader is simpler, since we need to actively load the program regardless of how the image is formed.<br>
+    <br>
+    A program line object can hold attributes as well as the content.<br>
+    Each program line is a constructor call, saving off fields that will generate the bit pattern later.<br>
+    One of the fields can be a const char&nbsp; * which has the size of a pointer locally and of the string in the ro section.<br>
+    The loader will scan the program and for each JMP can do a linear scan of the whole program which is at most 32 items.<br>
+    If we can force the linker to share string constants that would be nice, if not we do strcmp.<br>
+    Other attributes will be booleans like "load loop register with this item's address". <br>
+    While this doesn't allow a compile time determination of double use, neither does anyone else's tool as far as I know.<br>
+    <br>
+    class PioLine {<br>
+    &nbsp;&nbsp;&nbsp; uint16_t basePattern;<br>
+    &nbsp;&nbsp;&nbsp; uint8_t ticks;//will idiot check on load<br>
+    &nbsp;&nbsp;&nbsp; uint8_t sideset;<br>
+    &nbsp;&nbsp;&nbsp; bool looper; //reference will get lookedup and set into .wrap, this line into .wraptarget<br>
+    &nbsp;&nbsp;&nbsp; const char* label;<br>
+    &nbsp;&nbsp;&nbsp; const char* reference;//jump target, loop target which will go to a register not the code memory<br>
+    &nbsp;&nbsp;&nbsp; const char* loopto; //but only one notnull or equal to others will make sense<br>
+    &nbsp;&nbsp;&nbsp; static constexpr PioLine MOV(SourceEnum src, DestEnum dest){<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; //code to build an object<br>
+    &nbsp;&nbsp;&nbsp; }<br>
+    &nbsp;&nbsp;&nbsp; static constexpr PioLine JMP(CC cc, const char*target){<br>
+    &nbsp;&nbsp;&nbsp; }<br>
+    &nbsp;&nbsp;&nbsp; PioLine &amp; L(const char *label){<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; this-&gt;label=label;<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; return *this;<br>
+    &nbsp;&nbsp;&nbsp; }<br>
+    &nbsp;&nbsp;&nbsp; PioLine &amp; delay(unsigned ticks){<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; this-&gt;ticks=ticks;<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; return *this;<br>
+    &nbsp;&nbsp;&nbsp; }<br>
+    &nbsp;&nbsp;&nbsp; PioLine &amp; side(unsigned bits){<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; sideset=bits;<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; return *this;<br>
+    &nbsp;&nbsp;&nbsp; }<br>
+    &nbsp;&nbsp;&nbsp; PioLine &amp; loop(const char *target){<br>
+    &nbsp;&nbsp;&nbsp; }<br>
+    <br>
+    }<br>
+    <br>
+    class PioProgam {<br>
+    &nbsp;&nbsp;&nbsp; //values for registers<br>
+    &nbsp;&nbsp;&nbsp; //pointer to array of PioLine<br>
+    &nbsp; &nbsp; void load(const PioLine *program,unsigned length){<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for each line<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; switch(type){<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; case JMP: {<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; for whole of program space search for a label that matches the reference<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; //first check pointer equality, in case compiler and linker conspire to fold constants<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if(matches){<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; pattern insertfield (targetfield, index of item that matched)<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; break;<br>
+    &nbsp;&nbsp;&nbsp; }<br>
+    }<br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+  </body>
+</html>

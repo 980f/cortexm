@@ -29,16 +29,18 @@ class DmaChannel {
     };
     CHANNEL_DCB chan[7];  //index with st's number -1
   };
+
   //order matters for convenient initialization in constructor:
   const bool secondaryController; //which controller, handy for debug of constructor
   const int luno; //channel within controller, 0 based
   DMA_DCB * const theDMA_DCB;
   DMA_DCB::CHANNEL_DCB &dcb; //cached pointer to theDMA_DCB.chan[luno]
+
   const bool sender; //direction is builtin to each use, a sender is like uart TX, mem ->peripheral
 public:
   Irq irq; //todo: justify irq being public.
 
-  DmaChannel(int stNumber, bool forsender): //pass stnumber as 1..7 for dma controller 1, 8..12 for DMA2.
+  constexpr DmaChannel(int stNumber, bool forsender): //pass stnumber as 1..7 for dma controller 1, 8..12 for DMA2.
     secondaryController(stNumber > 7),
     luno(stNumber - (secondaryController ? 8 : 1)), //which channel of the controller
     theDMA_DCB(reinterpret_cast <DMA_DCB *> (secondaryController ? 0x40020400 : 0x40020000)), //
@@ -46,10 +48,12 @@ public:
     sender(forsender),
     irq((stNumber == 12) ? 59 : (stNumber + (secondaryController ? 48 : 10))){ //channels 4&5 share an interrupt.
     /* all is in initlist */
+    { //channels 4&5 share an interrupt.
+    //#done
   }
 
   //clear all interrupts
-  DmaChannel&clearInterrupts(void){
+  DmaChannel&clearInterrupts(){
     theDMA_DCB->interruptClears |= 0xF << (luno * 4);
     return *this;
   }

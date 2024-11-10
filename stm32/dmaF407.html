@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>dma assignments</title>
+    <meta name="author" content="Andy Heilveil (github/980f)">
+  </head>
+  <body>
+    <p>stm32F407 dma assignments</p>
+    <p>dmaluno:stream:channel triplets</p>
+    Timers
+    <table border="1">
+      <tbody>
+        <tr>
+          <td>Timer</td>
+          <td>up</td>
+          <td>ch1</td>
+          <td>ch2</td>
+          <td>ch3</td>
+          <td>ch4</td>
+          <td>trig</td>
+          <td>com</td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td style="vertical-align: top; background-color: white;">2:5:6</td>
+          <td style="vertical-align: top; background-color: white;">2:6:0<br>
+            2:1:6<br>
+            2:3:6</td>
+          <td style="vertical-align: top; background-color: white;">2:6:0<br>
+            2:2:6</td>
+          <td style="vertical-align: top; background-color: white;">2:6:0<br>
+            2:6:6</td>
+          <td style="vertical-align: top; background-color: white;">2:4:6</td>
+          <td style="vertical-align: top; background-color: white;">2:0:6<br>
+            2:4:6</td>
+          <td style="vertical-align: top; background-color: white;">2:4:6</td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td style="vertical-align: top; background-color: white;">1:1:3<br>
+            1:7:3</td>
+          <td style="vertical-align: top; background-color: white;">1:5:3</td>
+          <td style="vertical-align: top; background-color: white;">1:6:3</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+            1:1:3</td>
+          <td style="vertical-align: top; background-color: white;">1:6:3<br>
+            1:7:3</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td style="vertical-align: top; background-color: white;">1:2:5</td>
+          <td style="vertical-align: top; background-color: white;">1:4:5</td>
+          <td style="vertical-align: top; background-color: white;">1:5:5</td>
+          <td style="vertical-align: top; background-color: white;">1:7:5</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+            1:2:5</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+            1:4:5</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td style="vertical-align: top; background-color: white;">1:6:2</td>
+          <td style="vertical-align: top; background-color: white;">1:0:2</td>
+          <td style="vertical-align: top; background-color: white;">1:3:2</td>
+          <td style="vertical-align: top; background-color: white;">1:6:2</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td style="vertical-align: top; background-color: white;">1:0:6<br>
+            1:6:6</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;">1:4:6</td>
+          <td style="vertical-align: top; background-color: white;">1:0:6</td>
+          <td style="vertical-align: top; background-color: white;">1:1:6<br>
+            1:3:6</td>
+          <td style="vertical-align: top; background-color: white;">1:1:6<br>
+            1:3:6</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td style="vertical-align: top; background-color: white;">1:1:7</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td style="vertical-align: top; background-color: white;">1:2:1<br>
+            1:4:1</td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td style="vertical-align: top; background-color: white;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td style="vertical-align: top; background-color: white;">2:1:7</td>
+          <td style="vertical-align: top; background-color: white;">2:2:0<br>
+            2:2:7</td>
+          <td style="vertical-align: top; background-color: white;">2:2:0<br>
+            2:3:7</td>
+          <td style="vertical-align: top; background-color: white;">2:2:0<br>
+            2:4:7</td>
+          <td style="vertical-align: top; background-color: white;">2:7:7</td>
+          <td style="vertical-align: top; background-color: white;">2:7:7</td>
+          <td style="vertical-align: top; background-color: white;">2:7:7</td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    Uarts/SPI/I2C<br>
+    <table border="1">
+      <tbody>
+        <tr>
+          <td>Uart</td>
+          <td>TX</td>
+          <td>RX</td>
+          <td><br>
+          </td>
+          <td>SPI</td>
+          <td>TX</td>
+          <td>RX</td>
+          <td><br>
+          </td>
+          <td>I2C</td>
+          <td>TX<br>
+          </td>
+          <td>RX<br>
+          </td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>2:7:4<br>
+            <br>
+          </td>
+          <td>2:2:4<br>
+            2:5:4<br>
+          </td>
+          <td><br>
+          </td>
+          <td>1</td>
+          <td>2:3:3<br>
+            2:5:3<br>
+          </td>
+          <td>2:0:3<br>
+            2:3:3<br>
+          </td>
+          <td><br>
+          </td>
+          <td>1<br>
+          </td>
+          <td>1:6:1<br>
+            1:7:1 </td>
+          <td>1:0:1<br>
+            1:5:1 </td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>1:6:4</td>
+          <td>1:5:4</td>
+          <td><br>
+          </td>
+          <td>2</td>
+          <td>1:4:0</td>
+          <td>1:3:0</td>
+          <td><br>
+          </td>
+          <td>2<br>
+          </td>
+          <td>1:7:7<br>
+            <br>
+          </td>
+          <td>1:2:7<br>
+            1:3:7 </td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>1:3:4<br>
+            1:4:7</td>
+          <td>1:1:4<br>
+          </td>
+          <td><br>
+          </td>
+          <td>3</td>
+          <td>1:7:0<br>
+            1:5:0</td>
+          <td>1:0:0<br>
+            1:2:0</td>
+          <td><br>
+          </td>
+          <td>3<br>
+          </td>
+          <td>1:4:3 </td>
+          <td>1:2:3 </td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>1:4:4</td>
+          <td>1:2:4</td>
+          <td><br>
+          </td>
+          <td style="background-color: #cccccc;">4</td>
+          <td style="background-color: #cccccc;"><br>
+          </td>
+          <td style="background-color: #cccccc;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>1:7:4</td>
+          <td>1:0:4</td>
+          <td><br>
+          </td>
+          <td style="background-color: #cccccc;">5<br>
+          </td>
+          <td style="background-color: #cccccc;"><br>
+          </td>
+          <td style="background-color: #cccccc;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>2:1:5<br>
+            2:2:5<br>
+          </td>
+          <td>2:6:5<br>
+            2:7:5<br>
+          </td>
+          <td><br>
+          </td>
+          <td style="background-color: #cccccc;">6</td>
+          <td style="background-color: #cccccc;"><br>
+          </td>
+          <td style="background-color: #cccccc;"><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #cccccc;">7</td>
+          <td style="background-color: #cccccc;">1:1:5</td>
+          <td style="background-color: #cccccc;">1:3:5</td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #cccccc;">8</td>
+          <td style="background-color: #cccccc;">1:0:5 </td>
+          <td style="background-color: #cccccc;">1:6:5</td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <table border="1">
+      <tbody>
+        <tr>
+          <td>ADC</td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>2:0:0<br>
+            2:4:0</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>2:2:1<br>
+            2:3:1</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>2:0:2<br>
+            2:1:2</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>SDIO</td>
+          <td>2:3:4<br>
+            2:6:4</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td>DCMI</td>
+          <td>2:1:1<br>
+            2:7:1</td>
+          <td><br>
+          </td>
+        </tr>
+        <tr>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+          <td><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+  </body>
+</html>

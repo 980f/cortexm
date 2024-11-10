@@ -30,9 +30,9 @@ u8 Spi::send(int lspart, bool blockTilDone){
 }
 
 //0x1FFF F7E8
-Spi:: Spi(int zluno): apb(zluno ? 1: 2, zluno ? (zluno + 13): 12), irq((zluno < 2) ? (35 + zluno): 51){
-  dcb = reinterpret_cast <DCB *> (apb.getAddress());
-  band = reinterpret_cast <volatile Band *> (bandFor(dcb));
+Spi:: Spi(unsigned zluno): apb(zluno ? 1: 2, zluno ? (zluno + 13): 12), irq((zluno < 2) ? (35 + zluno): 51){
+  dcb = reinterpret_cast <DCB *> (apb.blockAddress);
+  band = reinterpret_cast <volatile Band *> (apb.bandAddress);
 }
 
 /** clock and other pins get configured here for function and speed*/
@@ -53,7 +53,7 @@ void Spi::connect(Pin *sck, Pin *mosi, Pin *miso, Pin *ss){
 
 
 /*set clock rate and frame format*/
-void Spi::configure(bool master, int baud, bool sixteen /* future: options for bidirectional etc.*/){
+void Spi::configure(bool master, unsigned baud, bool sixteen /* future: options for bidirectional etc.*/){
   apb.init(); //see manual for values set by this init().
   dcb->baudDiv = log2Exponent(rate(apb.getClockRate(), 2 * baud)) - 1; //hardware itself does a /2 on top of this divisor ,to support bidi mode.
   band->clockIdleHigh = 0; //todo:3 add param

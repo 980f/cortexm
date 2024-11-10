@@ -1,3 +1,4 @@
+
 #include "core_cmFunc.h"
 
 //demo of MREG macro usage
@@ -31,8 +32,10 @@ CREG(faultmask) FAULTMASK;
 
 #if __FPU_PRESENT == 1
 CREG(fpsr) FPSR;
+CFPUREG(fpscr) FPSCR;
 #else
 unsigned FPSR=0;
+unsigned FPSCR
 #endif
 
 #endif

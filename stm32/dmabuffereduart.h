@@ -1,53 +1,26 @@
-#ifndef dmabuffereduartH
-#define dmabuffereduartH
-
-//#include "buffer.h"
-#include "eztypes.h"
-
-/**
-  * wrap an existing array so that all of its attributes are available for dma
-  */
-class RawBuffer { //todo:stub class, needs use case analysis!
-  u8 *buffer;
-  unsigned int allocated;
-  unsigned int sizeeach;
-  u8 trash;
-public:
-  RawBuffer(  u8 * buffer, unsigned int length, unsigned int sizeeach){}
-
-  u8 *item(unsigned int index){
-    return &buffer[index < allocated ? index : trash];
-  }
-
-  unsigned int length(){
-    return allocated;
-  }
-
-  unsigned int itemSize(){
-    return sizeeach;
-  }
-};
-#define RawWrap(objname) RawBuffer((void *) &objname, sizeof(objname), sizeof(typeof(objname)))
-
+#pragma once  // (C) 2020 Andrew L. Heilveil (github.980f)   (totally replaces inherited file of same name)
 
 #include "uart.h"
-#include "dma.h"
+#include "dmaf4h.h"
+#include "block.h"
 
-class DmaBufferedUart : public Uart {
+using Ubuffer = Block<uint8_t>;
+
+struct DmaBufferedUart {
+  const Uart &uart;
+  const Dma::DmaTriad &txSelector;
+  const Dma::DmaTriad &rxSelector;
+
   //allocate both channels, can choose to not use one if it is needed by some other periph.
-  DmaChannel tx;
-  DmaChannel rx;
+  Dma::Stream tx;
+  Dma::Stream rx;
 public:
-  DmaBufferedUart(int luno): Uart(luno)
-    , tx(DmaChannel::forUart(luno, true), true)
-    , rx(DmaChannel::forUart(luno, false), false){
-    /* empty braces*/
-  }
-private:
-  void packDmaArgs(DmaChannel::StreamDefinition&def, RawBuffer&rb, int subset );
-public:
-  void beginRead(RawBuffer&rb, int subset = 0);
-  void beginSend(RawBuffer&rb, int subset);
-};
+  /** shared reference to a Uart accessor object from which we look up dma controller and channel numbers to go with the given stream number using internal tables */
+  constexpr DmaBufferedUart(const Uart &uart, unsigned txstream, unsigned rxstream);
 
-#endif /* ifndef dmabuffereduartH */
+public:
+  /** receive chunk of expected size */
+  void beginRead(const Ubuffer &rxbuff);
+  /** send chunk that is ready to go */
+  void beginSend(const Ubuffer &txbuff);
+};

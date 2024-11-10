@@ -1,67 +1,102 @@
+/*
+ * */
+
 #include "adc.h"
-#include "buffer.h"
+
 #include "minimath.h"
+#include "gpio.h"
+#include "clocks.h"
 
-//naydo: make these downloadable parts of xrtHeads.
+enum KnownRegisters {
+  cr1 = 0x4
+  , cr2 = 0x08
+};
 
-//this constructor only supports ADC1 and 2
-ADC::ADC(int luno): APBdevice(2, 8 + luno), dcb(reinterpret_cast <ADC_DCB *> (getAddress())), band(reinterpret_cast <ADC_Band *> (getBand()))
-{}
-void ADC::init(void){
+/** 3 ADC's are in same peripheral block separate by 256 bytes.*/
+
+constexpr unsigned lunoOffset(unsigned luno) {
+  return (luno - 1) * 0x100;
+}
+
+//this constructor only supports ADC1 and 2 of the F10x
+ADCdev::ADCdev(unsigned luno) :
+#if DEVICE == 103
+  APBdevice(APB2, 8 + luno)
+#elif DEVICE == 407
+  APBdevice(APB2, 8) //one slot for all 3
+#else
+// compilation error will ensue
+#endif
+{
+  //#nada
+}
+
+void ADCdev::init(void) {
   APBdevice::init(); //makes registers accessible, following code only need mention things that differ from reset values
-  ADC_CR2 cr2;
-  cr2.sequenceTrigger = 7;
-  cr2.dmaEnabled = 0;
-  cr2.enableHardwareTrigger = 1; //MISNOMER, software start is an "external trigger" to the dimwits who spec'd this peripheral.
-  cr2.loopForever = 0; //one round per system timer tick
-  cr2.powerUp = 1; //do this before cal
-  dcb->cr2 = pun(unsigned int, cr2); //apply config settings en masse, field sets not safe with this device due to compiler issues.
+  bit(cr2, 0) = 1;
+  bit(cr1, 8) = 1; //scan mode enable
+  //set all sampling times to the maximum
+  field(0x0c, 0, 3 * 9) = ~0;
+  field(0x10, 0, 3 * 10) = ~0;
 
-  band->scan = 1; //not to be confused with CONT which we call loopForever
-  //scan length init's to 0== do one.
-  // dcb->seq1=0<<20;//doing single converts
-
-  //set all sampling times to the maximum, 239.5 * 14 is around 20 uS.
-  dcb->smp1 = 077777777; //yep, octal as this is packed 3 bit codes, 8 fields
-  dcb->smp2 = 07777777777; //yep, octal as this is packed 3 bit codes, 10 fields
+#if DEVICE == 103
   //perform calibration
-  band->beCalibrating = 1;
-  while(band->beCalibrating) { //maximum around 7 uSec.
+  band.beCalibrating = 1;
+  while (band.beCalibrating) { //maximum around 7 uSec.
   }
+#endif
 } /* init */
 
-void ADC::convertChannel(int channelcode){
+void ADCdev::convertChannel(unsigned channelcode) {
   //conveniently all bits other than the channel code in seq3 can be zero
-  dcb->seq3 = channelcode;
-  band->startSequence = 1; //a trigger
+  field(0x34, 0, 5) = channelcode;
+  bit(cr2, 30) = 1; //a trigger
 }
+
 /** pin 2 adc channel mapping, medium density series:
-  * A0..7 ch0..7
-  * B0..1 ch8..9
-  * C0..5 ch10..15
-  * temperature ch16
-  * vref17
-  */
-void ADC::configureInput(unsigned int channel){
-  if(channel < 8) {
-    Pin(PA, channel).AI();
-  } else if(channel < 10) {
-    Pin(PB, channel - 8).AI();
-  } else if(channel < 16) {
-    Pin(PC, channel - 10).AI();
-  } else if(channel < 18) {
-    band->enableRefandTemp = 1;
+ * A0..7 ch0..7
+ * B0..1 ch8..9
+ * C0..5 ch10..15
+ * temperature ch16
+ * vref17
+ */
+void ADCdev::configureInput(unsigned channel) {
+  if (channel < 8) {
+    PA.forAdc(channel);
+  } else if (channel < 10) {
+    PB.forAdc(channel - 8);
+  } else if (channel < 16) {
+    PC.forAdc(channel - 10);
+  } else {
+#if DEVICE == 103
+    band.enableRefandTemp = 1;//enables temperature component.
+#elif DEVICE == 407
+    if (channel == 16) {
+      ControlBit(0x4001'2000 /* ADC1 base */ + 0x300, 23) = 1;//enable temperature sensor
+    } else if (channel == 17) {
+      //built in VDD sensor
+    }
+#endif
   }
 } /* configureInput */
 
-float ADC::milliVolts(u16 reading, u16 vrefReading, float vrefmV){
+float ADCdev::milliVolts(u16 reading, u16 vrefReading, float vrefmV) {
   return vrefmV * ratio(float(reading), float(vrefReading));
 }
 
-ADC::TrefCalibration ::TrefCalibration (float Tcal, float mvAtTcal, float TpermV ): Tcal(Tcal), mvAtTcal(mvAtTcal), TpermV(TpermV){}
+ADCdev::TrefCalibration::TrefCalibration(float Tcal, float mvAtTcal, float TpermV) :
+  Tcal(Tcal), mvAtTcal(mvAtTcal), TpermV(TpermV) {
+}
 
-float ADC::TrefCalibration ::celsius(float millis){
+float ADCdev::TrefCalibration::celsius(float millis) {
   return Tcal - TpermV * (millis - mvAtTcal); //negative tempco.
 }
 
 //end of file
+u16 ADCdev::readConversion() {
+  return word(0x4c);
+}
+
+unsigned ADCdev::setClock(unsigned int hertz) {
+  return adcClock(hertz);
+}

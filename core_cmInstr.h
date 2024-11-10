@@ -1,11 +1,7 @@
 #pragma once
 
-/* GNU gcc specific syntax for some special instructions */
-
-//some people do this:
-#define INTRINSICALLY [[always_inline]] static inline
-//others do this, not sure which is better or if they even differ ...
-#define URGENTLY __attribute__((always_inline))
+/* GNU gcc specific syntax for some special instructions.
+ * This has devolved into MNE() for such things as WFE and WFI.  MNE(WFE)  and MNE(WFI), there is no need to make global symbols for things that rarely appear more than once in any program */
 
 #if __linux__
 //then just compiling for syntax checking.

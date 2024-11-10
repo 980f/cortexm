@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#outfile=`basename $1 .map` 
+outfile="$(basename $1 .map).cmap"
+
+echo $1 cleaned into: "${outfile}"
+awk '/Memory Configuration/,/Linker script/' $1 | sed s/0x00000000/0x/g >  ${outfile}
+awk '/\.vectors/,/OUTPUT\(/'                 $1 | sed s/0x00000000/0x/g >> ${outfile}
+
+

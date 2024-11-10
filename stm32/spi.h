@@ -3,6 +3,7 @@
 
 #include "stm32.h"
 #include "nvic.h"
+#include "gpio.h"
 
 class Spi {
 public:
@@ -90,11 +91,11 @@ private:
   APBdevice apb;
 public:
   Irq irq;
-  Spi(int zluno); //st's number minus one
+  Spi(unsigned zluno); //st's number minus one
 /** clock and other pins get configured here for function and speed*/
   void connect(Pin *sck, Pin *mosi = 0, Pin *miso = 0, Pin *ss = 0);
   /*set clock rate and frame format*/
-  void configure(bool master, int baud, bool sixteen = false /* todo: options for bidirectional etc.*/);
+  void configure(bool master, unsigned baud, bool sixteen = false /* todo: options for bidirectional etc.*/);
 };
 
 #endif /* ifndef spiH */

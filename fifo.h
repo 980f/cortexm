@@ -9,13 +9,13 @@ class Fifo {
   unsigned char *reader;
   unsigned char *writer;
   /** the memory*/
-  unsigned char *mem;
-  unsigned char *end;
+  unsigned char * const mem;
+  unsigned char * const end;
   const unsigned quantity;
 
   /** circularly increment reader or writer */
   inline void incrementPointer(unsigned char *&pointer){
-    if(++pointer== end) {
+    if(++pointer == end) {//'>' is a COA while we're hunting for the fifo read error bug.
       pointer= mem;
     }
   }
@@ -44,17 +44,24 @@ public:
   /** tries to put a byte into the memory, @returns whether there was room*/
   bool insert(unsigned char incoming);
 
-  /** try to insert a byte, @returns whether full (-1), busy (-2), or suceeded (0).*/
+  /** try to insert a byte, @returns whether full (-1), busy (-2), or succeeded (0).*/
   int attempt_insert(unsigned char incoming);
 
   /** reads and removes a byte from the memory, @returns the byte, or -1 if there wasn't one*/
   int remove();
 
-  /** tries to insert a byte, @returns whether empty (-1), busy (-2), or suceeded (char removed).*/
+  /** tries to remove a byte, @returns whether empty (-1), busy (-2), or succeeded (char removed).*/
   int attempt_remove();
+
+   /** @returns how many did NOT get pushed */
+  unsigned stuff(const char *block,unsigned length);
+
+  /** @returns 0 for in bounds, 1 or -1 for outside of bounds.*/
+  int boundsError(bool reads)const;
 };
 
-/** allocate data and wrap it in a Fifo access mechanism */
+/** allocate data and wrap it in a Fifo access mechanism.
+ * Added some syntactic sugar, insert and extract via assignment and cast  */
 template <int size> class FifoBuffer:public Fifo {
 public:
   unsigned char buf[size];
@@ -66,6 +73,7 @@ public:
   operator int(){
     return remove();
   }
+
 };
 
 

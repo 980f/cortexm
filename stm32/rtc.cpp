@@ -1,3 +1,4 @@
+//not compiling, very stale.
 #include "rtc.h"
 
 #include "nvic.h"
@@ -7,7 +8,7 @@ ObjectInterrupt(theRTC->isr(), 41)
 enum regId { pre = 0, div, now, alarm };
 
 u16 *RTC::regPointer(int regid){
-  u16 *base = reinterpret_cast <u16 *> (getAddress());
+  u16 *base = reinterpret_cast <u16 *> (registerAddress());
 
   return &base[6 + 2 * regid];
 }

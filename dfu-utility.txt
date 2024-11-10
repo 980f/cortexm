@@ -1,0 +1,5 @@
+sudo apt install dfu-util 
+
+gives you a program that can Download Firmware over Usb.
+
+elf2dfuse from https://github.com/majbthrd/elf2dfuse.git, built with a simple >make invocation generated elf2dfuse which takes an elf file and makes a dfu file, which is much 

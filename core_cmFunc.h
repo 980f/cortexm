@@ -1,9 +1,12 @@
 #pragma once
+
 /**************************************************************************//**
 * core_cmFunc.h
 * replaces uses of CMSIS Cortex-M Core Function Access Header File
 *
 * access to core registers as if they were just regular variables
+ *
+ * Ignores whether the feature is present on a device, just don't try to use it if not.
 */
 
 #include "core_cmInstr.h"
@@ -22,6 +25,12 @@ read and write like an unsigned.
   }\
   void operator=(unsigned stacktop)const {\
     __asm volatile("MSR " #regname ", %0\n" : : "r" (stacktop));\
+  }\
+  void operator|=(unsigned stacktop)const {\
+    *this= unsigned(*this)|stacktop;\
+  }\
+  void operator&=(unsigned stacktop)const {\
+    *this= unsigned(*this)&stacktop;\
   }\
 }
 
@@ -61,6 +70,7 @@ extern const MROG(ipsr) IPSR;
 extern const MROG(apsr) APSR;
 extern const MROG(xpsr) xPSR;
 
+//assembler doesn't like these two when cross compiling, ignore unless happens with arm compiler:
 extern const MREG(psp) PSP;
 extern const MREG(msp) MSP;
 
@@ -69,7 +79,7 @@ extern const MREG(primask) PRIMASK ;
 /** @returns previous psp value while setting it to @param whatever */
 unsigned swapPsp(unsigned whatever);
 
-#if __CORTEX_M >= 3
+
 extern const CPSI(f) FIQenable; //=1 or 0
 
 extern const struct BasePriority {
@@ -84,15 +94,26 @@ extern const struct BasePriority {
 }BASEPRI;
 
 extern const MREG(faultmask) FAULTMASK;
-#endif /* (__CORTEX_M >= 3) */
 
+#define FPUREG(regname) struct FPUREG_##regname {\
+  operator unsigned () const {\
+    unsigned  result;\
+  __asm volatile("VMRS %0, " #regname "\n" : "=r" (result));\
+    return result;\
+  }\
+  void operator=(unsigned stacktop)const {\
+    __asm volatile("VMSR " #regname ", %0\n" : : "r" (stacktop));\
+  }\
+    void operator|=(unsigned stacktop)const {\
+    *this= unsigned(*this)|stacktop;\
+  }\
+  void operator&=(unsigned stacktop)const {\
+    *this= unsigned(*this)&stacktop;\
+  }\
+}
 
-#if (__CORTEX_M == 4)
+#define CFPUREG(regname) const FPUREG_##regname
 
-#if __FPU_PRESENT == 1
-extern const MREG(fpsr) FPSR;
-#else
-extern unsigned FPSR;
-#endif
+extern const MREG(fpsr) FPSR;//normal space
+extern const FPUREG(fpscr) FPSCR;
 
-#endif /* (__CORTEX_M == 4) */

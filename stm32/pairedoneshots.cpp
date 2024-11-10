@@ -1,4 +1,4 @@
-#include "PairedOneshots.h"
+#include "pairedoneshots.h"
 
 
 PairedOneshots::PairedOneshots(int luno, int longerLuno, int shorterLuno): Timer(luno), shorter(*this, shorterLuno), longer(*this, longerLuno){}

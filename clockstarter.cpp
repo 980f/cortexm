@@ -7,7 +7,7 @@ ClockStarter::ClockStarter(bool intosc, u32 coreHertz, u32 sysHertz):
   sysHertz(sysHertz)
 {
   if(coreHertz){
-    //todo: actually honor it!
+    //todo:M actually honor it!
   } else {
     warp9(intosc);
   }

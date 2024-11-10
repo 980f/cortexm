@@ -20,4 +20,22 @@ unsigned clockRate(int bus);
 /** set clock to fastest possible with @internal osc else with its own logic as to which is faster.*/
 void warp9(bool internal);
 
+/* crafted for use with clock enable register these are also sometimes used as an arbitrary enum */
+enum CK {
+    SYS,ROM,RAM, //don't touch these! processor likely to need a power cycle
+    FLASHREG,FLASHARRAY, //only touch these when you are fully running in ram (including vector table)
+    I2C,
+    GPIO,
+    CT16B0,CT16B1,
+    CT32B0,CT32B1,
+    SSP,   //ssp0
+    UART,
+    ADC,
+    USBREGulator,
+    WDT,
+    IOCON,
+    reservedClockBit,
+    SSP1,
+};
+
 #endif // CLOCKS_H

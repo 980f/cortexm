@@ -19,7 +19,7 @@ namespace LPC {
 
 /** @returns block base address, 64k addresses per port */
 constexpr unsigned portBase(PortNumber portNum){
-  return 0x50000000 + (portNum << 16); // this is the only ahb device, and each gpio is 4 blocks thereof so just have a custom address computation.
+  return 0x50000000U + (portNum << 16); // this is the only ahb device, and each gpio is 4 blocks thereof so just have a custom address computation.
 }
 
 /** @returns block control address, base + 32k . @param regOffset is the value from the LPC manual */
@@ -30,7 +30,7 @@ constexpr unsigned portControl(PortNumber portNum,unsigned regOffset){
 /** @returns linear index of pin (combined port and bit)
  *  this index is useful for things like figuring out which interrupt vector is associated with the pin. */
 constexpr unsigned pinIndex(PortNumber portNum, BitNumber bitPosition){
-  return portNum * 12 + bitPosition;
+  return portNum * 12u + bitPosition;
 }
 
 constexpr unsigned pinMask(unsigned pinIndex){
@@ -39,7 +39,7 @@ constexpr unsigned pinMask(unsigned pinIndex){
 
 /** there is no relationship between the ioconfiguration register for a pin and its gpio designation.
  *  the LPC designers should be spanked for this, spanked hard and with something nasty. */
-constexpr unsigned ioconf_map[] =
+constexpr u8 ioconf_map[] =
 { // pass this a pinIndex
   3, 4, 7, 11, 12, 13, 19, 20, 24, 25, 26, 29,
   30, 31, 32, 36, 37, 40, 41, 42, 5, 14, 27, 38,
@@ -50,27 +50,56 @@ constexpr unsigned ioconf_map[] =
 
 
 /** the pins for which this are true have different io configuration patterns than the rest.
+ * they are the debug interface, defaulting to that use.
 // 0.0 0.10 0.11   1.0 1.1 1.2 1.3 */
 constexpr bool isDoa(unsigned pinIndex){
   return (15>= pinIndex && pinIndex >=10)||pinIndex==0;
 }
 
-constexpr unsigned gpioBankInterrupt(PortNumber portNum){
-  return 56-portNum;
+constexpr bool canAnalog(unsigned pinIndex){
+  return (16>= pinIndex && pinIndex >=11)||pinIndex==22||pinIndex==23;
 }
 
-/** declared outside of InputPIn class so that we don't have to apply template args to each use.*/
+
+constexpr unsigned gpioBankInterrupt(PortNumber portNum){
+  return 56u-portNum;
+}
+
+/** declared outside of InputPin class so that we don't have to apply template args to each use.
+ * Note: this can also be viewed as 2 booleans, PullUp and PullDown, BusLatch= both of those.
+*/
 enum PinBias { //#ordered for MODE field of iocon register
   LeaveFloating = 0, // in case someone forgets to explicitly select a mode
   PullDown, // level, pulled down
-  PullUp, // level, pulled up
+  PullUp, // level, pulled up, most pins default to this
   BusLatch, // edge, either edge, input mode buslatch
 };
 
+/** this thing has been very hard to make convenient.
+code must be used to set this value where it belongs, embedding the value in a constructor makes that code invisible.
+ to get this module into service I am going to restrict InptuPin and OutputPin to being just buslatch gpio. */
+union PinSpec {
+  u8 code;
+  struct {
+  unsigned fncode:3;
+  unsigned pb:2;
+  unsigned hysterical:1;
+  //bit 6 is always a 1
+  unsigned digital:1;
+  };
+};
 
-/** express access to a pin.
- * will add field access objects when that proves useful.
- */
+/** our choice of how digital pins should be configured */
+constexpr u8 digitalPattern(bool doa){ return static_cast<u8>(0b11011000 + doa);}
+/** how analog pins are configured */
+constexpr u8 analogPattern(bool doa){ return static_cast<u8>(0b01000001 + doa);}
+
+constexpr unsigned *IoconRegister(unsigned moderegaddress){
+  return & (reinterpret_cast<unsigned *>(LPC::apb0Device(17))[moderegaddress]);
+}
+
+
+/** one form of access to a pin, use where the pin selection is runtime option. */
 class GPIO :public BoolishRef {
 protected:
   /** address associated with single bit mask */
@@ -82,7 +111,7 @@ public:
   }
 
   static constexpr unsigned baseAddress(unsigned pinIndex){
-    return baseAddress(pinIndex/12,pinIndex%12);
+    return baseAddress(static_cast<PortNumber>(pinIndex / 12), static_cast<BitNumber>(pinIndex % 12));
   }
 
 public:
@@ -95,16 +124,22 @@ public:
 
   /** set like writing to a boolean, @returns @param setHigh, per BoolishRef requirements*/
   bool operator =(bool setHigh) const {
-    dataAccess = 0-setHigh;//all ones for setHigh, all zeroes for !setHigh, address picks the bit.
+    dataAccess = -setHigh;//all ones for setHigh, all zeroes for !setHigh, address picks the bit.
     return setHigh;
   }
 
   /** read like a boolean, @returns 1 or 0, per BoolishRef requirements*/
-  operator bool() const {
+  operator bool() const override {
     return dataAccess!=0;
   }
 
-  void setIocon(unsigned pattern)const{
+  /** set the ioconfiguration for the given pin to the given pattern. Pattern must already be adjusted for doa */
+  static void setIocon(unsigned pinIndex,u8 pattern){
+    reinterpret_cast<unsigned *>(LPC::apb0Device(17))[ioconf_map[pinIndex]] = pattern;
+  }
+
+  /** this presumes ps is already adjusted for doa */
+  void setIocon(u8 pattern)const{
     GPIO::setIocon(pini,pattern);
   }
 
@@ -113,15 +148,6 @@ public:
 As of 2017jan14 SystemInit is calling this, that is simpler to maintain than an array of function pointers in an explicit section.
 */
   static void Init( void );
-
-  /** biasing is independent of in vs out, but not of function. */
-  static constexpr unsigned ioconPattern(PinBias bias){
-    // FYI P0.4 and P0.5 reset to 0, all others to D0
-    //  2 bits are the code passed in
-    //   ls 3 bits are either 0 for normal pins or 1 for doa pins like reset or SWD pins.
-    return (1<<7) | (1 << 6) | (bias << 3);
-    // ignoring hysteresis option, it depends upon VDD so we'd have to define a symbol for that.
-  }
 
 public: //interrupt stuff. The manual is very opaque about this stuff. The IRQ stuff here only feeds the shared-per-port interrupts. Individual vectoring is via the Start logic.
   // values for gpio config as well as irq config.
@@ -160,34 +186,19 @@ public: //interrupt stuff. The manual is very opaque about this stuff. The IRQ s
     void setDirection(bool output)const;
   };
 
-
-  static constexpr unsigned analogInputPattern(){
-    // we disable pullups and pulldowns on analog channels (bias==0)
-    // bit 7 is a zero for analog selection
-    return (1 << 6) | 1;
-  }
-
-  /** set the ioconfiguration for the given pin to the given pattern.
-   the pattern is adjusted herein for @see isDoa pins */
-  static void setIocon(unsigned pinIndex,unsigned pattern){
-    //for those patterns we have generators for doa pins need a one added to them.
-    reinterpret_cast<unsigned *>(LPC::apb0Device(17))[ioconf_map[pinIndex]]=pattern + isDoa(pinIndex);
-  }
-
   void setDirection(bool output)const;
   void setIrqStyle(IrqStyle style,bool andEnable)const;
   void irq(bool enable)const;
   /** clear pending bit*/
   void irqAcknowledge()const;
 
-
 };
-
 
 
 class Output: public GPIO {
 public:
   Output(PortNumber portNum, BitNumber bitPosition):GPIO(portNum,bitPosition){
+    setIocon(digitalPattern(isDoa(pini)) );
     setDirection(1);
   }
   //grrr, should be able to inherit this, wtf C++?
@@ -210,12 +221,13 @@ public:
   void setDirection(bool forOutput)const;
 
   /** set all the pins associated with this field to the same configuration stuff. */
-  void configurePins(unsigned pattern)const{
+  void configurePins(u8 pattern)const{
     unsigned pinIndex= lsb+ ((address>>16)&3)*12;
     u16 picker=1<<(lsb+2);
     while(address & picker){
-      GPIO::setIocon(pinIndex++,pattern);
+      GPIO::setIocon(pinIndex,pattern+isDoa(pinIndex));
       picker<<=1;
+      ++pinIndex;
     }
   }
 
@@ -236,6 +248,7 @@ public:
 /** constructor for output field*/
 struct GpioOutputField: public GpioField {
   GpioOutputField(PortNumber portNum, unsigned msb, unsigned lsb):GpioField(portNum,msb,lsb){
+    configurePins(digitalPattern(0));//0: doa will get added when needed to the pattern we provide here.
     setDirection(true);
   }
   /** write data to pins, but only effective if an output, doesn''t cause a spontaneous reconfiguration */
@@ -246,7 +259,7 @@ struct GpioOutputField: public GpioField {
 };
 
 // and now for the modern approach:
-/** to configure a pin for a dedicated function one must merely construct a GpioPin with template args for which pin and constructor arg of control pattern*/
+/** to configure a pin for a dedicated function one must construct a PortPin with template args for which pin then call setIocon to select the function */
 template <PortNumber portNum, BitNumber bitPosition> class PortPin: public BoolishRef {
 public:
   enum {
@@ -254,29 +267,24 @@ public:
   };
 
 protected: // for simple gpio you must use an extended class that defines read vs read-write capability.
-  enum {
+  enum {//these are all compile time computer and take no space in the chip, except for inline references.
     mask = 1 << bitPosition, // used for port control register access
     base = portBase(portNum), // base for port control
-    // some pins are special on reset
-    doa = (portNum == 0 && (bitPosition == 0 || bitPosition == 10 || bitPosition == 11)) || // 0.0 0.10 0.11
-    (portNum == 1 && (bitPosition < 4)), // 1.0 1.1 1.2 1.3
+    // some pins are special on reset, and this alters their function code setting
+    doa = isDoa(pini),
+    analogish = canAnalog(pini),
     mode = ioconf_map[pini], // iocon array index
     pinn = base + (mask << 2),    // physical pin 'masked' access location "address == pattern"
-    ctrl = base + (1<<15)
+    ctrl = base + (1<<15)  //address of control block
   };
 
-  /** set associated IOCON register to @param pattern.
-     * Each pin has its own rules as to what the pattern means, although there are a large set of common patterns. */
-  inline void setIocon(unsigned pattern){
-    GPIO::setIocon(pini,pattern);
-  }
 
   /** @returns reference to the masked access port of the register, mask set to the one bit for this pin. @see InputPin and @see OutputPin classes for use, unlike stm32 bitbanding some shifting is still needed. */
-  inline unsigned &pin() const {
-    return *reinterpret_cast<unsigned *>(/*PortPin<portNum, bitPosition>::*/pinn);
+  unsigned &pin() const {
+    return *reinterpret_cast<unsigned *>(pinn);
   }
 
-  inline void setRegister(unsigned offset)const{
+  void setRegister(unsigned offset)const{
     *reinterpret_cast<unsigned*>(ctrl+offset) |=  mask;
   }
 
@@ -298,37 +306,26 @@ protected: // for simple gpio you must use an extended class that defines read v
 
 public:
 
+  /** set associated IOCON register to @param pattern.
+     * Each pin has its own rules as to what the pattern means, although there are a large set of common patterns. */
+  void setIocon(u8 pattern)const {
+    reinterpret_cast<unsigned *>(LPC::apb0Device(17))[mode] = pattern + doa;
+  }
+
   /** only special pins should use this directly. */
-  inline PortPin(unsigned pattern){
-    setIocon(pattern);
-  }
-
-  // biasing is independent of in vs out, but not of function.
-  static constexpr unsigned ioconPattern(PinBias bias){
-    // FYI P0.4 and P0.5 reset to 0, all others to D0
-    //  2 bits are the code passed in
-    //   ls 3 bits are either 0 for normal pins or 1 for doa pins like reset or SWD pins.
-    return (1<<7) | (1 << 6) | (bias << 3) | doa;
-    // ignoring hysteresis option, it depends upon VDD so we'd have to define a symbol for that.
-  }
-
-  static constexpr unsigned analogInputPattern(){
-    // the doa pins get a 2 rather than a 1 to select analog functionality
-    // we disable pullups and pulldowns on analog channels (bias==0)
-    // bit 7 is a zero for analog selection
-    return (1 << 6) | (doa?2:1);
-  }
+  inline PortPin()=default; //do not reconfigure on construction, extensions can do that.
 
   /** read the pin as if it were a boolean variable. */
-  inline operator bool() const {
+  inline operator bool() const override {
     return PortPin<portNum, bitPosition>::pin() != 0; // need to check assembler, a shift might be better.
-  }
+  }  
 
 };
 
 
 /** simple digital input */
 template <PortNumber portNum, BitNumber bitPosition> class InputPin: public PortPin<portNum, bitPosition> {
+  typedef  PortPin<portNum, bitPosition> super;
   using PortPin<portNum, bitPosition>::clearRegister;
   using PortPin<portNum, bitPosition>::setRegister;
   using PortPin<portNum, bitPosition>::assignRegister;
@@ -338,9 +335,8 @@ private:
 
 public:
   /** @param yanker controls pullup modality */
-  InputPin(PinBias yanker = BusLatch): PortPin<portNum, bitPosition>(this->ioconPattern(yanker)){
-    //todo: set direction to 0, which is the power up setting so not urgent in our typical use of static configuration.
-    PortPin<portNum, bitPosition>::setDirection(0);
+  InputPin(): PortPin<portNum, bitPosition>(){
+    super::setDirection(0);//gratuitous most of the time.
   }
 
   void irqAcknowledge() const {
@@ -352,10 +348,9 @@ public:
   }
 
   void setIrqStyle(IrqStyle style, bool andEnable)const{
-    //disable before recongifuring
+    //disable before reconfiguring
     clearRegister(16);
 
-    //  atAddress(regbase)&=~mask; //force to input, user can make it an output and interrupt themselves later if they so wish.
     switch(style){
     case NotAnInterrupt : // in case someone forgets to explicitly select a mode, or we wish to dynamically deconfigure.
       //nothing to do, we have disabled it above so it doesn't matter if we leave it somewhat configured.
@@ -394,12 +389,13 @@ public:
 
 };
 
-/** simple digital output */
+/** configure digital output */
 template <PortNumber portNum, BitNumber bitPosition> class OutputPin: public PortPin<portNum, bitPosition>{
   typedef  PortPin<portNum, bitPosition> super;
 public:
   /** @param yanker controls pull-up modality */
-  OutputPin(PinBias yanker = BusLatch): PortPin<portNum, bitPosition>(this->ioconPattern(yanker)){
+  OutputPin(): PortPin<portNum, bitPosition>(){
+    super::setIocon(digitalPattern(super::doa));
     super::setDirection(1);
   }
 
@@ -415,8 +411,9 @@ public:
  */
 template <PortNumber portNum, unsigned msb, unsigned lsb> class PortField {
   enum {
+    width = msb-lsb+1,
     // read the lpc manual, certain address bits are used as a mask
-    address = portBase(portNum) | bitMask(lsb+2,msb-lsb+1)
+    address = portBase(portNum) | bitMask(lsb+2,width)
   };
 
 public:
@@ -430,7 +427,7 @@ public:
   }
   void configurePins(unsigned pattern){
     unsigned pini= pinIndex(portNum, lsb);
-    for(unsigned which=lsb;which++<=msb;){
+    for(unsigned count=width;count-->0;){
       GPIO::setIocon(pini++,pattern);
     }
   }

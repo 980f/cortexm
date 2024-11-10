@@ -1,11 +1,20 @@
+// this is the F1 clock stuff
+
+#pragma ide diagnostic ignored "hicpp-signed-bitwise"
 #include "clocks.h"
-#include "peripheral.h"
+#include "peripheraltypes.h"
 #include "gpio.h"
-#include "flashcontrol.h"
+#include "flashf1.h"
 #include "systick.h"  //so that we can start it.
 
 //stm32 has an internal RC oscillator:
 #define HSI_Hz 8000000
+
+//#ifndef EXTERNAL_HERTZ
+//#ifdef EXT_MHz
+//#define EXTERNAL_HERTZ (EXT_MHz*1000000)
+//#endif
+//#endif
 
 struct ClockControl {
   unsigned HSIon : 1;
@@ -133,7 +142,7 @@ struct ClockControl {
     }
   } /* maxit */
 
-  void waitForClockSwitchToComplete(void){
+  void waitForClockSwitchToComplete(){
     while(SWdesired != SWactual) {
       //could check for hopeless failures,
       //or maybe toggle an otherwise unused I/O pin.
@@ -145,21 +154,24 @@ struct ClockControl {
     case 0: return HSI_Hz ; //HSI
     case 1: return EXTERNAL_HERTZ;  //HSE, might be 0 if there is none
     case 2: return (pllMultiplier + 2) * (PLLsource ? (PLLExternalPRE ? (EXTERNAL_HERTZ / 2) : EXTERNAL_HERTZ) : HSI_Hz / 2); //HSI is div by 2 before use, and nominal 8MHz for parts in hand.
+    default:
+      return 0; //defective call argument
     }
-    return 0; //defective call argument
   }
 
-  u32 clockRate(unsigned bus){
-    u32 rate = sysClock(SWactual);
+
+  Hertz clockRate(BusNumber bus){
+    Hertz rate = sysClock(SWactual);
 
     switch(bus) {
-    case ~0U: return rate;
-    case 0: return rate >> (ahbPrescale >= 12 ? (ahbPrescale - 6) : (ahbPrescale >= 8 ? (ahbPrescale - 7) : 0));
-    case 1: return rate >> (apb1Prescale >= 4 ? (apb1Prescale - 3) : 0);
-    case 2: return rate >> (apb2Prescale >= 4 ? (apb2Prescale - 3) : 0);
-    case 3: return clockRate(2) / 2 * (adcPrescale + 1);
+    case CPU: return rate;
+    case AHB1: return ahbRate(ahbPrescale ,rate);
+    case APB1: return apbRate(apb1Prescale,rate );
+    case APB2: return apbRate(apb2Prescale,rate );
+    case ADCbase: return clockRate(APB2) / 2 * (adcPrescale + 1);
+    default:
+      return 0; //should blow up on user.
     }
-    return 0; //should blow up on user.
   } /* clockRate */
 };
 
@@ -173,8 +185,9 @@ void warp9(bool internal){
   theClockControl.maxit(internal);
 }
 
-u32 clockRate(unsigned bus){
-  return theClockControl.clockRate(bus);
+
+Hertz clockRate(BusNumber which){
+  return theClockControl.clockRate(which);
 }
 
 /** stm32 has a feature to post its own clock on a pin, for reference or use by other devices. */
@@ -182,10 +195,9 @@ void setMCO(unsigned mode){
   Pin MCO(PA, 8); //depends on mcu family ...
 
   if(mode >= 4) { //bit 2 is 'enable'
-    MCO.FN(50); //else we round off the signal.
+    MCO.FN(PinOptions::Slew::fast); //else we round off the signal.
   } else {
-    MCO.configureAs(4);//set to floating input
+    MCO.DI('F');//set to floating input
   }
   theClockControl.MCOselection = mode;
 }
-
