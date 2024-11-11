@@ -2,10 +2,9 @@
 
 #if DEVICE==103
 #include "afio.h" //to get to selectors for lower 16 exti's
-<<<<<<< HEAD
 #include "bitbasher.h"
 static const Exti theExti InitStep(InitHardware+10);//after ports
-=======
+
 void selectEvent(const Pin &pin){
   theAfioManager.selectEvent(pin);
 }
@@ -13,11 +12,10 @@ void selectEvent(const Pin &pin){
 #include "gpiof4.h"
 //syscfg does what afio does for the 103
 #include "syscfg.h"
->>>>>>> 38af48a193bdaa269537e1f7a37b0db25d5a1b03
+static const Exti theExti InitStep(InitHardware + 10); //after ports
 
 #endif
 
-static const Exti theExti InitStep(InitHardware + 10); //after ports
 
 const Irq Exti::irqsome[5 + 2] = { //psuedo random association of irq with port.
   Irq(6 + 0), Irq(6 + 1), Irq(6 + 2), Irq(6 + 3), Irq(6 + 4), //

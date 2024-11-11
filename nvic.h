@@ -69,34 +69,10 @@ extern "C" void disableInterrupt(unsigned irqnum);
  * <sup>7-code</sup> is what actually goes into the hardware register (==~code)
  * stm32F10x et al. only implements the 4 msbs of the logic so values 3,2,1 are same as 0 */
 void configurePriorityGrouping(unsigned code);
-//
-// <<<<<<< HEAD
-// constexpr unsigned bitFor(unsigned number){
-//   return number & bitMask(0,5);
-// }
-//
-// /** Controls for an irq, which involves bit picking in a block of 32 bit registers */
-// class Irq {
-// public:
-//   const unsigned number;
-//     /** which member of group of 32 this is */
-//     const unsigned bit;
-//     /** memory offset for which group of 32 this is in */
-//     const unsigned bias;
-//     /** bit pattern to go with @see bit index, for anding or oring into 32 bit grouped registers blah blah.*/
-//     const unsigned mask;
-//
-// protected:
-//   /** @returns reference to word related to the feature. */
-//   constexpr volatile unsigned &controlWord(unsigned grup)const{
-//     return *atAddress(grup | bias);
-//   }
-//
-//   /** this is for the registers where you write a 1 to a bit to make something happen. */
-//   void strobe(unsigned grup)const{
-// =======
+
 /** Controls for an irq, which involves bit picking in a block of 32 bit registers.
  * all internals are const so you may use const on every instance, helps the compiler optimize access.
+ * Also being intrinsically const you can have multiple copies with no threading issues.
  templated version was too difficult to manage for the slight potential gain in efficiency, i.e. templating was creeping through classes that didn't template well and a base class that the template can extend adds greater runtime overhead than the template can remove.
  Instead we just inline the code as a template would have required of us and let the compiler work at optimizing this. */
 class Irq {
@@ -192,34 +168,6 @@ public:
     }
   }
 
-// <<<<<<< HEAD
-// };
-//
-// /** instantiating more than one of these for a given interrupt defeats the nesting nature of its enable. */
-// class GatedIrq: public Irq {
-//   int locker; //tracking nested attempts to lock out the interrupt.
-// public:
-//   GatedIrq(unsigned number):Irq(number),locker(0){}
-//
-//   void enable(){
-//     if(locker > 0) { // if locked then reduce the lock such that the unlock will cause an enable
-//       --locker;  // one level earlier than it would have. This might be surprising so an
-//       // unmatched unlock might be the best enable.
-//     }
-//     if(locker == 0) { // if not locked then actually enable
-//       Irq::enable();
-//     }
-//   }
-//
-//   void lock(){
-//     if(locker++ == 0) {
-//       Irq::disable();
-//     }
-//   }
-//
-//   void prepare(){
-//     Irq::clear(); // acknowledge to hardware
-// =======
   /** @returns whether the interrupt is enabled, NOT the state of the request. */
   operator bool() const { // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     return isEnabled();
@@ -331,7 +279,9 @@ inline bool IrqEnable;
 #define LOCK(somename) CriticalSection somename ## _locker
 
 /** creating one of these in a function (or blockscope) disables <em> all </em> interrupts until said function (or blockscope) exits.
- * By using this fanciness you can't accidentally leave interrupts disabled. */
+ * By using this fanciness you can't accidentally leave interrupts disabled.
+ * We don't have to use atomic operations on 'nesting' as this object physically stops any threads other than the one that constructs it.
+ */
 class CriticalSection {
   /** Note Well the static below, that is essential for this guy to work. */
    volatile unsigned nesting;//zero init by C startup.

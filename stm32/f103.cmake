@@ -8,6 +8,7 @@ set(CPU_FAMILY STM32F10x)
 
 #980f uses this for now:
 ADD_DEFINITIONS(-DDEVICE=103 -DuseSTM32)
+INCLUDE_DIRECTORIES("cortexm/stm32")
 #nascent replacement for DEVICE usage, when whole file is swapped out or in.
 set(GPIO_MODULE gpiof1)
 set(CLOCK_MODULE clocksf1)

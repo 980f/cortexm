@@ -1,11 +1,7 @@
 #include "clocks.h"
 #include "systick.h"
 
-ClockStarter::ClockStarter(bool intosc, u32 coreHertz, u32 sysHertz):
-  intosc(intosc),
-  coreHertz(coreHertz),
-  sysHertz(sysHertz)
-{
+void ClockStarter::go() const {
   if(coreHertz){
     //todo:M actually honor it!
   } else {
@@ -14,4 +10,12 @@ ClockStarter::ClockStarter(bool intosc, u32 coreHertz, u32 sysHertz):
   if(sysHertz){
     SystemTimer::startPeriodicTimer(sysHertz);
   }
+}
+
+ClockStarter::ClockStarter(bool intosc, Hertz coreHertz, Hertz sysHertz):
+  intosc(intosc),
+  coreHertz(coreHertz),
+  sysHertz(sysHertz)
+{
+  //const constructor
 }

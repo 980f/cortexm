@@ -133,19 +133,6 @@ public:
     , rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
 
   /** activate and release the module reset */
-
-  // /** control the clock, off reduces chip power */
-  // void setClockEnable(bool on = true) const;
-  // /** @returns whether clock is on */
-  // bool isEnabled(void) const;
-  // /** reset and enable clock */
-  // void init(void) const;
-  // /** get base clock for this module */
-  // u32 getClockRate(void) const;
-  // /** @returns address of a register, @param offset is value from st's manual (byte address) */
-  // volatile u32 *registerAddress(unsigned int offset) const {
-  //   return & reinterpret_cast<u32 *>( blockAddress)[offset>>2]; //compiler sees offset as an array index .
-
   void reset() const {
     ControlWord resetter(rccBit(resetOffset));
     resetter = 1;
@@ -181,10 +168,10 @@ bool isEnabled() const {
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
    constexpr Address registerAddress(unsigned offset) const {
     return blockAddress + offset;
+     //   return & reinterpret_cast<u32 *>( blockAddress)[offset>>2]; //compiler sees offset as an array index .
   }
 
   /** @returns bit band address of bit of a register, @param offset is value from st's manual (byte address) */
-
   constexpr ControlWord bit(Address offset, unsigned bit) const {
     return ControlWord(bandFor(blockAddress + offset, bit));//bandAddress and bandFor were both setting the 0200 0000 bit.
   }

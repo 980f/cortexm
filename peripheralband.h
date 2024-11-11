@@ -28,20 +28,20 @@ constexpr unsigned bandit(unsigned byteAddress, unsigned bitnum = 0){
   return ((bitnum << 2) | bandShift(byteAddress) | (byteAddress & 0xE0000000) | 0x02000000);
 }
 
+//
+// /** @return bitband address for given bit (default 0) of @param byte address.
+// this assumes that the byte address ends in 00, which all of the ones in the st manual do.
+// */
+// constexpr volatile unsigned *bandFor(unsigned byteAddress, unsigned bitnum = 0){
+//   return atAddress ((bitnum << 2) | bandShift(byteAddress) | (byteAddress & 0xE0000000) | 0x02000000);
+// }
 
-/** @return bitband address for given bit (default 0) of @param byte address.
-this assumes that the byte address ends in 00, which all of the ones in the st manual do.
-*/
-constexpr volatile unsigned *bandFor(unsigned byteAddress, unsigned bitnum = 0){
-  return atAddress ((bitnum << 2) | bandShift(byteAddress) | (byteAddress & 0xE0000000) | 0x02000000);
-}
+// /** @return bitband address for given bit (default 0) of @param byte address.
+// this assumes that the byte address ends in 00, which all of the ones in the st manual do.
+// */
+// constexpr volatile unsigned *bandAddress(unsigned byteAddress, unsigned bitnum = 0){
+//   return bandFor(byteAddress,bitnum);
+// }
 
-/** @return bitband address for given bit (default 0) of @param byte address.
-this assumes that the byte address ends in 00, which all of the ones in the st manual do.
-*/
-constexpr volatile unsigned *bandAddress(unsigned byteAddress, unsigned bitnum = 0){
-  return bandFor(byteAddress,bitnum);
-}
-
-const unsigned PeripheralBand(0x42000000);
+// const unsigned PeripheralBand(0x4200'0000);
 

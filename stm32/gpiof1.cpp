@@ -2,6 +2,8 @@
 //this inspection has some stupid variations, like requiring unsigned shift for unsigned integer.
 #pragma ide diagnostic ignored "hicpp-signed-bitwise"
 
+#include <gpio.h>
+
 #include "peripheralband.h" //deprecated bandFor
 #include "bitbasher.h"
 

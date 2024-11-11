@@ -40,7 +40,7 @@ ADD_DEFINITIONS(-D__MPU_PRESENT=0)
 
 #had to add this to get cortexm3.s to be processed:
 ENABLE_LANGUAGE(ASM)
-#wildy guessing on trying to get correct asm language:
+#wildly guessing on trying to get correct asm language:
 SET(CMAKE_ASM_COMPILER_TARGET ${gcccpu})
 
 #cli stuff common to assembler and compiler:

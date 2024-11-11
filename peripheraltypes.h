@@ -1,7 +1,5 @@
 #pragma once
 
-#include "eztypes.h"
-#include "bitbasher.h"
 
 #pragma clang diagnostic push
 //we ignore the following warnings as this file exists to make hardware registers appear to be simple variables
@@ -9,8 +7,9 @@
 #pragma ide diagnostic ignored "misc-unconventional-assign-operator"
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 
+#include "eztypes.h"
+#include "bitbasher.h"
 #include "boolish.h"
-// #include "eztypes.h"
 
 /**
  *  types used for declaration of peripherals.
@@ -204,9 +203,11 @@ public:
   }
 
 public:
-  constexpr ControlField(const ControlField &other) = delete;
+  //this is an immutable object, so copying should be just fine, and is needed for move behavior which is needed by object factories.
+  // constexpr ControlField(const ControlField &other) = delete;
 
-  ControlField() = delete;
+
+  ControlField() = delete; //fail a compile if no args are given.
 
   // read
   operator unsigned() const {

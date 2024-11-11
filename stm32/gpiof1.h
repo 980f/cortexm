@@ -10,11 +10,38 @@
   *
   * For pins that are optional to a module use (const Pin *) parameters to pass nulls. Trying to create safely non-functional pins is expensive and the check for 'has a pin' is the same cost, but only burdens those pin uses which can be optionally present. There are usually some port bits that aren't pinned out which can be used as dummies when a null pointer to a pin just isn't convenient.
   */
-
 struct Port /*Manager*/ : public APBdevice {
   static constexpr unsigned gpiobase(unsigned Ais0) {
     return GPIOBASE + 0x400 * Ais0;
   }
+
+  struct PinOptions {//using struct as namespace
+    static constexpr unsigned input(bool analog = false, bool floating = false) {
+      return analog ? 0 : (floating ? 4 : 8);//only 3 combos are legal
+    }
+
+    enum Slew {
+      medium = 1, slow = 2, fast = 3
+    };
+
+    static constexpr unsigned output(Slew slew = slow, bool function = false, bool open = false) {
+      return slew + (function ? 8 : 0) + (open ? 4 : 0);
+    }
+
+    unsigned code;
+
+    explicit PinOptions(unsigned code) : code(code) {}
+
+    //default copy etc are fine.
+    static PinOptions Input(bool analog = false, bool floating = false) {
+      return PinOptions(input(analog, floating));
+    }
+
+    static PinOptions Output(Slew slew = slow, bool function = false, bool open = false) {
+      return PinOptions(output(slew, function, open));
+    }
+  };
+
 
   static bool isOutput(unsigned pincode);
 
@@ -86,33 +113,6 @@ Portcode::output(unsigned 10,2,50,bool function=false, bool open=false){
 */
 
 
-struct PinOptions {//using struct as namespace
-  static constexpr unsigned input(bool analog = false, bool floating = false) {
-    return analog ? 0 : (floating ? 4 : 8);//only 3 combos are legal
-  }
-
-  enum Slew {
-    medium = 1, slow = 2, fast = 3
-  };
-
-  static constexpr unsigned output(Slew slew = slow, bool function = false, bool open = false) {
-    return slew + (function ? 8 : 0) + (open ? 4 : 0);
-  }
-
-  unsigned code;
-
-  explicit PinOptions(unsigned code) : code(code) {}
-
-  //default copy etc are fine.
-  static PinOptions Input(bool analog = false, bool floating = false) {
-    return PinOptions(input(analog, floating));
-  }
-
-  static PinOptions Output(Slew slew = slow, bool function = false, bool open = false) {
-    return PinOptions(output(slew, function, open));
-  }
-};
-
 //these take up little space and it gets annoying to have copies in many places.
 // priority must be such that these get created before any application objects
 const Port PA InitStep(InitHardware)('A');
@@ -143,17 +143,17 @@ struct Pin /*Manager*/ {
   const ControlField confword;
 
   /** configure as output using given options */
-  const Pin & output(unsigned int code, PinOptions::Slew slew, bool openDrain) const {
+  const Pin & output(unsigned int code, Port::PinOptions::Slew slew, bool openDrain) const {
     code |= openDrain << 2;
     switch (slew) {
     default: // on any errors be a slow output
-    case PinOptions::Slew::slow:
+    case Port::PinOptions::Slew::slow:
       code |= 2;
       break;
-    case PinOptions::Slew::medium:
+    case Port::PinOptions::Slew::medium:
       code |= 1;
       break;
-    case PinOptions::Slew::fast:
+    case Port::PinOptions::Slew::fast:
       code |= 3;
       break;
     }
@@ -178,12 +178,12 @@ struct Pin /*Manager*/ {
 //  ControlWord highDriver() const;
 
 /** configure as simple digital output */
-  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) const {
+  const Pin &DO(Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) const {
     return output(0, slew, openDrain);
   }
 
 /** configure pin as alt function output*/
-  const Pin &FN(PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) const;
+  const Pin &FN(Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) const;
 
 //  /** declare your variable volatile, reads the actual pin, writing does nothing */
 //  constexpr ControlWord reader() const;
@@ -261,7 +261,7 @@ Note that these objects can be const while still manipulating the pin.
 */
 class OutputPin : public LogicalPin {
 public:
-  explicit OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
+  explicit OutputPin(const Pin &pin, bool active = true, Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) :
     LogicalPin(pin, active) {
     pin.DO(slew, openDrain);
   }

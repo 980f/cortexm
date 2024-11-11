@@ -11,8 +11,6 @@
 
 #include <gpio.h>
 
-const unsigned EXTERNAL_HERTZ=8000000;
-
 class Bluepill {
   // Pin ledPin;
   OutputPin led; //low active.
