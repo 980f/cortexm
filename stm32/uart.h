@@ -158,11 +158,10 @@ struct Uart: public APBdevice {
     unsigned flags;
   };
 
-
   const Irq irq;
   unsigned int altpins;//not const so that we can dynamically attach to different pins. If we normally could const it then we could create different objects and hope that our program logic doesn't get too confusing.
 
-  constexpr Uart(unsigned int zluno, unsigned int alt = 0);
+  Uart(unsigned zluno, unsigned alt = 0);
 
   /** we default the handshakes to "not used" as they are nearly useless, as well as having atrociously wrong names.
    * The RTS is nearly useless as it glitches for ane bit time at every stop bit, which makes many remote senders fail.
@@ -197,9 +196,41 @@ struct Uart: public APBdevice {
   void beTransmitting(bool yes = true)const;
 
   void txDma(bool beRunning) const;
+
+  static constexpr unsigned irqForUart(unsigned stluno) {
+    return stluno + (stluno <= 3 ? 36 : stluno <= 5 ? (52-4) : (71-6)) ; //37,38,39  52,53 71
+  }
+
+public:
+  /*
+F103: U1 = 1:14, others on 2:luno+15
+F407: U1 = 2:  U2..5 = 1:lu+15   U6=2:
+*/
+#if DEVICE == 103 || DEVICE == 452
+  static constexpr BusNumber busForUart(unsigned stluno){
+    return stluno==1 ? APB2 : APB1;
+  }
+
+  static constexpr unsigned slotForUart(unsigned stluno) {
+    return (stluno == 1 ? 14 : (stluno + 15));
+  }
+
+#elif DEVICE == 407
+  constexpr BusNumber busForUart(unsigned stluno){
+    return (stluno == 1 || stluno == 6) ? APB2 : APB1;
+  }
+  constexpr unsigned slotForUart(unsigned stluno) {
+    return (stluno == 1 ? 4 : stluno == 6 ? 5 : (stluno + 15));
+  }
+
+#else
+#error "you must define DEVICE to something like 103 or 407"
+#endif
+
+
 };
 
-//use the following where a decimal number of the interrupt request is needed
+//use the following where a textually decimal number of the interrupt request is needed
 #define UartIrq(luno) MACRO_wrap (UART , luno , _irq)
 
 #define  UART1_irq  37

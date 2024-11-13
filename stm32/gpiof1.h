@@ -9,6 +9,9 @@
   * Note well that even when the group is not enabled the port can be read from (as long as it exists).
   *
   * For pins that are optional to a module use (const Pin *) parameters to pass nulls. Trying to create safely non-functional pins is expensive and the check for 'has a pin' is the same cost, but only burdens those pin uses which can be optionally present. There are usually some port bits that aren't pinned out which can be used as dummies when a null pointer to a pin just isn't convenient.
+  *
+  * todo:1 add Bidirectional pin with interface for dyanmic switching during runtime.
+  * todo:1 abstract base classes across vendors to ensure names don't diverge.
   */
 struct Port /*Manager*/ : public APBdevice {
   static constexpr unsigned gpiobase(unsigned Ais0) {
@@ -248,9 +251,9 @@ hide the volatile and * etc that I sometimes forget.
 class InputPin : public LogicalPin {
 
 public:
-  explicit constexpr InputPin(const Pin &pin, char UDF = 'D', bool active = true);
+  explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true);
 
-  explicit constexpr InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
+  explicit InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
   //maydo: add method to change pullup/pulldown bias while running
 
 };

@@ -17,6 +17,7 @@
 
 /* The BusNumber enum is used to compute control bit addresses for RCC functions. */
 #if DEVICE == 103
+#include "peripheralband.h"
 enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
   CPU
   ,AHB1 //even though there is but 1 AHB adding the '1' to its name saves some #ifdef'ing in clock related code with other chips
@@ -32,6 +33,8 @@ const unsigned resetOffset=0x0C;
 const unsigned clockOffset=0x18;
 
 #elif DEVICE == 407
+#include "peripheralband.h"
+
 enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
   CPU //used for clock rate function index
   ,AHB1=1, AHB2, AHB3 //3 buses which have some APDevice like characteristics
@@ -47,6 +50,8 @@ const unsigned resetOffset = 0x10;
 const unsigned clockOffset = 0x30;
 
 #elif DEVICE == 452
+#include "peripheralband.h"
+
 enum BusNumber : uint8_t {//#this enum is used for RCC register addressing
   CPU //used for clock rate function index
   , AHB1=1, AHB2, AHB3

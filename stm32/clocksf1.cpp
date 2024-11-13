@@ -195,7 +195,7 @@ void setMCO(unsigned mode){
   Pin MCO(PA, 8); //depends on mcu family ...
 
   if(mode >= 4) { //bit 2 is 'enable'
-    MCO.FN(PinOptions::Slew::fast); //else we round off the signal.
+    MCO.FN(Port::PinOptions::Slew::fast); //else we round off the signal.
   } else {
     MCO.DI('F');//set to floating input
   }

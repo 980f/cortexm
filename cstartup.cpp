@@ -1,5 +1,6 @@
+
 #include "cruntime.h" //to validate it, herein lay default implementations of it.
-#include "peripheraltypes.h" //for generateHardReset and vectors2ram
+#include "peripheraltypes.h"
 
 /**
 This file is the reset handler.
@@ -68,7 +69,7 @@ void cstartup(void) {
 void (*resetVector)() __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix on section name
 
-
+extern "C" [[noreturn]]
 [[noreturn]] void generateHardReset() {
   //maydo: DSB before and after the reset
   //lsdigit: 1 worked on stm32, 4 should have worked but looped under the debugger.

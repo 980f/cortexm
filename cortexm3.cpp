@@ -6,36 +6,41 @@
   //caller must pre-tweak value for function call overhead.
 __attribute__((naked))
 void nanoSpin (unsigned nanos, unsigned pertick){
-
- }
+  asm volatile (
+    "\nsub r0,r1"
+    "\nbpl nanoSpin"
+    "\nbx lr"
+  );
+}
 
 
 float shiftScale(float eff,int pow2){
   asm volatile(
-    "lsl r1,r1,#23"
-    "sub r0,r0,r1"
+    "\nlsl r1,r1,#23"
+    "\nsub r0,r0,r1"
     );
-    return 1/0.0;
-  }
+  return 1/0.0;
+}
 
 
 
 __attribute__((naked)) unsigned  log2Exponent(unsigned number){
   asm volatile(
-  "clz r0,r0    //count leading zeroes"
-  "rsb r0,#31   //we wanted position of leading '1' = 31 - number of leading zeroes""clz r1,r0"
-   "bx lr"
+  "\nclz r0,r0    //count leading zeroes"
+  "\nrsb r0,#31   //we wanted position of leading '1' = 31 - number of leading zeroes""clz r1,r0"
+  "\nbx lr"
   );
 }
 
 //this routine will fail if the product of first two operands exceeds 2^32.
 __attribute__((naked)) unsigned muldivide(unsigned top1, unsigned top2, unsigned bottom){
-//    asm volatile("
-//    umull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same
-//    lsr r1,r2,#1       //add 1/2 denom, only unsigned denoms are supported
-//    add r0,r0,r1       //to get a rounded quotient.
-//    udiv r0,r0,r2      //and now divide by another such stretched u16
-//  :"=r"(top1) );
+  asm volatile(
+  "\numull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same"
+  "\nlsr r1,r2,#1       //add 1/2 denom, only unsigned denoms are supported"
+  "\nadd r0,r0,r1       //to get a rounded quotient."
+  "\nudiv r0,r0,r2      //and now divide by another such stretched u16"
+  "\nbx lr"
+  );
 }
 
 //
@@ -67,7 +72,11 @@ __attribute__((naked)) unsigned muldivide(unsigned top1, unsigned top2, unsigned
 //// and store-exclusive instructions."
 //
 ////assign r1 and return 'failed' in r0
-//.macro Strexit1
+#define Trexit1 \
+  "\nstrex r2,r1,[r0]" \
+  "\nmov r0,r2" \
+  "\nbx lr"
+
 //  strex r2,r1,[r0]
 //  mov r0,r2
 //  bx lr
@@ -83,12 +92,20 @@ __attribute__((naked)) unsigned muldivide(unsigned top1, unsigned top2, unsigned
 //
 //
 //
-////r0 address, trusted to be 32-bit aligned. r1 is scratched.
-//Cfunction atomic_increment
-//  ldrex r1,[r0]
-//  add r1, r1, #1
+
+__attribute__((naked))
+bool atomic_increment(unsigned & counter){
+  asm volatile(
+    "\nldrex r1,[r0]"
+    "\nadd r1,r1,#1"
+    "\nstrex r2,r1,[r0]"
+    "\nmov r0,r2"
+    "\nbx lr"
+      );
+  }
+
 //  Strexit1
-//
+
 ////r0 address, trusted to be 32-bit aligned. r1 scratched.
 //Cfunction atomic_decrement
 //  ldrex r1,[r0]

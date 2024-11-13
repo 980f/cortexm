@@ -56,6 +56,7 @@ u16 Port::Field::actual() const {
 //}
 
 const Pin &Pin::AI() const {
+  // ReSharper disable once CppExpressionWithoutSideEffects
   configureAs(0);
   return *this;
 }
@@ -75,18 +76,18 @@ const Pin & Pin::DI(char UDF) const { // default Down as that is what meters wil
 
 
 
-const Pin& Pin::FN(Portcode::Slew slew, bool openDrain) const {
+const Pin& Pin::FN(Port::PinOptions::Slew slew, bool openDrain) const {
   return output(8, slew, openDrain);
 }
 
 
 //////////////////////////////////
 
-constexpr InputPin::InputPin(const Pin &pin, char UDF, bool lowactive) : LogicalPin(pin, lowactive) {
+InputPin::InputPin(const Pin &pin, char UDF, bool lowactive) : LogicalPin(pin, lowactive) {
   pin.DI(UDF);
 }
 
-constexpr InputPin::InputPin(const Pin &pin, bool lowactive) : InputPin(pin, lowactive ? 'U' : 'D', lowactive) {
+InputPin::InputPin(const Pin &pin, bool lowactive) : InputPin(pin, lowactive ? 'U' : 'D', lowactive) {
   /*empty*/
 }
 
@@ -103,7 +104,7 @@ bool Port::isOutput(unsigned pincode) {
   return (pincode & 3U) != 0;//if so then code is Alt/Open
 }
 
-constexpr Port::Port(char letter) : APBdevice(BusNumber::AHB1, 2 + unsigned(letter - 'A')) {}
+// constexpr Port::Port(char letter) : APBdevice(BusNumber::AHB1, 2 + unsigned(letter - 'A')) {}
 
 //constexpr void Port::configure(unsigned bitnum, unsigned code) const {
 //  if(! isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.

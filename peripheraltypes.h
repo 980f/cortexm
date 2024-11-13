@@ -46,28 +46,7 @@ template<typename Scalar> constexpr Scalar &Ref(Address address) {
   return *static_cast<Scalar *>(pun.pointer);
 }
 
-/** many, but not all, cortex devices put peripheral control registers in the 0x4000 space, and bitband all of that to 0x4200.
- * "bitband" is ARM's term for mapping each bit of the lower space into a 32bit word in the bitband region.
-This replaces a 3-clock operation that is susceptible to interruption into a one clock operation that is not. That is important if an ISR is modifying the same control word as main thread code.
-*/
-static constexpr unsigned int BandGroup = 0xE000'0000;//bit banding only applies to 0000 0000 through 000F FFFF in the 2000 and 4000 regions.
-static constexpr unsigned BandBit = 0x0200'0000;
 
-constexpr Address bandShift(Address byteOffset) {
-  //5: 2^5 bits per 32 bit word. we expect a byte address here, so that one can pass values as read from the stm32 manual.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wbraced-scalar-init"  //# leave braces in case Address becomes a real class
-  return {byteOffset << 5U};
-}
-
-/** @return bitband address for given bit (default 0) of @param byte address.
-this assumes that the byte address ends in 00, which all of the ones in the st manual do.
-*/
-constexpr Address bandFor(Address byteAddress, unsigned bitnum = 0) {
-  return {(bitnum << 2U) | bandShift(byteAddress) | (byteAddress & BandGroup) | BandBit};
-}
-
-#pragma clang diagnostic pop
 
 /** A 32 bit item at a known address.
  * when you don't know the address at compile time use one of these, else use an SFRxxx.
@@ -264,33 +243,6 @@ public:
 
 };
 
-/** only works for bitbanded item! */
-struct ControlBit : public ControlWord, BoolishRef {
-
-  constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {
-  }
-
-  // read
-  inline operator bool() const override {
-    return item != 0;
-  }
-
-  // write
-  bool operator=(bool value) const override {
-    item = value;
-    return value;
-  }
-
-  /** for bits declared "rc_w0" in the ST RM */
-  bool flagged() const {//todo:1 make this atomic, else only use each either strictly in an isr or not in an isr
-    if (item) {
-      item = 0;
-      return true;
-    } else {
-      return false;
-    }
-  }
-};
 
 /** a datum at a known absolute address */
 template<typename Inttype, Address sfraddress>
@@ -379,32 +331,12 @@ public:
   }
 };
 
-/** if your bit is in bitband space use this instead of SFRbit */
-template<unsigned sfraddress, unsigned bitnum>
-struct SFRbandbit : public BoolishRef {
-  enum {
-    bandAddress = bandFor(sfraddress, bitnum)
-    , };
-
-  // read
-  operator bool() const override {
-    return *(reinterpret_cast<volatile unsigned *>(bandAddress));
-  }
-
-  // write
-  bool operator=(bool value) const override {
-    *(reinterpret_cast<unsigned *>(bandAddress)) = value;
-    return value;
-  }
-};
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
 const Address PeripheralBase {0x4000'0000};  //1<<30
 
-const Address PeripheralBand {0x4200'0000};//bandFor(PeripheralBase)
 
 //cortexM 'private peripherals'
-
 // the SCB is kinda like a peripheral, but we may just inline this at each point of use. The manual lists both absolute and relative addresses.
 constexpr Address SCB(unsigned offset) {
   return 0xE000'ED00u + offset;

@@ -35,7 +35,7 @@ unsigned Exti::irqIndex(unsigned pinnumber) {
 
 Exti::Exti() :
 #if DEVICE==103
-APBdevice(2, 1)
+APBdevice(APB2, 1)
 #elif DEVICE==407
 APBdevice(APB2, 16)
 #endif

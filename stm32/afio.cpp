@@ -11,7 +11,7 @@ AfioManager theAfioManager InitStep(InitHardware-1); //just before ports and pin
 //};
 
 AfioManager ::AfioManager():
-  APBdevice(2, 0),
+  APBdevice(APB2, 0),
   b(*reinterpret_cast <volatile AfioBand *> (bandAddress)),
   remap(registerAddress(4)){
   init();

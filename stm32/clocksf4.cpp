@@ -18,8 +18,8 @@
 #define EXT_MHz 12
 #endif
 #endif
-//the following wasn't getting linked when in main.cpp
-constexpr unsigned EXTERNAL_HERTZ = 1000000 * EXT_MHz;
+//the following wasn't getting linked when in main.cpp (needed 'extern' in header
+//constexpr unsigned EXTERNAL_HERTZ = 1000000 * EXT_MHz;
 constexpr unsigned MAX_HERTZ = 168000000;
 
 struct OscControl {

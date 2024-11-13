@@ -112,7 +112,7 @@ SECTIONS {
                        apparently we have been lucky for years that the segments naturally aligned. */
     *(SORT(.data.*))
     *(.data)
-    /* *(.gnu.linkonce.d.*) /* these should not get produced. If they do expose this and fix its syntax errors, and documented what generated them */
+    /* *(.gnu.linkonce.d.*) / *these should not get produced. If they do expose this and fix its syntax errors, and documented what generated them */
   } >SRAM AT>FLASH
 
   .startupCopy : { /* this initializes an instance of what cstartup.cpp calls 'struct RamInitBlock' */
@@ -130,8 +130,8 @@ SECTIONS {
     *(SORT(.tbss.*))
     *(.tbss)  /* tbss added for F407+ st's hal use, just for errno! Once we understand it we might be able to get rid of it, 'til then we lose a big chunk of code without a linker error if we omit it */
 
-    /* .gnu.linkonce.b.*)   /* C++ doesn't use these, if C does remove the leading comment marker */
-    /* *(COMMON)    /* C++ doesn't use these, if C does remove the leading comment marker */
+    /* .gnu.linkonce.b.*)   / * C++ doesn't use these, if C does remove the leading comment marker */
+    /* *(COMMON)    / * C++ doesn't use these, if C does remove the leading comment marker */
   } >SRAM
 
   .startupClear : {/* the following initializes an instance of what cstartup.cpp calls 'struct RamBlock' */

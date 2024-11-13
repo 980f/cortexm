@@ -41,7 +41,6 @@ bool atomic_setIfZero(unsigned &alignedDatum, unsigned value){
   return false;
 }
 #else // real code
-// assembler file will supply code
 
 #endif // if HOST_SIM
 

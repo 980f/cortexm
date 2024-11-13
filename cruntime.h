@@ -47,6 +47,3 @@ using InitRoutine= void(*)();
  * the 'initialization priority logic' uses such sections to control startup sequencing, and doesn't work without linker support.
  */
 void run_table(const InitRoutine *table);
-
-/** this will generate a hard reset if the stack has overflowed */
-void stackFault();
