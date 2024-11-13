@@ -51,6 +51,10 @@ The calling hierarchy of cmake files is:
 To be clear: you only need to edit CmakeLists.txt and often *progname*`/.ld` 
 
 ---
+
+The linker creates a function equivalent to: `extern "C" do_nothing()` which you can put into tables of function pointers rather than putting nullptr and having to check for it. This is especially handy when the table size is not known for which you use a nullptr to indicate end of table.
+
+---
 Build tools:
 I use various IDE's. Obviously ones that support Cmake.
 
