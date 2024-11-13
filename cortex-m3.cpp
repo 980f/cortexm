@@ -2,10 +2,10 @@
 /**
 * replacing cortexm3.s via __attribute__ ((naked))
  */
-  //r0 is nano seconds, r1 is number of nanoseconds per iteration of this function. That was 83ns for a 72MHz M3.
-  //caller must pre-tweak value for function call overhead.
+//r0 is nano seconds, r1 is number of nanoseconds per iteration of this function. That was 83ns for a 72MHz M3.
+//caller must pre-tweak value for function call overhead.
 __attribute__((naked))
-void nanoSpin (unsigned nanos, unsigned pertick){
+void nanoSpin(unsigned nanos, unsigned pertick) {
   asm volatile (
     "\nsub r0,r1"
     "\nbpl nanoSpin"
@@ -14,32 +14,31 @@ void nanoSpin (unsigned nanos, unsigned pertick){
 }
 
 
-float shiftScale(float eff,int pow2){
+float shiftScale(float eff, int pow2) {
   asm volatile(
     "\nlsl r1,r1,#23"
     "\nsub r0,r0,r1"
-    );
-  return 1/0.0;
+  );
+  return 1 / 0.0;
 }
 
 
-
-__attribute__((naked)) unsigned  log2Exponent(unsigned number){
+__attribute__((naked)) unsigned log2Exponent(unsigned number) {
   asm volatile(
-  "\nclz r0,r0    //count leading zeroes"
-  "\nrsb r0,#31   //we wanted position of leading '1' = 31 - number of leading zeroes""clz r1,r0"
-  "\nbx lr"
+    "\nclz r0,r0    //count leading zeroes"
+    "\nrsb r0,#31   //we wanted position of leading '1' = 31 - number of leading zeroes""clz r1,r0"
+    "\nbx lr"
   );
 }
 
 //this routine will fail if the product of first two operands exceeds 2^32.
-__attribute__((naked)) unsigned muldivide(unsigned top1, unsigned top2, unsigned bottom){
+__attribute__((naked)) unsigned muldivide(unsigned top1, unsigned top2, unsigned bottom) {
   asm volatile(
-  "\numull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same"
-  "\nlsr r1,r2,#1       //add 1/2 denom, only unsigned denoms are supported"
-  "\nadd r0,r0,r1       //to get a rounded quotient."
-  "\nudiv r0,r0,r2      //and now divide by another such stretched u16"
-  "\nbx lr"
+    "\numull r0,r1,r0,r1  //in typical use this is u16 stretched to u32 times the same"
+    "\nlsr r1,r2,#1       //add 1/2 denom, only unsigned denoms are supported"
+    "\nadd r0,r0,r1       //to get a rounded quotient."
+    "\nudiv r0,r0,r2      //and now divide by another such stretched u16"
+    "\nbx lr"
   );
 }
 
@@ -93,16 +92,6 @@ __attribute__((naked)) unsigned muldivide(unsigned top1, unsigned top2, unsigned
 //
 //
 
-__attribute__((naked))
-bool atomic_increment(unsigned & counter){
-  asm volatile(
-    "\nldrex r1,[r0]"
-    "\nadd r1,r1,#1"
-    "\nstrex r2,r1,[r0]"
-    "\nmov r0,r2"
-    "\nbx lr"
-      );
-  }
 
 //  Strexit1
 
