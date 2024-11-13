@@ -1,5 +1,6 @@
 #include "core-atomic.h"
 /** cortex M atomic operations
+* only include this if your processor has ldrex and strex instructions.
  */
 
 #if __has_include(<atomic>)
@@ -41,6 +42,17 @@ bool atomic_setIfZero(unsigned &alignedDatum, unsigned value){
   return false;
 }
 #else // real code
+
+__attribute__((naked))
+bool atomic_increment(unsigned & counter){
+  asm volatile(
+    "\nldrex r1,[r0]"
+    "\nadd r1,r1,#1"
+    "\nstrex r2,r1,[r0]"
+    "\nmov r0,r2"
+    "\nbx lr"
+      );
+}
 
 #endif // if HOST_SIM
 
