@@ -1,15 +1,15 @@
 /*
 simplified linker script for bare metal flash execution only
 
-This should be included *after* a script that defines MEMORY sections SRAM and FLASH.
+This should be included *after* (often by) a script that defines MEMORY sections SRAM and FLASH.
 
-This takes advantage of gcc emitting data alignment commands in the input files, so we don't have to redundantly implement them herein.
+This takes advantage of gcc emitting data alignment commands in the object files, so we don't have to redundantly implement them herein.
 
-For the c startup initialization it trades off number of inline constants (register load immediates) with
+For the c startup initialization this script trades off number of inline constants (register load immediates) with
 putting those constants explicitly in the rom and inlining only a pointer thereto. The compiler was able to do a load-multiple versus separate load-immediates at the point of use,
 an infinitesimal gain in rom usage but less than half as many magic names.
 
-The building of the vector table is shared between linker generated stack top and the vector table proper being
+The building of the vector table is shared between linker generated stack_top and the vector table proper being
 declared elsewhere (@see 980f's nvic.cpp) using the same facility that 'init' attributes uses.
 I used SORT where others don't bother so that the vector table can be developed in separate files,
 such as stack init and reset vector where the code using them is, and the others in the nvic module.
@@ -17,7 +17,7 @@ such as stack init and reset vector where the code using them is, and the others
 Some people (CMSIS- looking at you) conditionally include some special calls around the c startup
 (useful for things like powering up parts of the chip that need to be on before c-structs for accessing them are constructed),
 I have implemented that via weak references to a routine that devolves into a "bx lr". Compare that to CMSIS having #define symbols managing that,
-one extra instruction and the time for a useless call and return gain you not having to manage #define symbols.
+one extra instruction and the time for a useless call and in return we gain not having to manage a  bunch of #define symbols.
 
 Some people have multiple initialization call tables, I pack them into one segment and null terminate it
 which eliminates the need for a slew of shared symbols and counting. I may have unintentionally altered the
@@ -41,6 +41,8 @@ No special provision has been made for a ram vector table. The compiler can alig
 and user code can assign to the vector table system control register to enable it.
 
 I initially left off destructor and other 'atexit' functionality, my only 'atexit' is to generate a hard reset. I've added that mostly back in but it is untested.
+The only use I can conceive of is making the actual system safe if the code detects that operation is hopeless. Using destructors to manage all the shutdown steps does seem like it can be useful
+ if there are solitons declared outside of the scope of main().
 
 I have left off a no-init data section, that is a dangerous technology with many different possible implementations.
 The stm32 non-volatile data has holes in it beyond the ability of the linker to readily compensate for. Not zeroing some ram
@@ -53,7 +55,7 @@ The cmake makefiles mess with working directory, so I had to add '-L parent-dire
 */
 
 SECTIONS {
-/* interrupt table.   Needs KEEP directive as these functions will only be referenced by this table. */
+/* interrupt table.   Needs KEEP directive as these functions usually are only referenced via this table. */
   .vectors ORIGIN(FLASH):{
     LONG( DEFINED(STACKINCCM) ? (ORIGIN(CCM)+LENGTH(CCM)):(ORIGIN( SRAM)+LENGTH(SRAM)) )         /* set initial stack pointer to top of ccm or sram */
     KEEP (*( SORT(.vectors.*)  .vectors))    /* followed by reset and other handlers */
@@ -67,10 +69,10 @@ SECTIONS {
   } >FLASH
 
 /* things that should be called before main():  
- Needs KEEP directive as these functions will only be referenced by this table.*/
+ Needs KEEP directive as these functions may only be referenced by this table.*/
   .init : {
 /* code that initializes static data via startup-time computation: */
-    KEEP (*(SORT(.init_array.*)))
+    KEEP (*(SORT(.init_array.*)))   /* init priority values go into a trailing number of the segment name */
     KEEP (*(.init_array))
  /* static constructors after C lib initializations: */
     KEEP (*(SORT(.ctors.*)))
@@ -81,10 +83,10 @@ SECTIONS {
 
 /* exit table, although a good mcu program never exits */
   .exit : {
-    *(SORT(.dtors.*))       /* explicit destructions, 980f thinks this should follow the plain dtors but this copies some legacy ld files */
-    *(.dtors)               /* implicit destructions (nameless objects) */
-    *(.fini_array)          /* general exit stuff */
-    *(SORT(.fini_array.*))  /* particular exit stuff, 980f thinks this should precede the plane fini_array */
+    *(SORT(.dtors.*))       /* priority tagged ones ? */
+    *(.dtors)               /* highest priority ones? */
+    *(.fini_array)          /* library exit stuff */
+    *(SORT(.fini_array.*))  /* particular exit stuff, 980f thinks this should precede the plane fini_array but who knows where the order is specified? */
     LONG(0)                 /* mark end of table, instead of having code for decrementing a count */
   } >FLASH
  __exit_table__ = LOADADDR(.exit);
