@@ -3,7 +3,9 @@
 
 /** @return whether the alignedDatum FAILED to increment.
  * The most common reason for a failure would be that an interrupt occurred during the operation.
-If you are sure the cause of failure isn't permanent then: do{}while(atomic_increment(arg));
+ * If you are sure the cause of failure isn't permanent then: do{}while(atomic_increment(arg));
+ *
+ * we don't use <atomic> as it doesn't allow for walking away from an operation if there is a collision.
 */
 bool atomic_increment(unsigned &alignedDatum);
 
@@ -23,6 +25,6 @@ bool atomic_decrementNowZero(unsigned &alignedDatum);
 bool atomic_incrementWasZero(unsigned &alignedDatum);
 
 /** @return whether the following logic succeeded, if datum IS zero then replace it with given value */
-bool atomic_setIfZero(unsigned &alignedDatum,unsigned value);
+bool atomic_setIfZero(unsigned &alignedDatum, unsigned value);
 
 #endif // COREATOMIC_H

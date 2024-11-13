@@ -7,8 +7,12 @@
 /**
 instantiate this in a project specific file such as one that describes the board that this code is going to run on.
 It is the rate of the external high speed crystal.
+If zero this code will refuse to switch to using it.
+
+The few users that might have a dynamically changing HSE need to write their own code, not alter this module.
 */
-extern const Hertz EXTERNAL_HERTZ;
+
+extern const Hertz EXTERNAL_HERTZ ;//gcc at c++17 level didn't let this work, got redef despite the weak: __attribute__ ((weak)) =0;
 
 /** @returns a clock rate selected by @param which, which depends upon processor family although many are common
 */

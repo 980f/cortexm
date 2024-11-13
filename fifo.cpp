@@ -20,16 +20,15 @@ void Fifo::wipe() {
 
 /** the following only accommodates a single writer thread, the atomicity only deals with read vs write. */
 int Fifo::attempt_insert(unsigned char incoming) {
-  if (count < quantity) {
-    *writer = incoming;
-    if (atomic_increment(count)) {
-      return -2;
-    }
-    incrementPointer(writer);
-    return 0;
-  } else {
+  if (count >= quantity) {
     return -1;
   }
+  *writer = incoming;
+  if (atomic_increment(count)) {
+    return -2;
+  }
+  incrementPointer(writer);
+  return 0;
 } // Fifo::attempt_insert
 
 bool Fifo::insert(unsigned char incoming) {
@@ -42,17 +41,16 @@ bool Fifo::insert(unsigned char incoming) {
 
 /** the following only accomodates a single reader thread, the atomicity only deals with read vs write. */
 int Fifo::attempt_remove() {
-  if (count > 0) { // can't alter count until we have preserved our datum, so no test_and-decrement stuff.
-    unsigned pulled = *reader;
-    // alter count before pointer to reduce the window for collision. (if we bail on collisions, else is moot)
-    if (atomic_decrement(count)) {
-      return -2;
-    }
-    incrementPointer(reader);
-    return int(pulled);//chars 128->255 are positive
-  } else {
+  if (count <= 0) {
     return -1;
   }
+  unsigned pulled = *reader;
+  // alter count before pointer to reduce the window for collision. (if we bail on collisions, else is moot)
+  if (atomic_decrement(count)) {
+    return -2;
+  }
+  incrementPointer(reader);
+  return int(pulled); //chars 128->255 are positive
 } // Fifo::attempt_remove
 
 int Fifo::remove() {
@@ -67,7 +65,7 @@ int Fifo::remove() {
 unsigned Fifo::stuff(const char *block, unsigned length) {
   while (length-- > 0) {
     if (!insert(*block++)) {
-      return ++length;//++ is to counter premature --
+      return ++length; //++ is to counter premature --
     }
   }
   return 0;
@@ -81,7 +79,7 @@ int Fifo::boundsError(bool reads) const {
     if (reader < mem) {
       return -1;
     }
-  } else {//## leave this implementation expanded, so we can breakpoint on each independent issue
+  } else { //## leave this implementation expanded, so we can breakpoint on each independent issue
     if (writer >= end) {
       return 1;
     }
@@ -89,5 +87,5 @@ int Fifo::boundsError(bool reads) const {
       return -1;
     }
   }
-  return 0;//strange, compiler didn't mention this missing return 
+  return 0; //strange, compiler didn't mention this missing return
 }

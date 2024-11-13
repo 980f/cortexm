@@ -81,12 +81,12 @@ extern "C" [[noreturn]]
   } while (true);
 }
 
-#ifdef __linux__  //for testing compiles with PC compiler etc.
+#ifdef __linux__  //for testing compiles with PC compiler etc., don't expect the executable to run.
 const RamInitBlock __data_segment__={nullptr,{nullptr,0}};
 const RamBlock __bss_segment__={nullptr,0};
 const InitRoutine __init_table__[]={nullptr};
 const InitRoutine __exit_table__[]={nullptr};
 constexpr unsigned __stack_limit__(0);
 #else
-//the above is done via linker magic in cortexm.ld
+//the initialization of the blocks is done via linker magic in cortexm.ld
 #endif

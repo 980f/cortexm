@@ -8,7 +8,7 @@
 
 #include "systick.h"
 using namespace SystemTimer;
-#include "polledtimer.h"
+#include "sharedtimer.h"
 #include "tableofpointers.h"
 #define RegisterPolledTimerWithSysTick MakeRef(SystemTicker,PolledTimerServer);
 

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "bitbanger.h"
+#include "bitbasher.h"
 /** some peripherals  have a requirement of aligned 32 bit write.
  * gcc will optimize a write or field insert to only manipulate the bytes changing, which for these memory spaces leads to bad things.
  *
@@ -17,12 +17,15 @@ public:
   unsigned cache;
 
 public:
+  /** this records the address AND reads the present value */
   Force32(unsigned &wordwide):wordwide(wordwide),cache(wordwide){}
 
+  /** you can explicitly flush, useful when in a loop in scope */
   void flush() {
     wordwide = cache;
   }
 
+  /** flushes to real memory on exit of scope*/
   ~Force32() {
     flush();
   }
