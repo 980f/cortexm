@@ -11,8 +11,11 @@ extern "C" void stackFault() {
 }
 
 //heapless system
-extern "C" void *malloc(...){
+extern "C" void *malloc(unsigned){
+  wtf(99999999);
+  return nullptr;
 }
-extern "C" void free(...){
+extern "C" void free(void *){
+  wtf(99999999);
 }
 
