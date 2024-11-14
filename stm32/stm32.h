@@ -42,9 +42,9 @@ enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
   ,APB1 = 5, APB2
 };
 
-const Address RCCBASE(0x4002'3800U);//0th offset.
-constexpr Address FLASHBASE(0x4002'3C00u);
-constexpr Address GPIOBASE(0x4002'0000u);
+const Address RCCBASE(0x4002'3800);//0th offset.
+constexpr Address FLASHBASE(0x4002'3C00);
+constexpr Address GPIOBASE(0x4002'0000);
 
 const unsigned resetOffset = 0x10;
 const unsigned clockOffset = 0x30;
@@ -60,9 +60,9 @@ enum BusNumber : uint8_t {//#this enum is used for RCC register addressing
   , APB2 = 7 //2 actual APB buses.
 };
 
-constexpr Address RCCBASE(0x4002'1000u);
-constexpr Address FLASHBASE(0x4002'2000u);
-constexpr Address GPIOBASE(0x4800'0000u);
+constexpr Address RCCBASE(0x4002'1000);
+constexpr Address FLASHBASE(0x4002'2000);
+constexpr Address GPIOBASE(0x4800'0000);
 
 constexpr unsigned resetOffset = 0x28;
 constexpr unsigned clockOffset = 0x48;
@@ -71,6 +71,7 @@ constexpr unsigned clockOffset = 0x48;
 //todo:M move much of the rest into this namespace
 namespace stm32 {
   constexpr bool isRam(AddressCaster address) {
+    //don't use BandAid, we want this to work even when processor doesn't bit band.
     return address.number>>29==2>>1;//we exclude CCM at 0x1000 as it is not accessible to DMA and no-one else should care about "is ram"
   }
 
@@ -81,9 +82,10 @@ namespace stm32 {
   constexpr bool isPeripheral(AddressCaster address){
     return address.number>>29 == 4>>1 || address.number>>29 == 0xE>>1;//the second is cortex core peripherals
   }
-
+//todo:0 add HasBanding #define
   constexpr bool isBandable(AddressCaster address){
-    return (address.number>>29 == 4>>1 || address.number>>29 == 2>>1) && (((address.number&~BandGroup)>>20) ==0);
+    auto tester=BandAid(address.number);
+    return tester.bandable() && tester.inband();
   }
 }
 
@@ -91,11 +93,9 @@ namespace stm32 {
 using Hertz = unsigned;
 
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
-constexpr Address
-APB_Block(BusNumber bus2, unsigned slot) { return (PeripheralBase | (bus2 - APB1) << 16u | slot << 10u); }
+constexpr Address APB_Block(BusNumber bus2, unsigned slot) { return (PeripheralBase | (bus2 - APB1) << 16u | slot << 10u); }
 
-constexpr Address
-APB_Band(BusNumber bus2, unsigned slot) { return (PeripheralBand | (bus2 - APB1) << 21u | slot << 15u); }
+constexpr Address APB_Band(BusNumber bus2, unsigned slot) { return BandAid(APB_Block(bus2 , slot ),0); }
 
 /** each APB peripheral's reset pin, clock enable, and bus address are computable from 2 simple numbers.
 some AHB devices are very similar, to the point where we use a variant constructor rather than have a separate class.
@@ -114,7 +114,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    return rccBitter + bandShift(basereg);
+    return BandAid(rccBitter + basereg,0);
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
@@ -202,11 +202,11 @@ template<BusNumber stbus, unsigned slot> struct APBperiph {
    /** base used for calculating this device's bits in RCC device. */
     , rccBitat = bandFor(RCCBASE | (rbus << 2), slot)
    };
-
-  /** @return bit address given the register address of the apb2 group*/
-  constexpr static Address rccBit(unsigned basereg) {
-    return bandFor(rccBitat | bandShift(basereg));
-  }
+  //
+  // /** @return bit address given the register address of the apb2 group*/
+  // constexpr static Address rccBit(unsigned basereg) {
+  //   return bandFor(rccBitat /*| bandShift(basereg,0)*/);//todo:00 fix this after lunch
+  // }
 
   constexpr static Address rccWord(unsigned basereg) {
     return RCCBASE | (rbus << 2) + basereg;
