@@ -10,3 +10,9 @@ extern "C" void stackFault() {
   }
 }
 
+//heapless system
+extern "C" void *malloc(...){
+}
+extern "C" void free(...){
+}
+
