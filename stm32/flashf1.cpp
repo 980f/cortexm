@@ -1,11 +1,11 @@
 #include <stm32.h>
 
 #include "flashcontrol.h"
-#include "peripheral.h"
 
 
 //OptionByte * const UserOption = reinterpret_cast <OptionByte *> (0x1FFFF800);
 
+//todo: this seems to be a copy of 'cached' 
 union CR {
   struct {
     unsigned int latency : 3; //wait states, >48MHz:2 >24MHz:1 else 0
