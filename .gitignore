@@ -3,7 +3,10 @@
 dro
 dro.pro.user
 verbose.map
+#Rowley state file
 dro.hzs
 *~
 *autosave
+#I seem to like coming up with novel names for this cli executable:
 bander
+bitbandcalc
