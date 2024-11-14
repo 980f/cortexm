@@ -15,7 +15,8 @@ public:
     unsigned bitnum: 5; //32 bits
     unsigned offset: 18; //2^20 bytes is 2^18 words
     unsigned indicated: 1; //should always be a 010 if this is a valid band address
-    unsigned space: 6; //
+    unsigned alwaysZeroes: 3;
+    unsigned space: 3; //
   };
 
   /** to parse assign to pattern then read fields from banded */
@@ -28,8 +29,8 @@ public:
   struct Extractor {
     unsigned byteNumber: 2;
     unsigned offset: 18;
-    unsigned alwaysZeroes: 6;
-    unsigned space: 6;
+    unsigned alwaysZeroes: 9;
+    unsigned space: 3;
   };
 
   /** to parse assign to pattern then read fields from banded */
@@ -57,33 +58,32 @@ public:
     extractor.e.byteNumber = parser.b.bitnum / 8; //bits per byte
   }
 
-  unsigned asBanded() const {
+  constexpr unsigned asBanded() const {
     return parser.pattern;
   }
 
-  unsigned byteAddress() const {
+  constexpr unsigned byteAddress() const {
     return extractor.pattern;
   }
 
-  unsigned bit() const {
+  constexpr unsigned bit() const {
     return parser.b.bitnum;
   }
 
   /** primary purpose is to pack. So:
    * unsigned bitbanded=BandAid(unsigned bytish,unsigned bitnum);
    */
-  operator unsigned() const {
+  constexpr operator unsigned() const {
     return asBanded();
   }
 
-  bool inband() const {
+  constexpr bool inband() const {
     return extractor.e.alwaysZeroes == 0;
   }
 
-  bool bandable() const {
-    return extractor.e.space == 0b001000 || extractor.e.space == 0b010000; //so far all banding has been ram and peripheral space, not sure it is allowed anywhere else. This also does not check processor type!
+  constexpr bool bandable() const {
+    return extractor.e.space == 2>>1 || extractor.e.space == 4>>1; //so far all banding has been ram and peripheral space, not sure it is allowed anywhere else. This also does not check processor type!
   }
-
 };
 
 
