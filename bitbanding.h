@@ -8,41 +8,79 @@
  *
  * while initially this could be a namespace it is intended in the future to be a base class for a peripheral that has interesting bits.
  */
-#include <bitbasher.h>
+class BandAid {
+  struct Banded {
+    unsigned unused: 2; //always zero, should be ignored by hardware but don't challenge that.
+    unsigned bitnum: 5; //32 bits
+    unsigned offset: 18; //2^20 bytes is 2^18 words
+    unsigned indicated: 1; //should always be a 010 if this is a valid band address
+    unsigned space: 6; //
+  };
 
-class BitBandAid {
-  static constexpr unsigned int baseMask = 0x000F'FFFF;
-  //this bit is set to indicate 'bitband'
-  static constexpr unsigned indicator = 0x0200'0000;
+  /** to parse assign to pattern then read fields from banded */
+  union ParseBanded {
+    unsigned pattern;
+    Banded b;
+    ParseBanded(unsigned p) : pattern(p) {}
+  } parser;
 
-  static bool isBandable(unsigned base) {
-    if (base & (0x1f << 20)) { //these 5 bits must be zero, they make room for the 5 bits needed to select one of 32 bits.
-      return false;
-    }
+  struct Extractor {
+    unsigned byteNumber: 2;
+    unsigned offset: 18;
+    unsigned alwaysZeroes: 6;
+    unsigned space: 6;
+  };
 
-    unsigned space = base >> 29;
-    if (space == 2 || space == 4) { //only these two spaces support bit banding
-      return true;
-    }
-    return false;
+  /** to parse assign to pattern then read fields from banded */
+  union ParseWord {
+    unsigned pattern;
+    Extractor e;
+    ParseWord(unsigned p) : pattern(p) {}
+  } extractor;
+
+public:
+  /** two args is byte address and bitnumber */
+  BandAid(unsigned byteAddress, unsigned bitNumber): parser(byteAddress), extractor(byteAddress) {
+    // parser.b.space = extractor.e.space;
+    parser.b.indicated = 1;
+    parser.b.offset = extractor.e.offset;
+    parser.b.bitnum = (extractor.e.byteNumber * 8) + bitNumber; //bits per byte
+    parser.b.unused = 0;
   }
 
-  static unsigned from(unsigned input, unsigned bitnum) {
-    if (!isBandable(input)) return 0; //this value if used should create a hard fault
-    unsigned space = split(input, baseMask);
-    return space + indicator + (input << 5) + bitnum;
+  /** one arg is bitband address. */
+  BandAid(unsigned bandit): parser(bandit), extractor(bandit) {
+    // extractor.e.space = parser.b.space;
+    extractor.e.alwaysZeroes = 0;
+    extractor.e.offset = parser.b.offset;
+    extractor.e.byteNumber = parser.b.bitnum / 8; //bits per byte
   }
 
-  /** this presumes the input is a valid band address
-   * @returns the bit number, alters @param address to be that of the word.
-   * so far this is only used for unit tests. */
-  unsigned parse(unsigned &address) {
-    unsigned space = address >> 29;
-    unsigned bitnum = (address >> 2) & 0x1F;
-    address >>= 5;
-    address &= baseMask;
-    address |= (space << 29);
-    return bitnum;
+  unsigned asBanded() const {
+    return parser.pattern;
+  }
+
+  unsigned byteAddress() const {
+    return extractor.pattern;
+  }
+
+  unsigned bit() const {
+    return parser.b.bitnum;
+  }
+
+  /** primary purpose is to pack. So:
+   * unsigned bitbanded=BandAid(unsigned bytish,unsigned bitnum);
+   */
+  operator unsigned() const {
+    return asBanded();
+  }
+
+  bool inband() const {
+    return extractor.e.alwaysZeroes == 0;
+  }
+
+  bool bandable() const {
+    return extractor.e.space == 0b001000 || extractor.e.space == 0b010000; //so far all banding has been ram and peripheral space, not sure it is allowed anywhere else. This also does not check processor type!
   }
 };
 
