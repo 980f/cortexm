@@ -9,6 +9,7 @@
  * while initially this could be a namespace it is intended in the future to be a base class for a peripheral that has interesting bits.
  */
 class BandAid {
+public:
   struct Banded {
     unsigned unused: 2; //always zero, should be ignored by hardware but don't challenge that.
     unsigned bitnum: 5; //32 bits
@@ -21,7 +22,7 @@ class BandAid {
   union ParseBanded {
     unsigned pattern;
     Banded b;
-    ParseBanded(unsigned p) : pattern(p) {}
+    constexpr ParseBanded(unsigned p) : pattern(p) {}
   } parser;
 
   struct Extractor {
@@ -35,13 +36,13 @@ class BandAid {
   union ParseWord {
     unsigned pattern;
     Extractor e;
-    ParseWord(unsigned p) : pattern(p) {}
+    constexpr ParseWord(unsigned p) : pattern(p) {}
   } extractor;
 
 public:
   /** two args is byte address and bitnumber */
-  BandAid(unsigned byteAddress, unsigned bitNumber): parser(byteAddress), extractor(byteAddress) {
-    // parser.b.space = extractor.e.space;
+  constexpr BandAid(unsigned byteAddress, unsigned bitNumber): parser(byteAddress), extractor(byteAddress) {
+    //omitted because we were required to init the union so we did so with something which has this as a side effect: parser.b.space = extractor.e.space;
     parser.b.indicated = 1;
     parser.b.offset = extractor.e.offset;
     parser.b.bitnum = (extractor.e.byteNumber * 8) + bitNumber; //bits per byte
@@ -49,8 +50,8 @@ public:
   }
 
   /** one arg is bitband address. */
-  BandAid(unsigned bandit): parser(bandit), extractor(bandit) {
-    // extractor.e.space = parser.b.space;
+  constexpr BandAid(unsigned bandit): parser(bandit), extractor(bandit) {
+    //omitted because we were required to init the union so we did so with something which has this as a side effect: extractor.e.space = parser.b.space;
     extractor.e.alwaysZeroes = 0;
     extractor.e.offset = parser.b.offset;
     extractor.e.byteNumber = parser.b.bitnum / 8; //bits per byte
@@ -82,6 +83,7 @@ public:
   bool bandable() const {
     return extractor.e.space == 0b001000 || extractor.e.space == 0b010000; //so far all banding has been ram and peripheral space, not sure it is allowed anywhere else. This also does not check processor type!
   }
+
 };
 
 
