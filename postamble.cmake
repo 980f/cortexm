@@ -19,6 +19,12 @@ add_executable(${PROJECT_NAME}.elf ${SOURCES})
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 
+#make this conditional on file not existing, for now it is a manually issued command.
+add_custom_command(TARGET ${PROJECT_NAME}.elf PRE_LINK
+  COMMAND echo >../${LINKER_SCRIPT} "INCLUDE cortexm/${CortexmVendor}/${VendorPartname}${VendorVariant}.ld"
+  COMMAND echo >>../${LINKER_SCRIPT} "INCLUDE cortexm/cortexm.ld"
+)
+
 add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
   COMMAND ../cortexm/mapcleaner ${PROJECT_NAME}.map
   COMMENT "Building Intel hex file: ${HEX_FILE} "
