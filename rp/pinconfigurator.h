@@ -4,11 +4,8 @@
 
 #pragma once
 
-//#include "gpio.h"  //todo:1 merge gpiof1 and then include generic gpio.h
 #include "peripheraltypes.h"
 #include "tableofpointers.h"
-
-static const Address io_base {0x4001'4000};
 
 
 /** used to set the functionality of a pin.
@@ -17,19 +14,19 @@ static const Address io_base {0x4001'4000};
  * Note: SWCLK is bitnum 30  SWDAT is bitnum 31
  * */
 struct PinConfigurator {
+  static const Address io_base {0x4001'4000};
+
   const u8 bitnum;
   /** this guy has irq config , input and output polarity and forces, also use output as OE rather than as signal.
    * for system debug is makes sense to offer forcing a signal until the logic can be fixed, you can access the logical state of a signal even when the pad is forced.
-   *
-   *
    * */
   const u8 config;//0x40014000 + 4 + 4*bitnum
   const u8 padconfig;//0x4001c000 + 4 + 4*bitnum
 
   void configure() const {
     //the following should either be sequenced depending upon the change, or done in a critical section as the tiny delay from the signal being change to the pad being changed is ignorable when not interrupted.
-    ControlWord(0x4001'4000 + 4 + 8*bitnum) = config;
-    ControlWord(0x4001'c000 + 4 + 4*bitnum) = padconfig;
+    ControlWord(io_base + 4 + 8*bitnum) = config;
+    ControlWord(io_base + 0x8000 + 4 + 4*bitnum) = padconfig;
   }
 
   /** the function select only partially controls what a pin does, the rest is intrinsic to the bitnum.
@@ -39,7 +36,9 @@ struct PinConfigurator {
   };
 
   struct Tweak {
-    signed pull=0; signed force=0; unsigned drive_ma=0;//using 0 instead of 2 as they are indistinquishable
+    signed pull=0;
+    signed force=0;
+    unsigned drive_ma=0; //using 0 instead of 2 as they are indistinquishable
   };
   /**
    * @param direction:  -2 schmidt input, -1 plain input, 0 unused , 1 slow output, 2 fast output
@@ -51,7 +50,7 @@ struct PinConfigurator {
   constexpr PinConfigurator(unsigned bitnum, Function isfor, signed direction, bool polarity, signed pull=0, signed force=0, unsigned drive_ma=2) : //must compute pattern for pad config in the init section to get maximum constness
     bitnum(bitnum)
     ,config(//compute bits in line, will also have runtime modulators for irq
-
+//TODO:00 write the code!
   )
     , padconfig(
     ((direction >= 0) << 7)     //negative direction is inward, positive outward, zero means disable both

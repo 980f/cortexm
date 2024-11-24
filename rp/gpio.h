@@ -2,12 +2,11 @@
 // Created by andyh on 2/13/21.
 //
 
-#ifndef PIPICODEV_GPIO_H
-#define PIPICODEV_GPIO_H
+#pragma once
+#define PIPICO_GPIO_H
 
 #include "peripheraltypes.h"
 
-static const Address sio_base {0xD000'0000};
 /**
   * this class manages the nature of a pin, and provides cacheable accessors for the pin value.
   * you may declare each as const, the internals are all const.
@@ -15,7 +14,9 @@ static const Address sio_base {0xD000'0000};
   * The first cut only supports the non-qspi port
   */
 struct Pin {
-  const unsigned bitnum;
+
+  static const Address sio_base {0xD000'0000};
+  const unsigned bitnum;//these are so cheap that we const them and create new ones for programs which dynamically assign pins.
 
 //  static constexpr Address statusWord(unsigned bitnum) {
 //    return io_base + 8 * bitnum;
@@ -47,7 +48,7 @@ struct Pin {
 @see OutputPin for business logic version */
   INLINETHIS // NOLINT(misc-unconventional-assign-operator)
   bool operator=(bool truth) const {
-    ControlBool(sio_base+truth? 0x14:0x18,bitnum)=1;
+    ControlBool(sio_base+ (truth? 0x14:0x18),bitnum)=1;
     return truth;//#don't reread the pin, nor its actual, keep this as a pass through
   }
 
@@ -58,7 +59,7 @@ struct Pin {
   }
 };
 
-//GPIO interrupt configuration options. Some devices may not support some options, but most do so this is defined here.
+//GPIO interrupt configuration options.
 enum IrqStyle {
   NotAnInterrupt = 0
   , // in case someone forgets to explicitly select a mode
