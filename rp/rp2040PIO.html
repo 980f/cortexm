@@ -6,8 +6,9 @@
     <meta name="author" content="Andy Heilveil (github/980f)">
   </head>
   <body>
-    <h2>RP2040 PIO </h2>
-    There are two independent PIO subsystems.<br>
+    <h2>RP2040,RP2350 PIO </h2>
+    There are two independent PIO subsystems in the '2040, 3 in the
+    '2350.<br>
     Each has 4 state machines and 32 instruction words which are shared
     by those 4 machines.<br>
     <br>
@@ -312,7 +313,7 @@
           <td>0</td>
           <td>0</td>
           <td>0</td>
-          <td rowspan="14" colspan="5" style="text-align: center;
+          <td rowspan="19" colspan="5" style="text-align: center;
             vertical-align: middle;">delay/side set</td>
           <td rowspan="1" colspan="3">Condition</td>
           <td rowspan="1" colspan="5">Address</td>
@@ -344,7 +345,8 @@
         </tr>
         <tr>
           <td rowspan="2" colspan="1">0=wait for handled<br>
-            1=wait for occurs and clears it.</td>
+            1=wait for occurs <br>
+            and clears it.</td>
           <td rowspan="2" colspan="1">1</td>
           <td rowspan="2" colspan="1">0</td>
           <td>0</td>
@@ -357,6 +359,34 @@
           <td>1</td>
           <td>add machine's index to given irq number modulo 4 (number
             of machines)</td>
+        </tr>
+        <tr>
+          <td valign="top"><br>
+          </td>
+          <td valign="top">0<br>
+          </td>
+          <td valign="top">0<br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top"><br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top"><br>
+          </td>
+          <td valign="top"><br>
+          </td>
+          <td valign="top"><br>
+          </td>
+          <td valign="top"><br>
+          </td>
+          <td valign="top"><br>
+          </td>
+          <td valign="top">V0: reserved<br>
+          </td>
         </tr>
         <tr>
           <td>IN</td>
@@ -379,6 +409,44 @@
           </td>
         </tr>
         <tr>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">ISR<br>
+            to RX<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">1<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">1<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">use lsb's of Y to select
+            RXram<br>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top" bgcolor="#33ffff">1<br>
+          </td>
+          <td rowspan="1" colspan="3" valign="top" bgcolor="#33ffff">address
+            of&nbsp; RXram</td>
+          <td valign="top" bgcolor="#33ffff">opcode lsb's select RXram<br>
+          </td>
+        </tr>
+        <tr>
           <td>PUSH</td>
           <td>1</td>
           <td>0</td>
@@ -386,8 +454,10 @@
           <td>0</td>
           <td>if full<br>
           </td>
-          <td rowspan="2" colspan="1">Block</td>
-          <td rowspan="2" colspan="5" style="background-color: #cccccc;"><br>
+          <td rowspan="1" colspan="1">Block</td>
+          <td rowspan="2" colspan="5" style="background-color: #cccccc;">V0:
+            unused<br>
+            V1: when all 0's<br>
           </td>
           <td>If full is 1 Don't push unless the ISR has the configured
             number of bits for RX Fifo </td>
@@ -398,9 +468,49 @@
           <td>0</td>
           <td>0</td>
           <td>1</td>
+          <td valign="top"><br>
+          </td>
           <td>if empty<br>
           </td>
           <td>If empty is 1 Don't pull unless the TX fifo has content</td>
+        </tr>
+        <tr>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">RX
+            to <br>
+            OSR<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">1<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">1<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">1<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">0<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">use lsb's of Y to select
+            RXram</td>
+        </tr>
+        <tr>
+          <td valign="top" bgcolor="#33ffff">1<br>
+          </td>
+          <td rowspan="1" colspan="3" valign="top" bgcolor="#33ffff">address
+            of RXram<br>
+          </td>
+          <td valign="top" bgcolor="#33ffff">opcode lsb's select RXram</td>
         </tr>
         <tr>
           <td>MOV</td>
@@ -446,7 +556,7 @@
           <td>1</td>
           <td rowspan="1" colspan="3">Destination</td>
           <td rowspan="1" colspan="5">Data</td>
-          <td><br>
+          <td>put zero extended Data into the Destination.<br>
           </td>
         </tr>
         <tr>
@@ -473,9 +583,9 @@
         </tr>
       </tbody>
     </table>
-    <br>
-    Jmp conditions:<br>
-    <br>
+    ISR to RX and RX to OSR are new with V1, and must be enabled via new
+    exec ctrl bits 15,14.<br>
+    <h4> Jmp conditions:</h4>
     <table border="1">
       <tbody>
         <tr>
@@ -528,12 +638,12 @@
         <tr>
           <td><br>
           </td>
-          <td rowspan="1" colspan="2" style="text-align: center;
-            background-color: white;">IN/ MOV source</td>
-          <td rowspan="1" colspan="2" style="text-align: center;
-            background-color: white;">OUT, SET (when reasonable)</td>
-          <td rowspan="1" colspan="2" style="text-align: center;
-            background-color: white;">MOV dest</td>
+          <th rowspan="1" colspan="2" style="text-align: center;
+            background-color: white;">IN/ MOV source</th>
+          <th rowspan="1" colspan="2" style="text-align: center;
+            background-color: white;">OUT, SET (when reasonable)</th>
+          <th rowspan="1" colspan="2" style="text-align: center;
+            background-color: white;">MOV dest</th>
         </tr>
         <tr>
           <td>0</td>
@@ -627,7 +737,7 @@
     </table>
     <br>
     <br>
-    Wait sources:<br>
+    <h4> Wait sources:</h4>
     <table border="1">
       <tbody>
         <tr>
@@ -659,6 +769,180 @@
       </tbody>
     </table>
     <br>
+    <hr width="100%" size="2">
+    <h3>Configuration registers</h3>
+    <p>Things that affect instruction interpretation, there are
+      additional registers that can externally alter program execution.<br>
+    </p>
+    <h4>Execution contol</h4>
+    <table cellspacing="2" cellpadding="2" border="1">
+      <tbody>
+        <tr>
+          <td valign="top">31<br>
+          </td>
+          <td valign="top">30<br>
+          </td>
+          <td valign="top">29<br>
+          </td>
+          <td valign="top">28..24<br>
+          </td>
+          <td valign="top">23..19<br>
+          </td>
+          <td valign="top">18<br>
+          </td>
+          <td valign="top">17<br>
+          </td>
+          <td valign="top">16..12<br>
+          </td>
+          <td valign="top">11..7<br>
+          </td>
+          <td valign="top">6,5<br>
+          </td>
+          <td valign="top">4<br>
+          </td>
+          <td valign="top">3..0<br>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">Stalled<br>
+          </td>
+          <td valign="top">MSB is side-set enable,<br>
+            IWC only 4 bits can be side-set<br>
+          </td>
+          <td valign="top">side is OE<br>
+            else level<br>
+          </td>
+          <td valign="top">pin for <br>
+            JMP on PIN<br>
+          </td>
+          <td valign="top">OUT enable<br>
+            pin<br>
+          </td>
+          <td valign="top">ONLINE_OUT_EN<br>
+          </td>
+          <td valign="top">OUT is<br>
+            latched<br>
+          </td>
+          <td valign="top">Wrap<br>
+            At<br>
+          </td>
+          <td valign="top">Wrap <br>
+            To<br>
+          </td>
+          <td valign="top">(2350)<br>
+            <br>
+          </td>
+          <td valign="top">Fifo to test,<br>
+            1=RX, 0=TX<br>
+          </td>
+          <td valign="top">Fifo test<br>
+            level<br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>Shift control</h4>
+    <table cellspacing="2" cellpadding="2" border="1">
+      <tbody>
+        <tr>
+          <td valign="top">31<br>
+          </td>
+          <td valign="top">30<br>
+          </td>
+          <td valign="top">29..25<br>
+          </td>
+          <td valign="top">24..20<br>
+          </td>
+          <td valign="top">19<br>
+          </td>
+          <td valign="top">18<br>
+          </td>
+          <td valign="top">17<br>
+          </td>
+          <td valign="top">16<br>
+          </td>
+          <td valign="top">15<br>
+          </td>
+          <td valign="top">14<br>
+          </td>
+          <td valign="top">13..0</td>
+        </tr>
+        <tr>
+          <td valign="top">RXgets both fifos<br>
+          </td>
+          <td valign="top">TX gets both fifos<br>
+          </td>
+          <td valign="top">pull reload counter<br>
+            0==32 else actual value<br>
+          </td>
+          <td valign="top">push reload counter<br>
+            &lt;= see pull.<br>
+          </td>
+          <td valign="top">out shifts right,<br>
+            lsb first<br>
+          </td>
+          <td valign="top">in shifts right,<br>
+            lsbs first, <br>
+            msb aligned<br>
+          </td>
+          <td valign="top">auto pull<br>
+          </td>
+          <td valign="top">auto push<br>
+          </td>
+          <td valign="top">V0:unused<br>
+            V1:1=use fifo storage<br>
+            as write only mem.<br>
+          </td>
+          <td valign="top">V0:unused<br>
+            V1:1=use fifo storage<br>
+            as read only mem.<br>
+            <br>
+          </td>
+          <td valign="top">unused<br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <h4>Pin Control</h4>
+    <table cellspacing="2" cellpadding="2" border="1">
+      <tbody>
+        <tr>
+          <td valign="top">31:29<br>
+          </td>
+          <td valign="top">28:26<br>
+          </td>
+          <td valign="top">25:20<br>
+          </td>
+          <td valign="top">19:15<br>
+          </td>
+          <td valign="top">14:10<br>
+          </td>
+          <td valign="top">9:5<br>
+          </td>
+          <td valign="top">4:0<br>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">#bits of delay/side set field <br>
+            used for side set<br>
+          </td>
+          <td valign="top">#of SET pins, <br>
+            max is 5<br>
+          </td>
+          <td valign="top">Number of OUT pins,<br>
+            0..32<br>
+          </td>
+          <td valign="top">lsb of IN field<br>
+          </td>
+          <td valign="top">SIDESET_BASE<br>
+          </td>
+          <td valign="top">lsb of SET field</td>
+          <td valign="top">lsb of OUT field<br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <br>
     <hr><br>
     (C) 2021 by Andrew Heilveil (Github/980f). <br>
