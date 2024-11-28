@@ -313,7 +313,7 @@
           <td>0</td>
           <td>0</td>
           <td>0</td>
-          <td rowspan="19" colspan="5" style="text-align: center;
+          <td rowspan="21" colspan="5" style="text-align: center;
             vertical-align: middle;">delay/side set</td>
           <td rowspan="1" colspan="3">Condition</td>
           <td rowspan="1" colspan="5">Address</td>
@@ -321,10 +321,14 @@
           </td>
         </tr>
         <tr>
-          <td rowspan="5" colspan="1">WAIT</td>
-          <td rowspan="5" colspan="1">0</td>
-          <td rowspan="5" colspan="1">0</td>
-          <td rowspan="5" colspan="1">1</td>
+          <td rowspan="6" colspan="1">WAIT<br>
+          </td>
+          <td rowspan="6" colspan="1">0<br>
+          </td>
+          <td rowspan="6" colspan="1">0<br>
+          </td>
+          <td rowspan="6" colspan="1">1<br>
+          </td>
           <td>Polarity</td>
           <td rowspan="1" colspan="2">Source</td>
           <td rowspan="1" colspan="5">Index</td>
@@ -361,31 +365,46 @@
             of machines)</td>
         </tr>
         <tr>
-          <td valign="top"><br>
+          <td valign="top">level to wait for<br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top">1<br>
           </td>
           <td valign="top">0<br>
           </td>
           <td valign="top">0<br>
           </td>
-          <td valign="top">1<br>
+          <td valign="top">0<br>
           </td>
-          <td valign="top"><br>
+          <td rowspan="1" colspan="2" valign="top">index<br>
+            <br>
           </td>
-          <td valign="top">1<br>
+          <td valign="top">V0: reserved;&nbsp; V1:pinctrl_jmp_pin +
+            index<br>
           </td>
-          <td valign="top">1<br>
+        </tr>
+        <tr>
+          <td valign="top" bgcolor="#99dddd"><br>
           </td>
-          <td valign="top"><br>
+          <td valign="top" bgcolor="#99dddd"><br>
           </td>
-          <td valign="top"><br>
+          <td valign="top" bgcolor="#99dddd"><br>
           </td>
-          <td valign="top"><br>
+          <td valign="top" bgcolor="#99dddd"><br>
           </td>
-          <td valign="top"><br>
+          <td valign="top" bgcolor="#99dddd"><br>
           </td>
-          <td valign="top"><br>
+          <td valign="top" bgcolor="#99dddd">1<br>
           </td>
-          <td valign="top">V0: reserved<br>
+          <td valign="top" bgcolor="#99dddd">1<br>
+          </td>
+          <td rowspan="1" colspan="3" valign="top" bgcolor="#99dddd">any
+            1's<br>
+          </td>
+          <td rowspan="1" colspan="2" valign="top" bgcolor="#c0c0c0"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd">reserved<br>
           </td>
         </tr>
         <tr>
@@ -442,6 +461,7 @@
           <td valign="top" bgcolor="#33ffff">1<br>
           </td>
           <td rowspan="1" colspan="3" valign="top" bgcolor="#33ffff">address
+
             of&nbsp; RXram</td>
           <td valign="top" bgcolor="#33ffff">opcode lsb's select RXram<br>
           </td>
@@ -455,12 +475,14 @@
           <td>if full<br>
           </td>
           <td rowspan="1" colspan="1">Block</td>
-          <td rowspan="2" colspan="5" style="background-color: #cccccc;">V0:
-            unused<br>
-            V1: when all 0's<br>
+          <td rowspan="2" colspan="5" style="background-color: #cccccc;">all
+            zero's<br>
           </td>
           <td>If full is 1 Don't push unless the ISR has the configured
-            number of bits for RX Fifo </td>
+            number of bits for RX Fifo<br>
+            If block is set AND the push would otherwise proceed then
+            wait for RX fifo not full<br>
+          </td>
         </tr>
         <tr>
           <td>PULL</td>
@@ -468,11 +490,13 @@
           <td>0</td>
           <td>0</td>
           <td>1</td>
-          <td valign="top"><br>
+          <td valign="top">if empty </td>
+          <td>Block<br>
           </td>
-          <td>if empty<br>
+          <td>If empty is 1 Don't pull unless the TX fifo has content.<br>
+            If block is set AND the pull would otherwise proceed then
+            wait for TX fifo not empty<br>
           </td>
-          <td>If empty is 1 Don't pull unless the TX fifo has content</td>
         </tr>
         <tr>
           <td rowspan="2" colspan="1" valign="top" bgcolor="#33ffff">RX
@@ -508,6 +532,7 @@
           <td valign="top" bgcolor="#33ffff">1<br>
           </td>
           <td rowspan="1" colspan="3" valign="top" bgcolor="#33ffff">address
+
             of RXram<br>
           </td>
           <td valign="top" bgcolor="#33ffff">opcode lsb's select RXram</td>
@@ -521,7 +546,36 @@
           <td>Reverse</td>
           <td>Invert</td>
           <td rowspan="1" colspan="3">Source</td>
-          <td>Simultaneous reverse and invert not allowed (reserved)</td>
+          <td>Simultaneous reverse and invert not allowed (reserved, see
+            below)</td>
+        </tr>
+        <tr>
+          <td valign="top" bgcolor="#99dddd"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd">1<br>
+          </td>
+          <td valign="top" bgcolor="#99dddd">0<br>
+          </td>
+          <td valign="top" bgcolor="#99dddd">1<br>
+          </td>
+          <td valign="top" bgcolor="#99dddd"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd">1<br>
+          </td>
+          <td valign="top" bgcolor="#99dddd">1<br>
+          </td>
+          <td valign="top" bgcolor="#99dddd"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd"><br>
+          </td>
+          <td valign="top" bgcolor="#99dddd">reserved<br>
+          </td>
         </tr>
         <tr>
           <td>IRQ clear</td>
@@ -622,7 +676,9 @@
         <tr>
           <td>6</td>
           <td>Pin</td>
-          <td>pin, selected in execctrl register, apparently jump if 1?</td>
+          <td>pin, selected in <a moz-do-not-send="true"
+              href="Execution_control">exec ctrl register</a>,
+            apparently jump if 1?</td>
         </tr>
         <tr>
           <td>7</td>
@@ -644,9 +700,11 @@
             background-color: white;">OUT, SET (when reasonable)</th>
           <th rowspan="1" colspan="2" style="text-align: center;
             background-color: white;">MOV dest</th>
+          <td valign="top"><br>
+          </td>
         </tr>
         <tr>
-          <td>0</td>
+          <th>0</th>
           <td>Pins</td>
           <td>from defined input field</td>
           <td>Pins</td>
@@ -655,9 +713,11 @@
           <td>Pins</td>
           <td><br>
           </td>
+          <th valign="top">0<br>
+          </th>
         </tr>
         <tr>
-          <td>1</td>
+          <th>1</th>
           <td>X</td>
           <td rowspan="2" colspan="1">from the register<br>
           </td>
@@ -669,15 +729,19 @@
           <td rowspan="2" colspan="1"><br>
             <br>
           </td>
+          <th valign="top">1<br>
+          </th>
         </tr>
         <tr>
-          <td>2</td>
+          <th>2</th>
           <td>Y</td>
           <td>Y</td>
           <td>Y</td>
+          <th valign="top">2<br>
+          </th>
         </tr>
         <tr>
-          <td>3</td>
+          <th>3</th>
           <td>zeroes</td>
           <td>all zeroes, good for zero padding while aligning a field</td>
           <td>bit bucket</td>
@@ -685,10 +749,14 @@
           </td>
           <td><br>
           </td>
-          <td>reserved </td>
+          <td>V0: reserved <br>
+            V1: Pin directions!<br>
+          </td>
+          <th valign="top">3<br>
+          </th>
         </tr>
         <tr>
-          <td>4</td>
+          <th>4</th>
           <td><br>
           </td>
           <td>reserved </td>
@@ -697,9 +765,11 @@
           </td>
           <td>EXEC</td>
           <td>source is next instruction executed</td>
+          <th valign="top">4<br>
+          </th>
         </tr>
         <tr>
-          <td>5</td>
+          <th>5</th>
           <td>STATUS</td>
           <td>not used by IN, <br>
             all zeros or all ones per configuration of which fifo and
@@ -710,9 +780,11 @@
           </td>
           <td>PC</td>
           <td>computed/supplied jump </td>
+          <th valign="top">5<br>
+          </th>
         </tr>
         <tr>
-          <td>6</td>
+          <th>6</th>
           <td>ISR</td>
           <td>???<br>
           </td>
@@ -721,9 +793,11 @@
           </td>
           <td>ISR</td>
           <td>ISR loaded but marked as empty, used for padding</td>
+          <th valign="top">6<br>
+          </th>
         </tr>
         <tr>
-          <td>7</td>
+          <th>7</th>
           <td>OSR</td>
           <td>???<br>
           </td>
@@ -732,6 +806,8 @@
           </td>
           <td>OSR</td>
           <td>OSR marked full</td>
+          <th valign="top">7<br>
+          </th>
         </tr>
       </tbody>
     </table>
@@ -774,7 +850,7 @@
     <p>Things that affect instruction interpretation, there are
       additional registers that can externally alter program execution.<br>
     </p>
-    <h4>Execution contol</h4>
+    <h4><a name="Execution_contol"></a>Execution contol</h4>
     <table cellspacing="2" cellpadding="2" border="1">
       <tbody>
         <tr>
@@ -890,10 +966,12 @@
           <td valign="top">auto push<br>
           </td>
           <td valign="top">V0:unused<br>
+            <br>
             V1:1=use fifo storage<br>
             as write only mem.<br>
           </td>
           <td valign="top">V0:unused<br>
+            <br>
             V1:1=use fifo storage<br>
             as read only mem.<br>
             <br>
