@@ -6,8 +6,8 @@
     <meta name="author" content="Andy Heilveil (github/980f)">
   </head>
   <body>
-    <h3>RP2040 <br>
-      PIO programming library</h3>
+    <h2>RP2040 PIO runtime assembler</h2>
+    <br>
     <hr width="100%" size="2">
     <h3>What is it good for?</h3>
     <p>The goal of this development is to be able to create C++ objects
@@ -16,7 +16,10 @@
       This is to not have to use a make program to run the vendor's pio
       assembler tools to create C++ source files.<br>
       It is also an avenue to dynamically modifying pio programs as the
-      application discovers useful things.</p>
+      application discovers useful things.<br>
+      While this could be done via parsing a text string, that parsing
+      can be done at compile time reducing the amount of bytes being
+      embedded in the program text segment. </p>
     <p>Construction of a program object will record options needed for
       configuration, such as sideset number of bits. <br>
       The program object will have an array of instruction objects which
@@ -37,72 +40,52 @@
     <p>The non optimized approach is to use such structs but in regular
       memory, then copy as a block into the peripherals. In the case of
       an application downloading different programs at different times
-      that is actually an optimal approach.</p>
+      that is actually an optimal approach.<br>
+      A PIO program image must be relocatable, PIO's share memory and as
+      such unrelated programs must be stuffed into that memory. Such
+      relocation is not particularly difficult, each address in the
+      program image is relative to the image's first instruction and the
+      loader can add the load address to each instruction that needs it
+      as it writes them to the PIO memory.</p>
+    <hr>The hardest task is forward branch references. A preliminary
+    version of this assembler that only allows manually computed
+    relative jumps allows the tech to be investigate to see if it really
+    does reduce the number of bytes of program.<br>
+    The ultimate goal is a template/constexpr based version to minimize
+    program footprint. That is not difficult except for branches.
     <hr><br>
-    <hr><br>
-    To get the linker to supply JMP target addresses we can implement
-    program chunks via an array of init'ed objects.<br>
-    Targets are the public name of an array of init statements.<br>
-    Each such chunk of inits is given an attribute of being in the
-    program segment defined for each GPIO program bank.<br>
+    <h4>Basics<br>
+    </h4>
+    Any PIO program must get written into the PIO's shared program
+    memory and that is when we resolve jump addresses.<br>
+    While meaningful text for program labels is desirable, experience
+    with the asm facility built into gcc shows that given the maximum
+    size of such programs using numerical labels is workable. This
+    allows us to fit the label into the jump address field of the
+    instruction words, to be resolved by the loader.<br>
+    Branch instructions are given a numerical value for the target
+    address. <br>
+    Label objects in the program text do not result in code being
+    generated. <br>
     <br>
-    The linker will be told to build these in a memory that is not
-    implemented and is designated "noload" so that offsets are
-    calculated like for rom that inits ram but nothing is loaded into
-    the init stuff.<br>
-    IE we build an actual rom segment but the addresses are set to start
-    at 0 in some segment that is not loaded by the elf file parser
-    itself.<br>
-    <br>
-    initialized data, goes into rom but with addresses as if in ram:<br>
-    <br>
-    /* data with non-zero initializers */<br>
-    &nbsp; .data :{<br>
-    &nbsp;&nbsp;&nbsp; . = ALIGN(4); /* alignment padding for
-    startupCopy disappeared spontaneously, causing an elf file load
-    error- shifting bytes to boundary.<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    apparently we have been lucky for years that the segments naturally
-    aligned. */<br>
-    &nbsp;&nbsp;&nbsp; *(SORT(.data.*))<br>
-    &nbsp;&nbsp;&nbsp; *(.data)<br>
-    &nbsp; } &gt;SRAM AT&gt;FLASH<br>
-    <br>
-    <br>
-    In MEMORY command :<br>
-    <br>
-    PIOSPACE (wx) : ORIGIN = 0, LENGTH = 32<br>
-    <br>
-    In SECTION :<br>
-    <br>
-    .piocode: {<br>
-    &nbsp; *(.rpiocode)<br>
-    } &gt;PIOSPACE AT&gt;FLASH<br>
+    The load process starts with scanning the PIO program for label
+    directives. A table is built (or just filled if statically
+    allocated) to hold label:load address values. <br>
+    As the program lines are written to the PIO memory the address field
+    of the branch is replaced by a value from the table. <br>
+    &nbsp;<br>
+    PIO programs also have program context, that must be written to PIO
+    control registers before the program executes. Some of those values
+    are pertinent to the binary patterns in the instructions, as
+    constraints. The program load and register setting can happen in any
+    order so long as both are done before the PIO state machine is
+    started.<br>
+    <hr width="100%" size="2"><br>
     <br>
     <br>
-    In your program<br>
     <br>
-    __attribute((segment=.piocode)) <br>
-    PioThingy myroutine[]={<br>
-    &nbsp;{MOV, X, Y },<br>
-    &nbsp;{JMP, otherroutine }<br>
-    };<br>
     <br>
-    __attribute((segment=.piocode)) <br>
-    PioThingy otheroutine[]={<br>
-    &nbsp;{more code}<br>
-    };<br>
     <br>
-    So we need macros:<br>
-    <br>
-    #define Program( name)&nbsp;&nbsp;
-    __attribute((segment=.piocode))&nbsp; PioThingy name []={<br>
-    #define Label( name)&nbsp;&nbsp; };&nbsp;
-    __attribute((segment=.piocode))&nbsp; PioThingy name []={<br>
-    #define EndProgram&nbsp;&nbsp; };<br>
-    <br>
-    It would be handy if we can make an array of ints init by constexpr
-    functions.<br>
     <hr>
     <h3>Linking Loader</h3>
     A run time linking loader is simpler than manipulating linker
@@ -144,6 +127,7 @@
     template would take up way too much code space.<br>
     A varargs constexpr function does not seem legal.<br>
     <br>
+    /** instruction word components, not 1:1 with final binary image */<br>
     class PioLine {<br>
     &nbsp;&nbsp;&nbsp; uint16_t basePattern;<br>
     &nbsp;&nbsp;&nbsp; uint8_t ticks;//will idiot check on load<br>
@@ -179,9 +163,19 @@
     <br>
     }<br>
     <br>
+    /** for actual packing of instruction words */<br>
+    class PioInstructionDefinition {<br>
+    &nbsp;&nbsp;&nbsp; enum {opcode, ref, def,directive} <br>
+    &nbsp;&nbsp;&nbsp; union {<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; unsigned16 opcode;<br>
+    &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; const char* label; <br>
+    &nbsp;&nbsp;&nbsp; };<br>
+    };<br>
+    <br>
+    <br>
     class PioProgam {<br>
-    &nbsp;&nbsp;&nbsp; //values for registers<br>
-    &nbsp;&nbsp;&nbsp; //pointer to array of PioLine<br>
+    &nbsp;&nbsp;&nbsp; //values for control registers<br>
+    &nbsp;&nbsp;&nbsp; //pointer to array of PioLine, or VLA<br>
     &nbsp; &nbsp; void load(const PioLine *program,unsigned length){<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for each line<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br>
@@ -205,9 +199,110 @@
     }<br>
     <br>
     <br>
+    <hr>
+    <h3>label resolution</h3>
+    <br>
+    ... SinglePassLoad(atAddress){<br>
+    &nbsp;&nbsp;&nbsp; //scan for generating IP addresses, forward refs
+    go into table with address of referenced location.<br>
+    &nbsp;&nbsp;&nbsp; //+ if there are multiple forward references the
+    field in the instruction storage points to prior ref. All ones is
+    end of list.<br>
+    &nbsp;&nbsp;&nbsp; //+ if relative to label is allowed then we will
+    need additional ref table records<br>
+    &nbsp;&nbsp;&nbsp; // definitions when encountered resolve through
+    the linked list headed by the ref<br>
+    &nbsp;&nbsp;&nbsp; // ref to defined item is immediately resolved<br>
+    &nbsp;&nbsp;&nbsp; // wrap directive is marked on the instruction
+    rather than via a separate assembler command.<br>
+    <br>
+    &nbsp;&nbsp;&nbsp; //need maximum number of labels, else need a
+    alloca() feature.<br>
+    }<br>
+    <p>... MultiPassLoad(atAddress){</p>
+    <ul>
+      <li>scan array of AsmStatements for labels counting them and
+        instruction words</li>
+      <li>stack allocate block big enough for symbol table</li>
+      <li>rescan array recording pairs of pointer to definition string
+        and the PC value for it</li>
+    </ul>
+    <p>&nbsp;&nbsp;&nbsp; //</p>
+    }<br>
+    <br>
+    <br>
+    <hr width="100%" size="2"><br>
+    <br>
+    JMP(label) operation(pioJmp), REF(label)<br>
+    <br>
+    <br>
+    REF(label) <br>
+    DEF(label) creates a false opcode record<br>
+    <br>
+    <p>The above trust linker to put LAB_* segments in text order.</p>
+    <p>We store a pointer to a const char* for each def or ref of a
+      label.<br>
+      The table of such are built in a linker segment, one such segment
+      for each program.</p>
+    <p>The loader has a table sized for the maximum program.</p>
+    <p>When a DEF is encountered...</p>
     <br>
     <br>
     <br>
     <br>
+    <hr "="">Abandoned concepts:<br>
+    <br>
+    To get the linker to supply JMP target addresses we can implement
+    program chunks via an array of init'ed objects.<br>
+    Targets are the public name of an array of init statements.<br>
+    Each such chunk of inits is given an attribute of being in the
+    program segment defined for each GPIO program bank.<br>
+    <br>
+    The linker will be told to build these in a memory that is not
+    implemented and is designated "noload" so that offsets are
+    calculated like for rom that inits ram but nothing is loaded into
+    the init stuff.<br>
+    IE we build an actual rom segment but the addresses are set to start
+    at 0 in some segment that is not loaded by the elf file parser
+    itself.<br>
+    <br>
+    initialized data, goes into rom but with addresses as if in ram:<br>
+    <br>
+    <br>
+    In MEMORY command :<br>
+    <br>
+    One each of the following for each PIO present.<br>
+    PIOSPACE (wx) : ORIGIN = 0, LENGTH = 32<br>
+    <br>
+    In SECTION :<br>
+    <br>
+    .piocode: {<br>
+    &nbsp; *(.rpiocode)<br>
+    } &gt;PIOSPACE AT&gt;FLASH<br>
+    <br>
+    <br>
+    In your program<br>
+    <br>
+    __attribute((segment=.piocode)) <br>
+    PioThingy myroutine[]={<br>
+    &nbsp;{MOV, X, Y },<br>
+    &nbsp;{JMP, otherroutine }<br>
+    };<br>
+    <br>
+    __attribute((segment=.piocode)) <br>
+    PioThingy otheroutine[]={<br>
+    &nbsp;{more code}<br>
+    };<br>
+    <br>
+    So we need macros:<br>
+    <br>
+    #define Program( name)&nbsp;&nbsp;
+    __attribute((segment=.piocode))&nbsp; PioThingy name []={<br>
+    #define Label( name)&nbsp;&nbsp; };&nbsp;
+    __attribute((segment=.piocode))&nbsp; PioThingy name []={<br>
+    #define EndProgram&nbsp;&nbsp; };<br>
+    <br>
+    It would be handy if we can make an array of ints init by constexpr
+    functions.<br>
   </body>
 </html>
