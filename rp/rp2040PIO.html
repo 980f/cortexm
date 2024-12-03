@@ -207,9 +207,9 @@
     unique code jmp's to the shared code start.<br>
     <br>
     <h4>JMP</h4>
-    The JMP instruction selects a boolean and if true (in the case of
-    the pin high) then the target field of the instruction is the next
-    PC value. <br>
+    The JMP instruction selects a boolean and if true (in the case of a
+    pin 'high') then the target field of the instruction is the next PC
+    value. <br>
     The X and Y not zero tests can optionally decrement the register
     after being tested for zero. If they were zero then execution
     proceeds with the following instruction and the scratch register is
@@ -462,6 +462,12 @@
           </td>
           <td rowspan="1" colspan="3" valign="top" bgcolor="#33ffff">address
 
+
+
+
+
+
+
             of&nbsp; RXram</td>
           <td valign="top" bgcolor="#33ffff">opcode lsb's select RXram<br>
           </td>
@@ -476,6 +482,12 @@
           </td>
           <td rowspan="1" colspan="1">Block</td>
           <td rowspan="2" colspan="5" style="background-color: #cccccc;">all
+
+
+
+
+
+
             zero's<br>
           </td>
           <td>If full is 1 Don't push unless the ISR has the configured
@@ -532,6 +544,12 @@
           <td valign="top" bgcolor="#33ffff">1<br>
           </td>
           <td rowspan="1" colspan="3" valign="top" bgcolor="#33ffff">address
+
+
+
+
+
+
 
             of RXram<br>
           </td>
@@ -677,8 +695,8 @@
           <td>6</td>
           <td>Pin</td>
           <td>pin, selected in <a moz-do-not-send="true"
-              href="Execution_control">exec ctrl register</a>,
-            apparently jump if 1?</td>
+              href="Execution_control">exec ctrl register</a>,&nbsp;
+            jump if 1?</td>
         </tr>
         <tr>
           <td>7</td>
@@ -772,8 +790,7 @@
           <th>5</th>
           <td>STATUS</td>
           <td>not used by IN, <br>
-            all zeros or all ones per configuration of which fifo and
-            what level is interesting<br>
+            all zeros or all ones per Execution control's 5 lsb's<br>
           </td>
           <td>PC</td>
           <td>computed/supplied jump<br>
@@ -850,48 +867,92 @@
     <p>Things that affect instruction interpretation, there are
       additional registers that can externally alter program execution.<br>
     </p>
-    <h4><a name="Execution_contol"></a>Execution contol</h4>
     <table cellspacing="2" cellpadding="2" border="1">
       <tbody>
         <tr>
+          <td valign="top"><br>
+          </td>
           <td valign="top">31<br>
           </td>
           <td valign="top">30<br>
           </td>
           <td valign="top">29<br>
           </td>
-          <td valign="top">28..24<br>
+          <td valign="top">28<br>
           </td>
-          <td valign="top">23..19<br>
+          <td valign="top">27<br>
+          </td>
+          <td valign="top">26<br>
+          </td>
+          <td valign="top">25<br>
+          </td>
+          <td valign="top">24<br>
+          </td>
+          <td valign="top">23<br>
+          </td>
+          <td valign="top">22<br>
+          </td>
+          <td valign="top">21<br>
+          </td>
+          <td valign="top">20<br>
+          </td>
+          <td valign="top">19<br>
           </td>
           <td valign="top">18<br>
           </td>
           <td valign="top">17<br>
           </td>
-          <td valign="top">16..12<br>
+          <td valign="top">16</td>
+          <td valign="top">15<br>
           </td>
-          <td valign="top">11..7<br>
+          <td valign="top">14<br>
           </td>
-          <td valign="top">6,5<br>
+          <td valign="top">13<br>
+          </td>
+          <td valign="top">12<br>
+          </td>
+          <td valign="top">11<br>
+          </td>
+          <td valign="top">10<br>
+          </td>
+          <td valign="top">9<br>
+          </td>
+          <td valign="top">8<br>
+          </td>
+          <td valign="top">7<br>
+          </td>
+          <td valign="top">6<br>
+          </td>
+          <td valign="top">5<br>
           </td>
           <td valign="top">4<br>
           </td>
-          <td valign="top">3..0<br>
+          <td valign="top">3<br>
+          </td>
+          <td valign="top">2<br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top">0<br>
           </td>
         </tr>
         <tr>
+          <td valign="top">
+            <h4><a name="Execution_contol"></a>Execution contol</h4>
+          </td>
           <td valign="top">Stalled<br>
           </td>
-          <td valign="top">MSB is side-set enable,<br>
+          <td valign="top">1: MSB is side-set enable,<br>
             IWC only 4 bits can be side-set<br>
           </td>
-          <td valign="top">side is OE<br>
-            else level<br>
+          <td valign="top">1: side sets are<br>
+            OE<br>
+            &nbsp;else level<br>
           </td>
-          <td valign="top">pin for <br>
+          <td rowspan="1" colspan="5" valign="top">pin for <br>
             JMP on PIN<br>
           </td>
-          <td valign="top">OUT enable<br>
+          <td rowspan="1" colspan="5" valign="top">OUT enable<br>
             pin<br>
           </td>
           <td valign="top">ONLINE_OUT_EN<br>
@@ -899,35 +960,48 @@
           <td valign="top">OUT is<br>
             latched<br>
           </td>
-          <td valign="top">Wrap<br>
+          <td rowspan="1" colspan="5" valign="top">Wrap<br>
             At<br>
           </td>
-          <td valign="top">Wrap <br>
+          <td rowspan="1" colspan="5" valign="top">Wrap <br>
             To<br>
           </td>
-          <td valign="top">(2350)<br>
+          <td rowspan="1" colspan="2" valign="top">(2350)<br>
             <br>
           </td>
           <td valign="top">Fifo to test,<br>
             1=RX, 0=TX<br>
           </td>
-          <td valign="top">Fifo test<br>
+          <td rowspan="1" colspan="4" valign="top">Fifo test<br>
             level<br>
           </td>
         </tr>
-      </tbody>
-    </table>
-    <h4>Shift control</h4>
-    <table cellspacing="2" cellpadding="2" border="1">
-      <tbody>
         <tr>
+          <td valign="top"><br>
+          </td>
           <td valign="top">31<br>
           </td>
           <td valign="top">30<br>
           </td>
-          <td valign="top">29..25<br>
+          <td valign="top">29<br>
           </td>
-          <td valign="top">24..20<br>
+          <td valign="top">28<br>
+          </td>
+          <td valign="top">27<br>
+          </td>
+          <td valign="top">26<br>
+          </td>
+          <td valign="top">25<br>
+          </td>
+          <td valign="top">24<br>
+          </td>
+          <td valign="top">23<br>
+          </td>
+          <td valign="top">22<br>
+          </td>
+          <td valign="top">21<br>
+          </td>
+          <td valign="top">20<br>
           </td>
           <td valign="top">19<br>
           </td>
@@ -941,17 +1015,48 @@
           </td>
           <td valign="top">14<br>
           </td>
-          <td valign="top">13..0</td>
+          <td valign="top">13</td>
+          <td valign="top">12<br>
+          </td>
+          <td valign="top">11<br>
+          </td>
+          <td valign="top">10<br>
+          </td>
+          <td valign="top">9<br>
+          </td>
+          <td valign="top">8<br>
+          </td>
+          <td valign="top">7<br>
+          </td>
+          <td valign="top">6<br>
+          </td>
+          <td valign="top">5<br>
+          </td>
+          <td valign="top">4<br>
+          </td>
+          <td valign="top">3<br>
+          </td>
+          <td valign="top">2<br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top">0<br>
+          </td>
         </tr>
         <tr>
-          <td valign="top">RXgets both fifos<br>
+          <td valign="top">
+            <h4>Shift control</h4>
           </td>
-          <td valign="top">TX gets both fifos<br>
+          <td valign="top">RX<br>
+            gets both fifos<br>
           </td>
-          <td valign="top">pull reload counter<br>
+          <td valign="top">TX <br>
+            gets both fifos<br>
+          </td>
+          <td rowspan="1" colspan="5" valign="top">pull reload counter<br>
             0==32 else actual value<br>
           </td>
-          <td valign="top">push reload counter<br>
+          <td rowspan="1" colspan="5" valign="top">push reload counter<br>
             &lt;= see pull.<br>
           </td>
           <td valign="top">out shifts right,<br>
@@ -976,47 +1081,161 @@
             as read only mem.<br>
             <br>
           </td>
-          <td valign="top">unused<br>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <br>
-    <h4>Pin Control</h4>
-    <table cellspacing="2" cellpadding="2" border="1">
-      <tbody>
-        <tr>
-          <td valign="top">31:29<br>
-          </td>
-          <td valign="top">28:26<br>
-          </td>
-          <td valign="top">25:20<br>
-          </td>
-          <td valign="top">19:15<br>
-          </td>
-          <td valign="top">14:10<br>
-          </td>
-          <td valign="top">9:5<br>
-          </td>
-          <td valign="top">4:0<br>
+          <td rowspan="1" colspan="14" valign="top">unused<br>
           </td>
         </tr>
         <tr>
-          <td valign="top">#bits of delay/side set field <br>
+          <td valign="top"><br>
+          </td>
+          <td valign="top">31<br>
+          </td>
+          <td valign="top">30<br>
+          </td>
+          <td valign="top">29</td>
+          <td valign="top">28<br>
+          </td>
+          <td valign="top">27<br>
+          </td>
+          <td valign="top">26<br>
+          </td>
+          <td valign="top">25<br>
+          </td>
+          <td valign="top">24<br>
+          </td>
+          <td valign="top">23<br>
+          </td>
+          <td valign="top">22<br>
+          </td>
+          <td valign="top">21<br>
+          </td>
+          <td valign="top">20<br>
+          </td>
+          <td valign="top">19<br>
+          </td>
+          <td valign="top">18<br>
+          </td>
+          <td valign="top">17<br>
+          </td>
+          <td valign="top">16<br>
+          </td>
+          <td valign="top">15<br>
+          </td>
+          <td valign="top">14<br>
+          </td>
+          <td valign="top">13</td>
+          <td valign="top">12<br>
+          </td>
+          <td valign="top">11<br>
+          </td>
+          <td valign="top">10<br>
+          </td>
+          <td valign="top">9<br>
+          </td>
+          <td valign="top">8<br>
+          </td>
+          <td valign="top">7<br>
+          </td>
+          <td valign="top">6<br>
+          </td>
+          <td valign="top">5<br>
+          </td>
+          <td valign="top">4<br>
+          </td>
+          <td valign="top">3<br>
+          </td>
+          <td valign="top">2<br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top">0<br>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top">
+            <h4>Pin Control</h4>
+          </td>
+          <td rowspan="1" colspan="3" valign="top">#bits of delay/side
+            set field <br>
             used for side set<br>
           </td>
-          <td valign="top">#of SET pins, <br>
+          <td rowspan="1" colspan="3" valign="top">#of SET pins, <br>
             max is 5<br>
           </td>
-          <td valign="top">Number of OUT pins,<br>
+          <td rowspan="1" colspan="6" valign="top">Number of OUT pins,<br>
             0..32<br>
           </td>
-          <td valign="top">lsb of IN field<br>
+          <td rowspan="1" colspan="5" valign="top">lsb of IN field<br>
           </td>
-          <td valign="top">SIDESET_BASE<br>
+          <td rowspan="1" colspan="5" valign="top">SIDESET_BASE<br>
           </td>
-          <td valign="top">lsb of SET field</td>
-          <td valign="top">lsb of OUT field<br>
+          <td rowspan="1" colspan="5" valign="top">lsb of SET field</td>
+          <td rowspan="1" colspan="5" valign="top">lsb of OUT field<br>
+          </td>
+        </tr>
+        <tr>
+          <td valign="top"><br>
+          </td>
+          <td valign="top">31<br>
+          </td>
+          <td valign="top">30<br>
+          </td>
+          <td valign="top">29</td>
+          <td valign="top">28<br>
+          </td>
+          <td valign="top">27<br>
+          </td>
+          <td valign="top">26<br>
+          </td>
+          <td valign="top">25<br>
+          </td>
+          <td valign="top">24<br>
+          </td>
+          <td valign="top">23<br>
+          </td>
+          <td valign="top">22<br>
+          </td>
+          <td valign="top">21<br>
+          </td>
+          <td valign="top">20<br>
+          </td>
+          <td valign="top">19<br>
+          </td>
+          <td valign="top">18<br>
+          </td>
+          <td valign="top">17<br>
+          </td>
+          <td valign="top">16<br>
+          </td>
+          <td valign="top">15<br>
+          </td>
+          <td valign="top">14<br>
+          </td>
+          <td valign="top">13</td>
+          <td valign="top">12<br>
+          </td>
+          <td valign="top">11<br>
+          </td>
+          <td valign="top">10<br>
+          </td>
+          <td valign="top">9<br>
+          </td>
+          <td valign="top">8<br>
+          </td>
+          <td valign="top">7<br>
+          </td>
+          <td valign="top">6<br>
+          </td>
+          <td valign="top">5<br>
+          </td>
+          <td valign="top">4<br>
+          </td>
+          <td valign="top">3<br>
+          </td>
+          <td valign="top">2<br>
+          </td>
+          <td valign="top">1<br>
+          </td>
+          <td valign="top">0<br>
           </td>
         </tr>
       </tbody>
