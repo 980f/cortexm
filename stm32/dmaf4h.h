@@ -9,7 +9,8 @@
 #include "utility.h"
 
 using namespace stm32; //not yet sure which parts are in stm32:: vs cortexm::
-/* 4002'6000 and 4002'6400 each with 8 streams each stream with 8 trigger sources
+/* 407,411 but not 452. Need to rename files.
+4002'6000 and 4002'6400 each with 8 streams each stream with 8 trigger sources
  * interrupt flags and clears are groups of 6, 4 in a word, weird boundaries
  * the clear is 32 bits past the flag.
  *
@@ -128,7 +129,7 @@ RM0090 says you must modify all 32 bits at once, so we will build a struct then 
 
 /** used for making lookup tables of channel for device given dma stream */
   struct DeviceTriad {
-    //st's device logicla unit number, 1-based which conveniently lets us cap a table with a zero luno entry.
+    //st's device logical unit number, 1-based which conveniently lets us cap a table with a zero luno entry.
     uint8_t devluno;
     DmaTriad triad;
   } PACKED;
@@ -166,12 +167,10 @@ RM0090 says you must modify all 32 bits at once, so we will build a struct then 
       //#nada
     }
 
-    INLINETHIS
     operator bool() const {
       return active;
     }
 
-    INLINETHIS
     void clear() const {
       clearit=true;
     }
@@ -185,7 +184,7 @@ RM0090 says you must modify all 32 bits at once, so we will build a struct then 
       }
     }
 
-    INLINETHIS // NOLINT(misc-unconventional-assign-operator)
+  // NOLINT(misc-unconventional-assign-operator)
     void operator=(bool beOn) const {
       enabled = beOn;
     }

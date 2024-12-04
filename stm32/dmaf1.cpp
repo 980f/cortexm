@@ -1,6 +1,6 @@
 #include "dmaf1.h"
 
-void DmaChannel::setupStream(const StreamDefinition &def){
+void DmaChannel::setupStream(const DMA::StreamDefinition &def){
   dcb.enable = 0;
   dcb.circular = 0;
   dcb.incPeripheralAddress = 0;

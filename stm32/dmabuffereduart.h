@@ -1,7 +1,7 @@
 #pragma once  // (C) 2020 Andrew L. Heilveil (github.980f)   (totally replaces inherited file of same name)
 
 #include "uart.h"
-#include "dmaf4h.h"
+#include "dma.h"
 #include "block.h"
 
 using Ubuffer = Block<uint8_t>;

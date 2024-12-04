@@ -1,6 +1,24 @@
 #include "eztypes.h"
 #include "nvic.h"
-//#include "buffer.h"
+
+/** 103, L4R5, 030 ,452,  most systems although the presence of DMA2 is chip specific.
+* two device, DMA1 has 7 channels, DMA2 has 5 channels.
+64k transfers per action.
+within each DMAx the channels have 2 bit priority values. DMA1 has priority over DMA2.
+The transfer can automatically restart, perpetually circular buffer.
+Notifications happen at half gone and done, as well as error.
+smaller to larger transfers zero extends the small writing the full larger size.
+8->32 zero extends the byte writing to the 32 bit word.
+larger to smaller trunactes the data, 32->8 packs in ls bytes discarding the 3 ms bytes.
+peripherals that don't tolerate undersized operations see duplicated data.
+for some chips DMA2.4 andDMA2.5 share an interrupt!
+
+Peripheral requests are hardwired to a particular DMA channel.
+The knowledge of which will be coded in the class for the device or a part specific class.
+
+*/
+
+
 
 /** logical access */
 class DmaChannel {
@@ -26,8 +44,7 @@ class DmaChannel {
       volatile void *peripheral; //expects handshake unless M2M is set.
       void *memory; //never expects handshake
       unsigned int reservedspace; //20 bytes per channel
-    };
-    CHANNEL_DCB chan[7];  //index with st's number -1
+    } chan[7];  //index with st's number -1
   };
 
   //order matters for convenient initialization in constructor:
@@ -40,7 +57,8 @@ class DmaChannel {
 public:
   Irq irq; //todo: justify irq being public.
 
-  constexpr DmaChannel(int stNumber, bool forsender): //pass stnumber as 1..7 for dma controller 1, 8..12 for DMA2.
+//  constexpr
+      DmaChannel(int stNumber, bool forsender): //pass stnumber as 1..7 for dma controller 1, 8..12 for DMA2.
     secondaryController(stNumber > 7),
     luno(stNumber - (secondaryController ? 8 : 1)), //which channel of the controller
     theDMA_DCB(reinterpret_cast <DMA_DCB *> (secondaryController ? 0x40020400 : 0x40020000)), //
@@ -53,7 +71,7 @@ public:
   }
 
   //clear all interrupts
-  DmaChannel&clearInterrupts(){
+  const DmaChannel& clearInterrupts()const{
     theDMA_DCB->interruptClears |= 0xF << (luno * 4);
     return *this;
   }
@@ -89,7 +107,7 @@ public:
 
   void setupStream(const StreamDefinition& def);
 
-  static int forUart(int unumber, bool txelserx);
+  unsigned forUart(unsigned stUartNumber, bool txelserx);
 };
 /**
   * NOTE: mistmatched source and destination sizes does not result in 1:N moves, data is truncated or zero padded.

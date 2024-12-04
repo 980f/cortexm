@@ -18,19 +18,18 @@
 /* The BusNumber enum is used to compute control bit addresses for RCC functions. */
 #if DEVICE == 103
 #include "peripheralband.h"
-enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
-  CPU
-  ,AHB1 //even though there is but 1 AHB adding the '1' to its name saves some #ifdef'ing in clock related code with other chips
-  ,APB1=3, APB2
-  ,ADCbase
+
+enum BusNumber: uint8_t { //#this enum is used for RCC register addressing
+  CPU, AHB1 //even though there is but 1 AHB adding the '1' to its name saves some #ifdef'ing in clock related code with other chips
+  , APB1 = 3, APB2, ADCbase
 };
 
-constexpr Address RCCBASE(0x4002'1000);//0th offset.
+constexpr Address RCCBASE(0x4002'1000); //0th offset.
 constexpr Address FLASHBASE(0x4002'2000);
-constexpr Address GPIOBASE(0x4001'0800);//+0400 for each letter.
+constexpr Address GPIOBASE(0x4001'0800); //+0400 for each letter.
 
-const unsigned resetOffset=0x0C;
-const unsigned clockOffset=0x18;
+const unsigned resetOffset = 0x0C;
+const unsigned clockOffset = 0x18;
 
 #elif DEVICE == 407
 #include "peripheralband.h"
@@ -38,7 +37,7 @@ const unsigned clockOffset=0x18;
 enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
   CPU //used for clock rate function index
   ,AHB1=1, AHB2, AHB3 //3 buses which have some APDevice like characteristics
-  //there is a gap here
+  //there is a gap in values here, the enum is used arithmetically
   ,APB1 = 5, APB2
 };
 
@@ -72,19 +71,21 @@ constexpr unsigned clockOffset = 0x48;
 namespace stm32 {
   constexpr bool isRam(AddressCaster address) {
     //don't use BandAid, we want this to work even when processor doesn't bit band.
-    return address.number>>29==2>>1;//we exclude CCM at 0x1000 as it is not accessible to DMA and no-one else should care about "is ram"
+    return address.space() == (2 >> 1); //we exclude CCM at 0x1000 as it is not accessible to DMA and no-one else should care about "is ram"
   }
 
-  constexpr bool isRom(AddressCaster address){
-    return address.number>>29==0;
+  /** this is a slight misnomer, it is the space that is mapped to the bootstrap selection of program memory. */
+  constexpr bool isRom(AddressCaster address) {
+    return address.space() == 0;
   }
 
-  constexpr bool isPeripheral(AddressCaster address){
-    return address.number>>29 == 4>>1 || address.number>>29 == 0xE>>1;//the second is cortex core peripherals
+  constexpr bool isPeripheral(AddressCaster address) {
+    return address.space() == (4 >> 1) || address.space() == (0xE >> 1); //the second is cortex core peripherals
   }
-//todo:0 add HasBanding #define
-  constexpr bool isBandable(AddressCaster address){
-    auto tester=BandAid(address.number);
+
+  //todo:0 add HasBanding #define
+  constexpr bool isBandable(AddressCaster address) {
+    auto tester = BandAid(address.number);
     return tester.bandable() && tester.inband();
   }
 }
@@ -93,9 +94,13 @@ namespace stm32 {
 using Hertz = unsigned;
 
 /** peripheral base addresses are computable from their indexes into the clock control registers: */
-constexpr Address APB_Block(BusNumber bus2, unsigned slot) { return (PeripheralBase | (bus2 - APB1) << 16u | slot << 10u); }
+constexpr Address APB_Block(BusNumber bus2, unsigned slot) {
+  return (PeripheralBase | (bus2 - APB1) << 16u | slot << 10u);
+}
 
-constexpr Address APB_Band(BusNumber bus2, unsigned slot) { return BandAid(APB_Block(bus2 , slot ),0); }
+constexpr Address APB_Band(BusNumber bus2, unsigned slot) {
+  return BandAid(APB_Block(bus2, slot), 0);
+}
 
 /** each APB peripheral's reset pin, clock enable, and bus address are computable from 2 simple numbers.
 some AHB devices are very similar, to the point where we use a variant constructor rather than have a separate class.
@@ -114,7 +119,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    return BandAid(rccBitter + basereg,0);
+    return BandAid(rccBitter + basereg, 0);
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
@@ -122,18 +127,16 @@ protected:
 
 public:
   /** Actual APB devices  @param bus and slot are per st documentation */
-  constexpr APBdevice(BusNumber stbus, unsigned slot) :
-    rbus(stbus)   //
-    , slot(slot)  //
+  constexpr APBdevice(BusNumber stbus, unsigned slot) : rbus(stbus) //
+    , slot(slot) //
     , blockAddress(APB_Block(rbus, slot)) //
-    , bandAddress(APB_Band(rbus, slot))   //
+    , bandAddress(APB_Band(rbus, slot)) //
     , rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
 
-/** AHB devices  @param bus and slot are per st documentation */
-  constexpr APBdevice(BusNumber stbus, unsigned slot, unsigned rawAddress) :
-    rbus(stbus)   //
-    , slot(slot)  //
-    , blockAddress(rawAddress)   //
+  /** AHB devices  @param bus and slot are per st documentation */
+  constexpr APBdevice(BusNumber stbus, unsigned slot, unsigned rawAddress) : rbus(stbus) //
+    , slot(slot) //
+    , blockAddress(rawAddress) //
     , bandAddress(bandFor(rawAddress, slot)) //
     , rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
 
@@ -145,12 +148,12 @@ public:
   }
 
   /** control the clock, off reduces chip power */
-void setClockEnable(bool on = true) const {
-    ControlWord (rccBit(clockOffset)) = on;
+  void setClockEnable(bool on = true) const {
+    ControlWord(rccBit(clockOffset)) = on;
   }
 
   /** @returns whether clock is on */
-bool isEnabled() const {
+  bool isEnabled() const {
     //  (reset on forces the clock off (I think) so we only have to check one bit)
     return ControlWord(rccBit(clockOffset));
   }
@@ -167,18 +170,19 @@ bool isEnabled() const {
       init();
     }
   }
+
   /** get base clock for this module */
   Hertz getClockRate() const;
 
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
-   constexpr Address registerAddress(unsigned offset) const {
+  constexpr Address registerAddress(unsigned offset) const {
     return blockAddress + offset;
-     //   return & reinterpret_cast<u32 *>( blockAddress)[offset>>2]; //compiler sees offset as an array index .
+    //   return & reinterpret_cast<u32 *>( blockAddress)[offset>>2]; //compiler sees offset as an array index .
   }
 
   /** @returns bit band address of bit of a register, @param offset is value from st's manual (byte address) */
   constexpr ControlWord bit(Address offset, unsigned bit) const {
-    return ControlWord(bandFor(blockAddress + offset, bit));//bandAddress and bandFor were both setting the 0200 0000 bit.
+    return ControlWord(bandFor(blockAddress + offset, bit)); //bandAddress and bandFor were both setting the 0200 0000 bit.
   }
 
   constexpr ControlField field(Address offset, unsigned pos, unsigned width) const {
@@ -194,18 +198,19 @@ bool isEnabled() const {
 /** for items which only have a single instance, or for which the luno is a compile time constant and you need speed over code space use this instead of APBdevice.*/
 template<BusNumber stbus, unsigned slot> struct APBperiph {
   enum {
-    rbus = stbus    //
-   /** base device address @see registerAddress() for multi-bit control */
-    , blockAddress = APB_Block(rbus, slot)    //
-   /** base bit band address. @see bit() to access a single bit control */
-    , bandAddress = APB_Band(rbus, slot)      //
-   /** base used for calculating this device's bits in RCC device. */
+    rbus = stbus //
+    /** base device address @see registerAddress() for multi-bit control */
+    , blockAddress = APB_Block(rbus, slot) //
+    /** base bit band address. @see bit() to access a single bit control */
+    , bandAddress = APB_Band(rbus, slot) //
+    /** base used for calculating this device's bits in RCC device. */
     , rccBitat = bandFor(RCCBASE | (rbus << 2), slot)
-   };
+  };
+
   //
   // /** @return bit address given the register address of the apb2 group*/
   // constexpr static Address rccBit(unsigned basereg) {
-  //   return bandFor(rccBitat /*| bandShift(basereg,0)*/);//todo:00 fix this after lunch
+  //   return bandFor(rccBitat /*| bandShift(basereg,0)*/);//todo:00 fix this after lunch (apparently a very, very long lunch!)
   // }
 
   constexpr static Address rccWord(unsigned basereg) {

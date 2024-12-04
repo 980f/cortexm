@@ -32,43 +32,45 @@ I am working on replacing *'s with &'s, its a statistical thing herein as to whi
 #define soliton(type, address) type& the##type = *reinterpret_cast<type*>(address);
 
 /** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
-using Address = unsigned;//address space of this device.
+using Address = unsigned; //address space of this device.
 
 /* an attempt to suppress warnings about integer to pointer casts, while still leaving that warning on to catch unintentional ones */
 union AddressCaster {
   unsigned number;
   void *pointer;
+  /** the stm32 system uses the 3 msbs as a memory type indicator */
+  constexpr unsigned space() const {
+    return number >> 29;
+  }
 };
 
 /* this function exists to hide some verbose casting */
 template<typename Scalar> constexpr Scalar &Ref(Address address) {
-  AddressCaster pun {address};
+  AddressCaster pun{address};
   return *static_cast<Scalar *>(pun.pointer);
 }
-
 
 
 /** A 32 bit item at a known address.
  * when you don't know the address at compile time use one of these, else use an SFRxxx.
  * This class essentially wraps the Ref<> template with operator overloads */
 class ControlWord {
-
 protected:
   volatile unsigned &item;
+
 public:
-  explicit constexpr ControlWord(Address dynaddr)
-    : item(Ref<unsigned>(dynaddr)) {
+  explicit constexpr ControlWord(Address dynaddr) : item(Ref<unsigned>(dynaddr)) {
     //#done
   }
 
   /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
   constexpr ControlWord(const ControlWord &other) = default;
 
-//use ControlBit instead. This one allows the ambiguity of writing a value other than 1 or 0 to a bit band item.
-//  constexpr ControlWord(Address dynaddr, unsigned bitnum)
-//    : ControlWord(bandFor(dynaddr, bitnum)) {
-//    //#done
-//  }
+  //use ControlBit instead. This one allows the ambiguity of writing a value other than 1 or 0 to a bit band item.
+  //  constexpr ControlWord(Address dynaddr, unsigned bitnum)
+  //    : ControlWord(bandFor(dynaddr, bitnum)) {
+  //    //#done
+  //  }
 
   void operator=(unsigned value) const ISRISH {
     item = value;
@@ -89,7 +91,7 @@ public:
   }
 
 
-//we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
+  //we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
   /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
   operator unsigned() const ISRISH {
     return item;
@@ -97,12 +99,11 @@ public:
 };
 
 template<class Mustbe32> struct ControlStruct {
-
 protected:
   volatile unsigned &item;
+
 public:
-  explicit constexpr ControlStruct(Address dynaddr)
-    : item(Ref<unsigned>(dynaddr)) {
+  explicit constexpr ControlStruct(Address dynaddr) : item(Ref<unsigned>(dynaddr)) {
     //#done
   }
 
@@ -117,7 +118,7 @@ public:
     item = *reinterpret_cast<const unsigned *>(&value);
   }
 
-  constexpr  Mustbe32 operator()() const ISRISH {
+  constexpr Mustbe32 operator()() const ISRISH {
     unsigned read = item;
     return *reinterpret_cast<const Mustbe32 *>(&read);
   }
@@ -125,21 +126,19 @@ public:
 
 /** when you don't know the address at compile time use one of these, else use an SFRxxx.
  * This is for fields which are byte aligned and some multiple of 8 bits */
-template<typename IntType>
-class ControlItem {
-
+template<typename IntType> class ControlItem {
 protected:
   volatile IntType &item;
+
 public:
-  explicit constexpr ControlItem(Address dynaddr)
-    : item(Ref<IntType>(dynaddr)) {
+  explicit constexpr ControlItem(Address dynaddr) : item(Ref<IntType>(dynaddr)) {
     //#done
   }
 
   /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
   constexpr ControlItem(const ControlItem &other) = default;
 
-//using void return as we don't want to trust what the compiler might do with the 'volatile'
+  //using void return as we don't want to trust what the compiler might do with the 'volatile'
   void operator=(IntType value) const ISRISH {
     item = value;
   }
@@ -157,7 +156,7 @@ public:
     item = other.item;
   }
 
-//we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
+  //we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
   /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
   operator IntType() const ISRISH {
     return item;
@@ -177,9 +176,7 @@ class ControlField {
   const unsigned pos;
 
 public:
-  constexpr ControlField(Address sfraddress, unsigned pos, unsigned width)
-    : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, width)), pos(pos) {
-  }
+  constexpr ControlField(Address sfraddress, unsigned pos, unsigned width) : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, width)), pos(pos) {}
 
 public:
   //this is an immutable object, so copying should be just fine, and is needed for move behavior which is needed by object factories.
@@ -190,12 +187,12 @@ public:
 
   // read
   operator unsigned() const {
-    return (word & mask) >> pos;  //the compiler should render this down to a bitfield extract instruction.
+    return (word & mask) >> pos; //the compiler should render this down to a bitfield extract instruction.
   }
 
   /** assign, which for hardware registers might not result in a value equal to the @param value given, @returns the ACTUAL value */
   unsigned operator=(unsigned value) const {
-    word = ((value << pos) & mask) | (word & ~mask);  //the compiler should render this down to a bitfield insert instruction.
+    word = ((value << pos) & mask) | (word & ~mask); //the compiler should render this down to a bitfield insert instruction.
     return operator unsigned();
   }
 
@@ -204,6 +201,7 @@ public:
     operator=(unsigned() + value);
     return operator unsigned();
   }
+
   //add more operators as need arises
 };
 
@@ -217,9 +215,7 @@ class ControlBool : public BoolishRef {
   const unsigned pos;
 
 public:
-  constexpr ControlBool(Address sfraddress, unsigned pos)
-    : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, 1)), pos(pos) {
-  }
+  constexpr ControlBool(Address sfraddress, unsigned pos) : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, 1)), pos(pos) {}
 
 public:
   constexpr ControlBool(const ControlField &other) = delete;
@@ -240,13 +236,11 @@ public:
     }
     return operator bool();
   }
-
 };
 
 
 /** a datum at a known absolute address */
-template<typename Inttype, Address sfraddress>
-struct SFRint {
+template<typename Inttype, Address sfraddress> struct SFRint {
   constexpr SFRint() = default;
 
   // read.
@@ -261,11 +255,11 @@ struct SFRint {
 };
 
 ///** making all (conveniently predefined) SFR's unsigned presuming that all hardware values are unsigned. About the only exception is ADC values. */
-template<unsigned sfraddress> using SFR8  = SFRint<uint8_t, sfraddress>;
+template<unsigned sfraddress> using SFR8 = SFRint<uint8_t, sfraddress>;
 template<unsigned sfraddress> using SFR16 = SFRint<uint16_t, sfraddress>;
 template<unsigned sfraddress> using SFR32 = SFRint<uint32_t, sfraddress>;
 //legacy
-using SFR=volatile unsigned;
+using SFR = volatile unsigned;
 
 
 /** Multiple contiguous bits in a register. Requires register to be R/W.
@@ -273,8 +267,7 @@ using SFR=volatile unsigned;
  * Note: This creates a class per sf register field, but the compiler should inline all uses making this a compile time burden but a runtime minimalization.
  * Note: 'volatile' isn't used here as it is gratuitous when the variable isn't nominally read multiple times in a function.
  */
-template<Address sfraddress, unsigned pos, unsigned width = 1>
-class SFRfield {
+template<Address sfraddress, unsigned pos, unsigned width = 1> class SFRfield {
   enum {
     /** mask positioned */
     mask = bitMask(pos, width)
@@ -283,7 +276,7 @@ class SFRfield {
 public:
   SFRfield(const SFRfield &other) = delete;
 
-  constexpr SFRfield() = default;  //this constructor is needed due to use of explicit on the other constructor
+  constexpr SFRfield() = default; //this constructor is needed due to use of explicit on the other constructor
 
   /** this constructor is intended to be used for setting a value into a register which has no reference other than the assignment, but it is not easy to debug its use when something goes horribly wrong. */
   explicit SFRfield(unsigned initlizer) {
@@ -301,17 +294,17 @@ public:
   }
 
   void operator+=(unsigned value) const {
-    operator=(operator unsigned() + value);//todo:M optimize if compiler doesn't remove the shifts of all but this function's value argument.
+    operator=(operator unsigned() + value); //todo:M optimize if compiler doesn't remove the shifts of all but this function's value argument.
   }
 };
 
 /** single bit, ignoring the possibility it is in bitbanded memory.
  *  This is NOT derived from SFRfield as we can do some optimizations that the compiler might miss (or developer might have disabled)*/
-template<unsigned sfraddress, unsigned pos>
-class SFRbit : public BoolishRef {
+template<unsigned sfraddress, unsigned pos> class SFRbit : public BoolishRef {
   enum {
     mask = bitMask(pos)
   };
+
 public:
   constexpr SFRbit() = default;
 
@@ -333,7 +326,7 @@ public:
 
 
 /** most cortex devices follow arm's suggestion of using this block for peripherals */
-const Address PeripheralBase {0x4000'0000};  //1<<30
+const Address PeripheralBase{0x4000'0000}; //1<<30
 
 
 //cortexM 'private peripherals'
