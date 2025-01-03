@@ -1,0 +1,1021 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="generator"
+ content="HTML Tidy for Windows (vers 25 March 2009), see www.w3.org">
+  <meta content="text/html; charset=us-ascii" http-equiv="Content-Type">
+  <title>st64 Pinout</title>
+</head>
+<body>
+<h3>STM32F10xRx <br>
+</h3>
+<table style="text-align: left;" border="1" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top; font-weight: bold;">pin <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">nominal <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">QCU<br>
+      </td>
+      <td colspan="4" rowspan="1"
+ style="vertical-align: top; font-weight: bold;">available
+functionality <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">usage notes <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">1 <br>
+      </td>
+      <td style="vertical-align: top;">VBAT <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="4" rowspan="1" style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">2 <br>
+      </td>
+      <td style="vertical-align: top;">P.C.13 <br>
+      </td>
+      <td><span style="font-weight: bold;">pull up</span> </td>
+      <td style="vertical-align: top;">RTC.Tamper <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="1" style="vertical-align: top;"><small>Factory
+diagnostics
+enable,
+runs
+board
+test
+on
+reset.</small> <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">3 <br>
+      </td>
+      <td style="vertical-align: top;">P.C.14</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">osc32.in <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">NOT
+preferred for external connections, <br>
+not 5-V tolerant, 2MHz limited, low current drive. <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">4 <br>
+      </td>
+      <td style="vertical-align: top;">P.C.15</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">osc32.out <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">5 <br>
+      </td>
+      <td style="vertical-align: top;">p.d.0&nbsp;</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">OSC.in</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">these
+only run at high speed, <br>
+avoid using for Digital Output. <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">6 <br>
+      </td>
+      <td style="vertical-align: top;">p.d.1&nbsp;</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">OSC.out <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">54<br>
+      </td>
+      <td style="vertical-align: top;">p.d.2<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t3.etr<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">8<br>
+      </td>
+      <td style="vertical-align: top;">p.c.0<br>
+      </td>
+      <td style="vertical-align: top;">Cooler Disable<br>
+      </td>
+      <td style="vertical-align: top;">adc.10<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">0= peltier cooler on, 1= off.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">9<br>
+      </td>
+      <td style="vertical-align: top;">p.c.1<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">adc.11<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">10<br>
+      </td>
+      <td style="vertical-align: top;">p.c.2<br>
+      </td>
+      <td style="vertical-align: top;">Mon Peltier Curr<br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">adc.12</span><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">11<br>
+      </td>
+      <td style="vertical-align: top;">p.c.3<br>
+      </td>
+      <td style="vertical-align: top;">MonDetTemp<br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">adc.13</span><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">14<br>
+      </td>
+      <td style="vertical-align: top;">p.a.0 <br>
+      </td>
+      <td colspan="1" rowspan="1" style="vertical-align: top;">V
+mon <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">adc.0 <br>
+      </td>
+      <td style="vertical-align: top;">t2.c1.etr <br>
+      </td>
+      <td style="vertical-align: top;">u2.cts <br>
+      </td>
+      <td style="vertical-align: top;">wkup <br>
+      </td>
+      <td colspan="1" rowspan="1" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">15 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.1 <br>
+      </td>
+      <td style="vertical-align: top;">I mon <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">adc.1 <br>
+      </td>
+      <td style="vertical-align: top;">t2.c2 <br>
+      </td>
+      <td style="vertical-align: top;">u2.rts <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td rowspan="1" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">16 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.2 <br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">PCU<br>
+      </td>
+      <td style="vertical-align: top;">adc.2</td>
+      <td style="vertical-align: top;">t2.c3</td>
+      <td style="vertical-align: top; font-weight: bold;">u2.tx</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">Uart2 is
+RS232 on P103 breadboard</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">17 <br>
+      </td>
+      <td>p.a.3</td>
+      <td style="vertical-align: top;">adc.3</td>
+      <td style="vertical-align: top;">t2.c4</td>
+      <td style="vertical-align: top; font-weight: bold;">u2.rx</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">20 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.4</td>
+      <td style="vertical-align: top;">T mon<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">adc.4</td>
+      <td style="vertical-align: top;">s1.ss <br>
+      </td>
+      <td style="vertical-align: top;">u2.ck <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td rowspan="1" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">21 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.5</td>
+      <td style="vertical-align: top;">V_cal (2.5)<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">adc.5</td>
+      <td style="vertical-align: top;">s1.ck <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td rowspan="1" style="vertical-align: top;">reference to
+calibrate internal ADC, also used elsewhere on board.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">22 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.6</td>
+      <td style="vertical-align: top;">Fuse <br>
+      </td>
+      <td style="vertical-align: top;">adc.6</td>
+      <td style="vertical-align: top;">s1.miso <br>
+      </td>
+      <td style="vertical-align: top;">t3.c1 <br>
+      </td>
+      <td style="vertical-align: top;">t1.bkin<sup>1</sup></td>
+      <td colspan="1" rowspan="4" style="vertical-align: top;">interlocks
+(indicators)<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">23 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.7</td>
+      <td style="vertical-align: top;">Chamber Optics</td>
+      <td style="vertical-align: top;">adc.7</td>
+      <td style="vertical-align: top;">s1.mosi <br>
+      </td>
+      <td style="vertical-align: top;">t3.c2 <br>
+      </td>
+      <td style="vertical-align: top;">t1.c1n<sup>1</sup></td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">24<br>
+      </td>
+      <td style="vertical-align: top;">p.c.4<br>
+      </td>
+      <td style="vertical-align: top;">HV enable mon<br>
+      </td>
+      <td style="vertical-align: top;">adc.14<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">25<br>
+      </td>
+      <td style="vertical-align: top;">p.c.5<br>
+      </td>
+      <td style="vertical-align: top;">Door </td>
+      <td style="vertical-align: top;">adc.15<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">26 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.0 <br>
+      </td>
+      <td style="vertical-align: top;"><small>-6.5 monitor</small></td>
+      <td style="vertical-align: top; font-weight: bold;">adc.8</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t3.c3</td>
+      <td style="vertical-align: top;">t1.c2n<sup>1</sup></td>
+      <td rowspan="1" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">27 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.1</td>
+      <td style="vertical-align: top;"><small>+6.5 monitor</small></td>
+      <td style="vertical-align: top; font-weight: bold;">adc.9</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t3.c4</td>
+      <td style="vertical-align: top;">t1.c3n<sup>1</sup></td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">28 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.2</td>
+      <td style="vertical-align: top;">reserved for debug</td>
+      <td style="vertical-align: top;">boot.1 <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">pulled down. affects bootup if
+boot.0 is a 1.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">29 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.10</td>
+      <td style="vertical-align: top;"><small><br>
+      </small></td>
+      <td style="vertical-align: top;">u3.tx <br>
+      </td>
+      <td style="vertical-align: top;">t2.c3<sup>1</sup> <br>
+      </td>
+      <td style="vertical-align: top;">i2.scl <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="1" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">30 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.11</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">u3.rx <br>
+      </td>
+      <td style="vertical-align: top;">t2.c4<sup>1</sup></td>
+      <td style="vertical-align: top;">i2.sda <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">33 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.12</td>
+      <td style="vertical-align: top;">SYNC- <br>
+      </td>
+      <td style="vertical-align: top;">u3.ck <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;"><span
+ style="font-weight: bold;">s2.ss</span> <br>
+      </td>
+      <td style="vertical-align: top;">i2.smba <br>
+      </td>
+      <td style="vertical-align: top;">t1.bkin <br>
+      </td>
+      <td colspan="1" rowspan="4" style="vertical-align: top;">SPI dac <br>
+AD5722 signals: <br>
+SYNC- can be moved to some general I/O pin. <br>
+Connect sdout to allow self test to see if the chip is present.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">34 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.13</td>
+      <td style="vertical-align: top;">SCLK <br>
+      </td>
+      <td style="vertical-align: top;">u3.cts</td>
+      <td style="vertical-align: top; font-weight: bold;">s2.ck <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t1.c1n <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">35 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.14</td>
+      <td style="vertical-align: top;"><small>sdout</small> <br>
+      </td>
+      <td style="vertical-align: top;">u3.rts</td>
+      <td style="vertical-align: top; font-weight: bold;">s2.miso <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t1.c2n</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">36 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.15</td>
+      <td style="vertical-align: top;">SDIN <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">s2.mosi <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t1.c3n</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">37<br>
+      </td>
+      <td style="vertical-align: top;">p.c.6<br>
+      </td>
+      <td style="vertical-align: top;">optics<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t3.1<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="4" style="vertical-align: top;">interlock
+indicators<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">38<br>
+      </td>
+      <td style="vertical-align: top;">p.c.7<br>
+      </td>
+      <td style="vertical-align: top;">Case 2<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t3.2<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">39<br>
+      </td>
+      <td style="vertical-align: top;">p.c.8<br>
+      </td>
+      <td style="vertical-align: top;">case 1<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t3.3<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">40<br>
+      </td>
+      <td style="vertical-align: top;">p.c.9<br>
+      </td>
+      <td style="vertical-align: top;">x-ray on lamp<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t3.4<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">41 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.8 <br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-style: italic;">diags
+led</span><small><br>
+      </small></td>
+      <td style="vertical-align: top;">u1.ck <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">MCO <br>
+      </td>
+      <td style="vertical-align: top;">t1.c1 <br>
+      </td>
+      <td rowspan="1" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">42 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.9</td>
+      <td colspan="1" rowspan="4" style="vertical-align: top;">host
+link <br>
+      <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">u1.tx <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t1.c2 <br>
+      </td>
+      <td colspan="1" rowspan="4" style="vertical-align: top;"><br>
+      <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">43 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.10</td>
+      <td style="vertical-align: top; font-weight: bold;">u1.rx</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t1.c3 <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">44 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.11</td>
+      <td style="vertical-align: top; font-weight: bold;">u1.cts</td>
+      <td style="vertical-align: top; font-style: italic;">usb.dm <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t1.c4 <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">45 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.12</td>
+      <td style="vertical-align: top; font-weight: bold;">u1.rts</td>
+      <td style="vertical-align: top; font-style: italic;">usb.dp <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">t1.etr <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">51<br>
+      </td>
+      <td style="vertical-align: top;">p.c.10</td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">DXP uart<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">u3.tx<sup>1</sup></td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">52<br>
+      </td>
+      <td style="vertical-align: top;">p.c.11</td>
+      <td style="vertical-align: top; font-weight: bold;">u3.rx<sup>1</sup></td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">53<br>
+      </td>
+      <td style="vertical-align: top;">p.c.12<br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">u3.ck<sup>1</sup></td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">57 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.5 <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">i1.smb</td>
+      <td style="vertical-align: top;">t3.c2<sup>1</sup></td>
+      <td style="vertical-align: top;">s1.mosi<sup>1</sup></td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">58 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.6 <br>
+      </td>
+      <td style="vertical-align: top;">relay.start</td>
+      <td style="vertical-align: top;">i1.scl <br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">t4.c1</span>
+      <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">u1.tx<sup>1</sup></td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">A timer
+is used for the relay.on so that if firmware doesn't restart it soon
+enough x-rays will go off. Same one can do the start with some
+diddling. <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">59 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.7 <br>
+      </td>
+      <td style="vertical-align: top;">relay.on</td>
+      <td style="vertical-align: top;">i1.sda <br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">t4.c2</span>
+      <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">u1.rx<sup>1</sup></td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">61 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.8 <br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">EEprom</td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">i1.scl</span><sup>1</sup>
+      <br>
+      </td>
+      <td style="vertical-align: top;">t4.c3 <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">62 <br>
+      </td>
+      <td style="vertical-align: top;">p.b.9 <br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">i1.sda</span><sup>1</sup></td>
+      <td style="vertical-align: top;">t4.c4 <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">46 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.13</td>
+      <td colspan="1" rowspan="5" style="vertical-align: top;">download
+and debug </td>
+      <td style="vertical-align: top; font-weight: bold;">j.tms <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">sw.dio</td>
+      <td colspan="1" rowspan="5" style="vertical-align: top;">see
+http://www.luminarymicro.com/products/mdl-ada2.html <br>
+for 10 pin jtag connector. <br>
+      <br>
+j.reset not available on our 10 pin connection!<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">49<br>
+      </td>
+      <td style="vertical-align: top;">p.a.14 <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">j.tck</td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;">sw.ck</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">50 <br>
+      </td>
+      <td style="vertical-align: top;">p.a.15</td>
+      <td style="vertical-align: top; font-weight: bold;">j.tdi</td>
+      <td style="vertical-align: top;">t2.c1.etr<sup>1</sup> <br>
+      </td>
+      <td style="vertical-align: top;">s1.ss<sup>1</sup></td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">55<br>
+      </td>
+      <td style="vertical-align: top;">p.b.3</td>
+      <td style="vertical-align: top; font-weight: bold;">j.tdo</td>
+      <td style="vertical-align: top;">t2.c2<sup>1</sup></td>
+      <td style="vertical-align: top;">s1.ck<sup>1</sup></td>
+      <td style="vertical-align: top;">trace.swo <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">56<br>
+      </td>
+      <td style="vertical-align: top;">p.b.4 <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">j.reset</td>
+      <td style="vertical-align: top;">t3.c1<sup>1</sup></td>
+      <td style="vertical-align: top;">s1.miso<sup>1</sup></td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">7 <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">nRST <br>
+      </td>
+      <td colspan="1" rowspan="2" style="vertical-align: top;">debug</td>
+      <td colspan="4" rowspan="12" style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">60<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">boot.0 <br>
+      </td>
+      <td style="vertical-align: top;">biased to run from rom </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">13<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vdd.a <br>
+      </td>
+      <td colspan="1" rowspan="10" style="vertical-align: top;">power
+supply inputs </td>
+      <td colspan="1" rowspan="10" style="vertical-align: top;"><br>
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">32 <br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vdd.1 <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">48<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vdd.2 <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">64<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vdd.3 <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">19<br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">vdd.4</span><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">12<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vss.a</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">31<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vss.1</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">47<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vss.2 <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">63<br>
+      </td>
+      <td style="vertical-align: top; font-weight: bold;">vss.3 <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">18<br>
+      </td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">vss.4</span><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<sup>1</sup> alternate pin choice
+<hr style="width: 100%; height: 2px;">
+<h3>peripheral allocation</h3>
+<table style="text-align: left;" border="1" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <td colspan="2" rowspan="1"
+ style="vertical-align: top; font-weight: bold;">nexQc<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">uart 1 <br>
+      </td>
+      <td style="vertical-align: top;">host <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">uart 2<br>
+      </td>
+      <td colspan="1" rowspan="1" style="vertical-align: top;">PCU<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">uart 3<br>
+      </td>
+      <td style="vertical-align: top;">uDXP<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">spi 2 <br>
+      </td>
+      <td style="vertical-align: top;">dac <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">I2C.1 <br>
+      </td>
+      <td style="vertical-align: top;">nvstorage <br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">T1 <br>
+      </td>
+      <td style="vertical-align: top;"><span
+ style="text-decoration: line-through;"></span>&nbsp;<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">T2 <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">T3 <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">T4 <br>
+      </td>
+      <td style="vertical-align: top;">relay watchdog timer </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">other <br>
+available <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">masked <br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+<br>
+</body>
+</html>
