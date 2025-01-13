@@ -38,7 +38,7 @@ using Address = unsigned; //address space of this device.
 union AddressCaster {
   unsigned number;
   void *pointer;
-  /** the stm32 system uses the 3 msbs as a memory type indicator */
+  /** cortexM processors use the 3 msbs as a memory type indicator */
   constexpr unsigned space() const {
     return number >> 29;
   }

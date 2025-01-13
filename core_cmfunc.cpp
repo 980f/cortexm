@@ -22,7 +22,7 @@ CREG(primask) PRIMASK ;
 
 
 #if (__CORTEX_M >= 3)
-const CPSI_f FIQenable; //=1 or 0
+//leftover from some other ARM family, not a cortex M ever: const CPSI_f FIQenable; //=1 or 0
 const BasePriority BASEPRI;
 CREG(faultmask) FAULTMASK;
 
@@ -30,12 +30,13 @@ CREG(faultmask) FAULTMASK;
 
 #if (__CORTEX_M == 4)
 
+
+#endif
+
 #if __FPU_PRESENT == 1
 CREG(fpsr) FPSR;
 CFPUREG(fpscr) FPSCR;
 #else
 unsigned FPSR=0;
-unsigned FPSCR
-#endif
-
+unsigned FPSCR=0;
 #endif

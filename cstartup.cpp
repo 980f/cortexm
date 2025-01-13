@@ -43,8 +43,9 @@ void vectors2ram() {
  */
 extern "C" //to make it easy to pass this to linker sanity checker.
 [[noreturn]] //we don't need no stinking stack frame (no params, no locals) gnu::naked generated a warning, so we dropped it even though it causes a few useless instructions to be emitted.
-__attribute__((naked))  //time to try this again
-void cstartup(void) {
+void cstartup() ISRISH;
+[[naked]]  //time to try this again
+void cstartup() {
   // Nonzero initialized static variables
   __data_segment__.go();
   // Zero other static variables.
@@ -62,14 +63,14 @@ void cstartup(void) {
   //execute destructors for static objects and do atexit routines.
   run_table(__exit_table__);
 
-  generateHardReset(); // auto restart on problems, design your system to tolerate spontaneous power cycles on fatal firmware error
+  generateHardReset(); // auto restart on problems, design your system to tolerate spontaneous virtual power cycles on fatal firmware error
 }
 
 [[maybe_unused]] // stack pointer is set to end of ram via linker script, gets followed by:
 void (*resetVector)() __attribute__((section(".vectors.1"))) = cstartup;
 // rest of table is in nvic.cpp, trusting linker script to order files correctly per the numerical suffix on section name
 
-extern "C" [[noreturn]]
+extern "C" 
 [[noreturn]] void generateHardReset() {
   //maydo: DSB before and after the reset
   //lsdigit: 1 worked on stm32, 4 should have worked but looped under the debugger.

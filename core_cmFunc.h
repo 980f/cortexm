@@ -80,7 +80,7 @@ extern const MREG(primask) PRIMASK ;
 unsigned swapPsp(unsigned whatever);
 
 
-extern const CPSI(f) FIQenable; //=1 or 0
+//leftover from some other ARM family, not a cortex M ever: extern const CPSI(f) FIQenable; //=1 or 0
 
 extern const struct BasePriority {
   operator unsigned () const {
@@ -114,6 +114,7 @@ extern const MREG(faultmask) FAULTMASK;
 
 #define CFPUREG(regname) const FPUREG_##regname
 
+#if __FPU_PRESENT == 1
 extern const MREG(fpsr) FPSR;//normal space
 extern const FPUREG(fpscr) FPSCR;
-
+#endif

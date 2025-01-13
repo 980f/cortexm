@@ -15,22 +15,29 @@ Memory to Memory is for memcpy functionality, but the startup code is such that 
 
 #transfers max is 64k-1 in most manuals, expect that one manual got that wrong when it had a full 64k.
  */
+
+#include "buffer.h"
+
 struct DmaTransfer {
-    struct Stream {
-      void *address;//starting point
-      unsigned size;//bytes per transfer
-      int increment;//address change per transfer, can be zero, negative for descending address
-      Stream(void *address, unsigned size, int increment):address(address), size(size), increment(increment) {};
-      //default copiers and movers are perfectly fine.
-    } source, target;
-    unsigned count; //number of source items, target must adjust for size differences.
+  struct Stream {
+    void *address; //starting point
+    unsigned size; //bytes per transfer
+    int increment; //address change per transfer, can be zero, negative for descending address
+    Stream(void *address, unsigned size, int increment): address(address), size(size), increment(increment) {};
+    //default copiers and movers are perfectly fine.
+  } source, target;
+
+  unsigned count; //number of source items, target must adjust for size differences.
+
+  static template<typename Scalar> DmaTransfer receive(Scalar &peripheralAddress, );
 };
 
 struct DmaState {
   enum {
-    Defined,Requested,Active,CompletedOk,Failed
+    Defined, Requested, Active, CompletedOk, Failed
   } state;
-  DmaTransfer *transfer=nullptr;
+
+  DmaTransfer *transfer = nullptr;
   //most implementations have chaining, if enough do then we might move the 'next' into the DmaTransfer itself.
-  DmaTransfer *next_transfer=nullptr;
+  DmaTransfer *next_transfer = nullptr;
 };
