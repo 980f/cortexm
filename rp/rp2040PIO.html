@@ -38,8 +38,8 @@
     <h4>Each state machine:</h4>
     <h4>Instruction Register</h4>
     The instruction register holds the opcode being executed. <br>
-    It can be written by the cortex processor and the value is executed with the program counter held (unless of course the instruction is a JMP that is taken).<br>
-    It can also be written to via the MOV instruction which supports executing instructions loaded or computed in the X or Y registers, streaming through the Output Register, being received via the Input Shift Register, read from the Input Field, all zeroes, all ones, and uselessly from the Fifo Status.<br>
+    It can be written by the cortex processor and that value is executed with the program counter held (unless of course the instruction is a JMP that is taken).<br>
+    It can also be written to via the MOV instruction which supports executing instructions loaded or computed in the X or Y registers, streaming through the Output Register, being received via the Input Shift Register, read from the Input Field, all zeroes, all ones, and uselessly from the Fifo Status. The only potentially useful MOV to EXEC via Input Field is due to unconditional jump being zero, you can actually vector from the pins. TheFifo Status is all ones or all zeroes, which jumps you to the last or the first instruction locations, which is actually not impossible to use.<br>
     This allows curiosities such as loading up an indefinite length instruction stream in memory and then using DMA to execute it sequentially.<br>
     <h4>Program Counter (PC)</h4>
     <p>When the Instruction Register has not been loaded by some other source the Program Counter is used to pick an instruction from the 32 word instruction memory which is shared with all of the other state machines of the PIO. <br>
@@ -56,17 +56,18 @@
     Shifts of it bring in multiple bits per instruction cycle, the number of bits defined by the opcode.<br>
     It has a configured direction. Either bits are shifted up/left and new bits are set into the lsbs, or bits are shifted down/right and new bits set into the msbs. The number of such bits always comes from the opcode of the IN instruction.<br>
     It has a cumulative shift count register and a configured length. <br>
-    These hidden shift count is used solely by the autopush feature which upon execution of an IN instruction checks if the cumulative shift count is &gt;= the configured length and if so effectively executes a PUSH instruction in the same cycle as the IN.<br>
-    PUSH instructions push the ISR into the RX fifo and reset the cumulative shift count.<br>
-    You can shift it using itself as input which becomes a circular shift of the 32 bits, this ignores the configured length.<br>
+    This hidden shift count is used by the autopush feature which upon execution of an IN instruction checks if the cumulative shift count is &gt;= the configured length and if so effectively executes a PUSH instruction in the same cycle as the IN. The shift count also drives the 'overflow' flag which the host can poll.<br>
+    PUSH instructions push the ISR into the RX fifo which resets the cumulative shift count.<br>
+    ??You can shift it using itself as input which becomes a circular shift of the 32 bits, this ignores the configured length.<br>
     <h4>Output Shift Register (OSR)</h4>
     The output shift register is the core of data transmission.<br>
-    Shifts of it emit multiple bits per instruction cycle, the number of bits defined by the opcode. It has a configured direction. <br>
-    The bits to emit are either selected from the lsbs and the remainder shifted down/right, or from the msbs and the remainder shifted up/left. The number of such bits always comes from the opcode of the OUT instruction.<br>
+    Shifts of it emit multiple bits per instruction cycle, the number of bits defined by the opcode. <br>
+    The bits to emit are either selected from the lsbs and the remainder shifted down/right, or from the msbs and the remainder shifted up/left. The number of such bits always comes from the opcode of the OUT instruction, the direction from configuration. <br>
     It has a cumulative shift count register and a configured length.<br>
     When executing an OUT instruction if the cumulative shift count is &gt;= the configured length then effectively a PULL instruction is executed in the same cycle.<br>
     A PULL instruction takes data from the TX fifo and puts it into the OSR, clearing the cumulative shift count.<br>
     PULLing from an empty fifo without blocking results in the X register being copied into the OSR.<br>
+    MOVing into the OSR clears the cumulative shift count.<br>
     <h4>Scratch Registers (X and Y)</h4>
     The scratch registers are storage or counters. <br>
     The counter ability is via the JMP instruction which can test each for zero with an optional decrement. They can also be compared to each other.<br>
@@ -78,7 +79,7 @@
       <li> themselves, optionally inverted or bit reversed (but not both at once)</li>
       <li>zeroes</li>
       <li>all ones (~0)</li>
-      <li>fifo status of all 4 state machines ??</li>
+      <li>a fifo level status selected by configuration, all ones or all zeroes. (MOV fifoStatus -&gt;scratch; JMP scratch-not-zero;)</li>
       <li>5 bit data (via SET)</li>
     </ol>
     In addition to being copied to each other their lsbs can be shifted into the ISR.<br>
@@ -99,35 +100,33 @@
     <hr>
     <h3>Shared by all the SM's:</h3>
     <h4>Interrupts</h4>
-    There appear to be 8 interrupt flags. <br>
+    The are 8 interrupt flags. For undocumented reasons only 4 of them feed the interrupts to the host.<br>
     They are set by the IRQ instruction and can be waited upon by that instruction, or the WAIT instruction.<br>
-    These are conditionally included in either or both of the interrupt signals sent to the processor.<br>
-    In addition to these guys the fifos can also generate interrupts, but documentation is inconsistent on how many total interrupt sources exist.<br>
+    There are 2 interrupts to the host. Each conditionally includes any combination of the mentioned 4 of the IRQ flags and the 4 fifo transmit and receive fifos having space or data respectively.<br>
     <h3>Instruction Memory</h3>
     Limited to 32 by many features of the architecture, such as jump target field.<br>
-    <br>
+    While two SM's can run the same exact program, differing in their configuration as to which hardware bits are manipulated, one can also share code via using the wrap mechanism as a subroutine return. You set wrap target to where you want the return to go for each SM and set the wrap to the same value. Each SM gets one such subroutine call, otherwise it is all goto for implementing a flow chart.<br>
     <br>
     <hr>
     <h3>Instruction details </h3>
     There are three operations that are part of every instruction type: sideset, delay, and loop.<br>
     There are nominally 9 opcodes: JMP, WAIT, OUT, SET, IN, MOV, PUSH, PULL, IRQ.<br>
     <h4>Sideset</h4>
-    Each instruction execution can modify a configured subset of output bits, independent of the OUT instruction's field definition. <br>
-    The bit field is defined by configuration registers and the data is supplied by the instruction. <br>
+    Each instruction execution can modify a configured subset of output bits, independent of the OUT and SET instructions' field definitions. <br>
+    The bit field is defined by configuration registers and the data is supplied from bits of the instruction. <br>
     The bit field width affects instruction interpretation, the delay feature shares a 5 bit opcode field and is limited to using the bits that sideset does not.<br>
     The sideset data can be configured so that the msb is a "set enable" IE makes the set conditional. If not then the designated bits are set from the opcode for every instruction executed. Typical use is the SPI data clock.<br>
-    <br>
     <h4>Delay count</h4>
     Each instruction can after its execution but before the next kill some time. It is configurable whether the sideset operation is repeated during these killed cycles.<br>
     The number of cycles is in the instruction, with the number of bits available being those left over from configuring sideset. Typical use is to trim an SPI clock or provide setup and hold times for it.<br>
     <br>
     <h4>Looping (aka wrap)</h4>
     A zero overhead loop is implemented by comparing the PC to the .wrap configuration register and when equal the next PC value is the .wraptarget register unless the instruction is a taken jump.<br>
-    Weirdness: One can share a chunk of code between two SM programs by setting the .wraptarget register to the return point of the SM unique code, the .wrap to the exit of the shared code, and then the unique code jmp's to the shared code start.<br>
+    Weirdness: One can share a chunk of code between two SM programs by setting the .wraptarget register to the return point of the SM unique code, the .wrap to the exit of the shared code, and then each chunk of unique code jmp's to the shared code start.<br>
     <br>
     <h4>JMP</h4>
-    The JMP instruction selects a boolean and if true (in the case of a pin 'high') then the target field of the instruction is loaded into the PC.<br>
-    The X and Y not zero tests can optionally decrement the register after being tested for zero. If they were zero then execution proceeds with the following instruction and the scratch register is all ones, aka negative one, ~0, or 31 depending upon your mood.<br>
+    The JMP instruction selects a boolean source and if true (in the case of a pin 'high') then the target field of the instruction is loaded into the PC.<br>
+    The X and Y not zero tests can optionally decrement the register after being tested for zero. If the scratch register was zero then execution proceeds with the following instruction and the scratch register is all ones, aka negative one, ~0, or 31 depending upon your mood.<br>
     The pin option references a configured GPIO pin, jumping if it is high. There is no option to invert it/ jump on low.<br>
     The other booleans are <code>X != Y</code>, and <code>output shift register not empty</code>.<br>
     There is also an unconditional jump.<br>
@@ -137,10 +136,10 @@
     <ol>
       <li>GPIO, one of 32 bits selected by:</li>
       <ol>
-        <li>&nbsp;the opcode.</li>
-        <li>the opcode field added to configuration Input Field.</li>
+        <li>&nbsp;the opcode or ...</li>
+        <li>the opcode field added to configuration Input Field. This is convenient for having multiple SM's run the same program but applied to different pins.</li>
       </ol>
-      <li>Interrupt flags, selected by the opcode</li>
+      <li>Interrupt flags, selected by the opcode The IRQ instruction has more options when waiting on an IRQ acknowledgement.</li>
     </ol>
     <h4>OUT</h4>
     OUT picks a number of bits from the output shift register and delivers them to one of many destinations. See the Output Shift Register section for details.
@@ -167,7 +166,7 @@
     For every source it can optionally invert or bit reverse, but not both, before writing to the destination. <br>
     When the source is the Input Field those bits are put into the lsbs and the msbs are zero.<br>
     The destination includes the PC allowing you to do computed and indirect jumps, and you can also assemble an instruction in a scratch register then execute it using MOV.<br>
-    The RPi manual has 'nop' instructions in examples that are not documented, they are probably MOV's with the source and destinations the same.<br>
+    The RPi manual has 'nop' instructions in examples that are not documented, they are probably MOV's with the source and destinations the same for a scratch register.<br>
     <br>
     <hr>
     <h3>Instruction decoder </h3>
@@ -563,7 +562,7 @@
           <th rowspan="1" colspan="2" style="text-align: center;
             background-color: white;">IN/ MOV source</th>
           <th rowspan="1" colspan="2" style="text-align: center;
-            background-color: white;">OUT, SET (when reasonable)</th>
+            background-color: white;">OUT, SET (only 0..4)</th>
           <th rowspan="1" colspan="2" style="text-align: center;
             background-color: white;">MOV dest</th>
           <td valign="top"><br>
@@ -678,7 +677,7 @@
     </table>
     <br>
     <br>
-    <h4> Wait sources:</h4>
+    <h4> WAIT sources:</h4>
     <table border="1">
       <tbody>
         <tr>
@@ -1084,7 +1083,8 @@
       </tbody>
     </table>
     <br>
-    <hr> Implementation of PIO in C++ (core of an emulator)<br>
+    <hr>Unclear items:<br>
+    The Pin Control "Number of OUT pins" conflicts with the OUT instruction having number of pins coded in the instruction. Is this perhaps the number of bits for MOV to PINS?<br>
     <br>
     <hr>(C) 2021 by Andrew Heilveil (Github/980f). <br>
   </body>
