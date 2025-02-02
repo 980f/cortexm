@@ -1,4 +1,4 @@
-//Making table for 81 interrupts
+//Making table for 85 interrupts
 stub( 0 );
 stub( 1 );
 stub( 2 );
@@ -81,6 +81,10 @@ stub( 78 );
 stub( 79 );
 stub( 80 );
 stub( 81 );
+stub( 82 );
+stub( 83 );
+stub( 84 );
+stub( 85 );
 Handler VectorTable[] __attribute__((section(".vectors.3"))) = {
 IrqName( 0 ),
 IrqName( 1 ),
@@ -164,4 +168,8 @@ IrqName( 78 ),
 IrqName( 79 ),
 IrqName( 80 ),
 IrqName( 81 ),
+IrqName( 82 ),
+IrqName( 83 ),
+IrqName( 84 ),
+IrqName( 85 ),
 };
