@@ -31,7 +31,7 @@ constexpr Address GPIOBASE(0x4001'0800); //+0400 for each letter.
 const unsigned resetOffset = 0x0C;
 const unsigned clockOffset = 0x18;
 
-#elif DEVICE == 407
+#elif DEVICE == 407 || DEVICE==411
 #include "peripheralband.h"
 
 enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
@@ -65,6 +65,8 @@ constexpr Address GPIOBASE(0x4800'0000);
 
 constexpr unsigned resetOffset = 0x28;
 constexpr unsigned clockOffset = 0x48;
+#else
+#error "Your DEVICE define is missing or that device is not yet coded for"
 #endif
 
 //todo:M move much of the rest into this namespace
