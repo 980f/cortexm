@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>opcodeFiddlingCortexM</title>
+  </head>
+  <body>
+    <h2>Direct opcode generation for cortexM fiddling</h2>
+    <h2> </h2>
+    <p><br>
+      MRS operator unsigned()<br>
+      0xF3EF'8000 | 4 bit Reg&lt;&lt;8 | 8 bit system reg number<br>
+    </p>
+    <p>MSR operator = 0xF380 8800 |4 bit register&lt;&lt;16 |&nbsp; 8 bit SYSm</p>
+    <br>
+    <table border="1">
+      <tbody>
+        <tr>
+          <td>MNEmonic</td>
+          <td colspan="2">system register number</td>
+        </tr>
+        <tr>
+          <td>APSR</td>
+          <td>0x00</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>IAPSRA</td>
+          <td>0x01</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>EAPSRA</td>
+          <td>0x02</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td>XPSRA</td>
+          <td>0x03</td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <td>IPSR</td>
+          <td>0x05</td>
+          <td>5</td>
+        </tr>
+        <tr>
+          <td>EPSR</td>
+          <td>0x06</td>
+          <td>6</td>
+        </tr>
+        <tr>
+          <td>IEPSR</td>
+          <td>0x07</td>
+          <td>7</td>
+        </tr>
+        <tr>
+          <td>MSP</td>
+          <td>0x08</td>
+          <td>8</td>
+        </tr>
+        <tr>
+          <td>PSP</td>
+          <td>0x09</td>
+          <td>9</td>
+        </tr>
+        <tr>
+          <td>PRIMASK</td>
+          <td>0x10</td>
+          <td>16</td>
+        </tr>
+        <tr>
+          <td>CONTROL</td>
+          <td>0x14</td>
+          <td>20</td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <hr>
+    <p>CPSIE/ID<br>
+      0xD632 | enable&lt;&lt;4;</p>
+    <p>DSB<br>
+      0xF3B0'8040<br>
+      DMB<br>
+      0xF3B0'8050<br>
+      ISB<br>
+      0xF3B0'8060<br>
+    </p>
+    <p><br>
+    </p>
+    <p> </p>
+    <p><br>
+    </p>
+  </body>
+</html>
