@@ -7,7 +7,7 @@
   </head>
   <body>
     <h2>STM32 GPIO compile time configuration</h2>
-    <p>Simple coding where a static constexpr methods wrap calls to constexpr constructors run afoul of needing to actually write to configuration registers.</p>
+    <p>Simple coding where a static constexpr method wraps calls to constexpr constructors runs afoul of needing to actually write to configuration registers, and sometimes in a specific order and with a specific word width.</p>
     <p>This approach attempts to get around that by using the linker to assemble port configuration data across modules in to a block that a setup() function can transfer to real registers.<br>
       C++ does not allow for mixing bitfield sources via the linker, and our desire for individual fields to be initialized in unrelated modules requires that we merge such fields in the setup().</p>
     <p>ST only allows for 16 bits per port. There are at least two different port mechanisms, the L family differs from most of the rest.</p>
@@ -23,21 +23,21 @@
     <p>[We can do similar things for timer configurations, statically create timer definitions with a macro DEFINE_TIMER() which inserts the segment declaration.]</p>
     <hr>struct PinName {<br>
     &nbsp;&nbsp;&nbsp; unsigned portNumber:4;&nbsp; //most devices only have 3 to 5 ports, but a few have 10. Using 4 bits allows us to better eyeball the hex value in debugger<br>
-    &nbsp;&nbsp;&nbsp; unisgned bitNumber:4;&nbsp;&nbsp;&nbsp; //none of the architectures have more than 16 bits per port.<br>
+    &nbsp;&nbsp;&nbsp; unsigned bitNumber:4;&nbsp;&nbsp;&nbsp; //none of the architectures have more than 16 bits per port.<br>
     <p>&nbsp;&nbsp;&nbsp; //take in either 0..n or 'A' .. 'E' for portLetter.&nbsp; <br>
       &nbsp;&nbsp;&nbsp; constexpr PinName(char portLetter,bitNumber)portNumber(portLetter&lt;'A'?portLetter:(portLetter-'A'),bitNumber(bitNumber){}</p>
     };<br>
     &nbsp;<br>
     struct PinConfiguration {<br>
     &nbsp;&nbsp;&nbsp; enum Mode {Input,Output,Function,Analog} mode:2;<br>
-    &nbsp;&nbsp;&nbsp; enum Puller {Float,Upit,Downer} puller:2; //not valid syntax, will separate into enum declaration and poking the integer into the field<br>
+    &nbsp;&nbsp;&nbsp; enum Puller {Float,Upit,Downer} puller:2; //not valid syntax, will separate into enum declaration and poking the integer into the field,or is two bit fields with a possible illegal combo requestable.<br>
     &nbsp;&nbsp;&nbsp; unsigned openDrain: 1 ;//might mix into Puller or Mode enum <br>
     &nbsp;&nbsp;&nbsp; unsigned altFn:4;&nbsp; //no encoding, different for each bit<br>
     &nbsp;&nbsp;&nbsp; enum SlewControl {Slow,Brisk,Faster,Whoosh} slew:2 ;//using names as the MHz speeds are device family specific.<br>
-    &nbsp;&nbsp;&nbsp; unsigned lockit:1; //after writing all configuration we can lock it against wild software. <br>
+    &nbsp;&nbsp;&nbsp; unsigned lockit:1; //after writing all configuration we can lock it against wild software. Only some families support this.<br>
     &nbsp;&nbsp;&nbsp; <br>
     &nbsp;&nbsp;&nbsp; constexpr PinConfiguration(&lt;all fields in some convenient order&gt;){}<br>
-    &nbsp;&nbsp;&nbsp; //other constructors as convenient which all delegate to the first one.<br>
+    &nbsp;&nbsp;&nbsp; //other constructors or factories&nbsp; as convenient which all delegate to the first one.<br>
     };<br>
     <br>
     struct PinInitializer {<br>
