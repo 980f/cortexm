@@ -45,24 +45,45 @@ read and write like an unsigned.
   void operator=(unsigned stacktop)const=delete;\
 }
 
+//experiment in templating MSR access: foiled again, will have to write code executes a register's constant.
+//template <unsigned sysm> struct MROG {
+//  enum {reader=sysm|0xF3EF'8000, writer=sysm|0xF380'8800};
+//  [[naked]]
+//  operator unsigned () const  {
+//  __asm volatile(".word reader\nbx lr\n");
+//    //return;
+//  }
+//  void operator=(unsigned stacktop)const=delete;
+//};
+
+//extern MROG<8> theMSP;
+
+
+
 #define CREG(regname) const MREG_##regname
 
-/** interrupt enable doobers: */
-#define CPSI(iorf) struct CPSI_##iorf {\
-  void operator =(bool enable)const {\
-    if(enable){\
-      __asm volatile ("cpsie " #iorf);\
-    } else {\
-      __asm volatile ("cpsid " #iorf);\
-    }\
-  }\
-}
+/** interrupt enable doober: 
+*   There is only one type, the FIQ stuff is never present on a cortex M, which is a shame but was dropped so that we could have tail chaining.
+*
+* Note that at present this has a high runtime cost compared to the function call syntax, this was created so that we could substitute a boolean for the interrupt enable and that might be too expensive to keep this around.
+*/
+
+struct IrqEnabler {
+  
+  inline void operator =(bool enable) const {
+    if(enable){
+      __asm volatile ("cpsie i");
+    } else {
+      __asm volatile ("cpsid i");
+    }
+  }
+};
 
 
 /* since duplicate declarations cost nothing, not even extra rom as the code inlines, it would probably be easier to
  * not declare all of these here, but declare within each using cpp file.
 */
-extern const CPSI(i) IrqEnable; //IrqEnable=1 or 0
+extern const IrqEnabler IrqEnable; //IrqEnable=1 or 0
 
 extern const MREG(control) CONTROL;
 //read only instances:

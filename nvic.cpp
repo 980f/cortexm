@@ -177,5 +177,5 @@ void Irq::setAllPriorties(u8 prio) {
 bool IRQEN;
 #else
 //shared instances need this treatment.
-const CPSI_i IRQEN;    //cmsis name
+const IrqEnabler IRQEN;    //cmsis name
 #endif

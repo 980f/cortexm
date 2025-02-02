@@ -8,7 +8,7 @@ unsigned swapPsp(unsigned whatever){
   return former;
 }
 
-const CPSI_i IrqEnable;
+const IrqEnabler IrqEnable;
 
 CREG(control) CONTROL;
 CREG(ipsr) IPSR;
@@ -22,15 +22,12 @@ CREG(primask) PRIMASK ;
 
 
 #if (__CORTEX_M >= 3)
-//leftover from some other ARM family, not a cortex M ever: const CPSI_f FIQenable; //=1 or 0
 const BasePriority BASEPRI;
 CREG(faultmask) FAULTMASK;
-
 #endif /* (__CORTEX_M >= 3) */
 
 #if (__CORTEX_M == 4)
-
-
+//all special features common to all 4's got converted into individual configuration flags.
 #endif
 
 #if __FPU_PRESENT == 1
