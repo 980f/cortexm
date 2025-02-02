@@ -174,14 +174,14 @@ struct Pin /*Manager*/ {
   const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Float) const;
 
 /** raw access convenience. @see InputPin for business logic version of a pin */
-  INLINETHIS
+  //INLINETHIS
   operator bool() const { // NOLINT(hicpp-explicit-conversions,google-explicit-constructor)
     return reader; //false lint warning about endless loop
   }
 
 /** @returns pass through @param truth after setting pin to that value.
 @see OutputPin for business logic version */
-  INLINETHIS
+  //INLINETHIS
   bool operator=(bool truth) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     writer = truth;
     return truth;//#don't reread the pin, nor its actual, keep this as a pass through
@@ -214,24 +214,24 @@ protected:
   const bool active;
 
 public:
-  INLINETHIS
+  //INLINETHIS
   bool polarized(bool operand) const {
     return active == operand;
   }
-  INLINETHIS
+  //INLINETHIS
   explicit constexpr LogicalPin(Pin &&pin, bool active = true) :
     pin(std::move(pin)), active(active) {
     //#nada
   }
 
 public:
-  INLINETHIS
+  //INLINETHIS
   /** @returns for outputs REQUESTED state of pin, for inputs the actual pin */
   operator bool() const { // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     return polarized(pin);
   }
 
-  INLINETHIS
+  //INLINETHIS
   /** @returns pass through @param truth after setting pin to that value */
   bool operator=(bool truth) const { // NOLINT (cppcoreguidelines-c-copy-assignment-signature)
     pin = polarized(truth);
