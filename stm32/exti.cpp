@@ -8,7 +8,7 @@ static const Exti theExti InitStep(InitHardware+10);//after ports
 void selectEvent(const Pin &pin){
   theAfioManager.selectEvent(pin);
 }
-#elif DEVICE==407
+#elif DEVICE==407||DEVICE==411
 #include "gpiof4.h"
 //syscfg does what afio does for the 103
 #include "syscfg.h"
@@ -36,7 +36,7 @@ unsigned Exti::irqIndex(unsigned pinnumber) {
 Exti::Exti() :
 #if DEVICE==103
 APBdevice(APB2, 1)
-#elif DEVICE==407
+#elif DEVICE==407 || DEVICE==411
 APBdevice(APB2, 16)
 #endif
 {
@@ -44,7 +44,7 @@ APBdevice(APB2, 16)
 
 const Irq &Exti::enablePin(const Pin &pin, bool rising, bool falling) {
   //call  pin.DI() before calling this method.
-#if DEVICE==407
+#if DEVICE==407||DEVICE==411
   SysConfig.
 #endif
   selectEvent(pin);

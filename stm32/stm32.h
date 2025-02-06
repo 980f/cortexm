@@ -4,13 +4,16 @@
 //this is a library, pieces will often be unused.
 #pragma ide diagnostic ignored "modernize-use-nodiscard"
 
+
+
 /* stm family common stuff */
 
 #ifndef DEVICE
-#error "You must define DEVICE to one of the known ones, 103,407,452"
+#error "You must define DEVICE to one of the known ones, such as: 103,407,411,452"
 #endif
 
 #include "peripheraltypes.h" //stm32 specific peripheral construction aids.
+using namespace CortexM;
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnusedGlobalDeclarationInspection"
@@ -37,7 +40,7 @@ const unsigned clockOffset = 0x18;
 enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
   CPU //used for clock rate function index
   ,AHB1=1, AHB2, AHB3 //3 buses which have some APDevice like characteristics
-  //there is a gap in values here, the enum is used arithmetically
+  //there is a gap in values here, this enum is used arithmetically
   ,APB1 = 5, APB2
 };
 
@@ -69,28 +72,7 @@ constexpr unsigned clockOffset = 0x48;
 #error "Your DEVICE define is missing or that device is not yet coded for"
 #endif
 
-//todo:M move much of the rest into this namespace
-namespace stm32 {
-  constexpr bool isRam(AddressCaster address) {
-    //don't use BandAid, we want this to work even when processor doesn't bit band.
-    return address.space() == (2 >> 1); //we exclude CCM at 0x1000 as it is not accessible to DMA and no-one else should care about "is ram"
-  }
 
-  /** this is a slight misnomer, it is the space that is mapped to the bootstrap selection of program memory. */
-  constexpr bool isRom(AddressCaster address) {
-    return address.space() == 0;
-  }
-
-  constexpr bool isPeripheral(AddressCaster address) {
-    return address.space() == (4 >> 1) || address.space() == (0xE >> 1); //the second is cortex core peripherals
-  }
-
-  //todo:0 add HasBanding #define
-  constexpr bool isBandable(AddressCaster address) {
-    auto tester = BandAid(address.number);
-    return tester.bandable() && tester.inband();
-  }
-}
 
 //type for clock setting.
 using Hertz = unsigned;
@@ -101,7 +83,7 @@ constexpr Address APB_Block(BusNumber bus2, unsigned slot) {
 }
 
 constexpr Address APB_Band(BusNumber bus2, unsigned slot) {
-  return BandAid(APB_Block(bus2, slot), 0);
+  return bandFor(APB_Block(bus2, slot), 0);
 }
 
 /** each APB peripheral's reset pin, clock enable, and bus address are computable from 2 simple numbers.
@@ -121,7 +103,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    return BandAid(rccBitter + basereg, 0);
+    return bandFor(rccBitter + basereg, 0);
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/

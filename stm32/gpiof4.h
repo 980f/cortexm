@@ -52,7 +52,7 @@ struct PinOptions {
     return PinOptions(PinOptions::function, UDFO, slew, altcode);
   }
 
-  unsigned altcode;
+  unsigned altcode;//could be 4 bits if we wished.
 };
 
 /** the 16 bits as a group.

@@ -215,7 +215,7 @@ F407: U1 = 2:  U2..5 = 1:lu+15   U6=2:
     return (stluno == 1 ? 14 : (stluno + 15));
   }
 
-#elif DEVICE == 407
+#elif DEVICE == 407 || DEVICE==411
   constexpr BusNumber busForUart(unsigned stluno){
     return (stluno == 1 || stluno == 6) ? APB2 : APB1;
   }
@@ -230,8 +230,7 @@ F407: U1 = 2:  U2..5 = 1:lu+15   U6=2:
 
 };
 
-//use the following where a textually decimal number of the interrupt request is needed
-#define UartIrq(luno) MACRO_wrap (UART , luno , _irq)
+//so far the uart irq slots have been the same over many parts. Nice, but weird.
 
 #define  UART1_irq  37
 #define  UART2_irq  38
@@ -246,4 +245,3 @@ F407: U1 = 2:  U2..5 = 1:lu+15   U6=2:
 #define  USART4_irq  UART4_irq
 #define  USART5_irq  UART5_irq
 #define  UsART6_irq  UART6_irq
-

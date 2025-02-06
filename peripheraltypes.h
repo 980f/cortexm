@@ -31,25 +31,45 @@ I am working on replacing *'s with &'s, its a statistical thing herein as to whi
 /** for a private single instance block */
 #define soliton(type, address) type& the##type = *reinterpret_cast<type*>(address);
 
-/** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
-using Address = unsigned; //address space of this device.
+
+//stuff that should probably not be in stm32 folder:
+namespace CortexM {
+ /** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
+  using Address = unsigned; //address space of this device.
 
 /* an attempt to suppress warnings about integer to pointer casts, while still leaving that warning on to catch unintentional ones */
-union AddressCaster {
-  unsigned number;
-  void *pointer;
-  /** cortexM processors use the 3 msbs as a memory type indicator */
-  constexpr unsigned space() const {
-    return number >> 29;
+  union AddressCaster {
+    unsigned number;
+    void *pointer;
+    /** cortexM processors use the 3 msbs as a memory type indicator */
+    constexpr unsigned space() const {
+      return number >> 29;
+    }
+  };
+
+  /* this function exists to hide some verbose casting */
+  template<typename Scalar> constexpr Scalar &Ref(Address address) {
+    AddressCaster pun{address};
+    return *static_cast<Scalar *>(pun.pointer);
   }
+
+  constexpr bool isRam(AddressCaster address) {
+    //don't use bitband pieces, this concept is independent of that.
+    return address.space() == (2 >> 1); //we exclude CCM at 0x1000 as it is not accessible to DMA and no-one else should care about "is ram"
+  }
+
+  /** this is a slight misnomer, it is the space that is mapped to the bootstrap selection of program memory. */
+  constexpr bool isRom(AddressCaster address) {
+    return address.space() == 0;
+  }
+
+  constexpr bool isPeripheral(AddressCaster address) {
+    return address.space() == (4 >> 1) || address.space() == (0xE >> 1); //the second is cortex core peripherals
+  }
+ 
 };
 
-/* this function exists to hide some verbose casting */
-template<typename Scalar> constexpr Scalar &Ref(Address address) {
-  AddressCaster pun{address};
-  return *static_cast<Scalar *>(pun.pointer);
-}
-
+using namespace CortexM;
 
 /** A 32 bit item at a known address.
  * when you don't know the address at compile time use one of these, else use an SFRxxx.

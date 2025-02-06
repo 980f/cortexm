@@ -7,15 +7,15 @@
 */
 
 #pragma once
-#define BLUEPILL
+#define BLACKPILL
 
 #include <gpio.h>
 
-class Bluepill {
-  // Pin ledPin;
+class Blackpill {
   OutputPin led; //low active.
+  InputPin key;//will learn level
 
-  Bluepill();
+  Blackpill();
   //?B6,B7 are pulled up for use with I2C
   //?PB10,11 are pulled up
   /** toggle it so that we see activity without having to externally track its state */

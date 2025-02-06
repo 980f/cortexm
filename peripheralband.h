@@ -4,12 +4,8 @@
  * we could just ifdef this content in that file, but it is weird enough to be worth of a separate file.
  */
 #include "peripheraltypes.h"
-#include "bitbanding.h" //class BandAid
+#include "bitbanding.h" 
 
-/** adaptor from older access method */
-constexpr Address bandFor(unsigned byteAddress, unsigned bitnum) {
-  return BandAid(byteAddress, bitnum);
-}
 /** only works for bitbanded item! */
 struct ControlBit : ControlWord, BoolishRef {
 

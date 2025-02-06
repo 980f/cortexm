@@ -196,16 +196,54 @@ Hertz adcClock(Hertz rate){
 
 /** stm32 has a feature to post its own clock on a pin, for reference or use by other devices. */
 void setMCO(unsigned int mode) {
-//todo: implement F4 version
-  Pin MCO(PA, 8); //depends on mcu family ... same for both 103 and 407
-  //PC,9 is a second one.
-//
-//  if(mode >= 4) { //bit 2 is 'enable'
+#if DEVICE==103
+  Pin MCO(PA, 8); //depends on mcu family ... same for both 103 and 407 
+  //PC,9 is a second one on F4xx
+  //  if(mode >= 4) { //bit 2 is 'enable'
 //    MCO.FN(Portcode::fast); //else we round off the signal.
 //  } else {
 //    MCO.configureAs(4);//set to floating input
 //  }
 //  theClockControl.MCOselection = mode;
+Bits 26:24 MCO: Microcontroller clock output
+Set and cleared by software.
+0xx: No clock
+100: System clock (SYSCLK) selected
+101: HSI clock selected
+110: HSE clock selected
+111: PLL clock divided by 2 selected
+Note: This clock output may have some truncated cycles at startup or during MCO clock
+source switching.
+When the System Clock is selected to output to the MCO pin, make sure that this clock
+does not exceed 50 MHz (the maximum IO speed).
+
+#elif DEVICE==411
+  //todo: Af =0 set slew rate to something high.
+  #if 0
+  Bits 22:21 MCO1: Microcontroller clock output 1
+Set and cleared by software. Clock source selection may generate glitches on MCO1. It is
+highly recommended to configure these bits only after reset before enabling the external
+oscillators and PLL.
+00: HSI clock selected
+01: LSE oscillator selected
+10: HSE oscillator clock selected
+11: PLL clock selected
+  //Bits 26:24 MCO1PRE: MCO1 prescaler
+Set and cleared by software to configure the prescaler of the MCO1. Modification of this
+prescaler may generate glitches on MCO1. It is highly recommended to change this
+prescaler only after reset before enabling the external oscillators and the PLL.
+0xx: no division
+100: division by 2
+101: division by 3
+110: division by 4
+111: division by 5
+#endif
+  #endif
+//
+
+
+
+
 }
 
 #pragma clang diagnostic pop

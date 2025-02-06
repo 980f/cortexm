@@ -2,9 +2,7 @@
 // Created by andyh on 10/5/20.
 //
 
-#ifndef CDCHOST_SYSCFG_H
-#define CDCHOST_SYSCFG_H
-
+#pragma once
 #include "stm32.h"
 #include "gpio.h"
 
@@ -25,4 +23,3 @@ struct SysCfg : public APBdevice {
 };
 
 extern const SysCfg SysConfig;
-#endif //CDCHOST_SYSCFG_H

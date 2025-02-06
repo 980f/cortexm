@@ -8,7 +8,7 @@ const Address FlashController(0x40023C00);
 //inline void setFlash4Clockrate(unsigned int hz){
 //  ControlField(FlashController,0,3)=hz/30000000;//full voltage. For lesser voltage change the denominator
 //}
-
+#include "peripheralband.h"
 const SFRbandbit<FlashController,8> Prefetch;
 const SFRbandbit<FlashController,9> IcacheEnable;
 const SFRbandbit<FlashController,10> DcacheEnable;
