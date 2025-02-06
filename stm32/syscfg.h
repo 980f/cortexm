@@ -8,7 +8,7 @@
 
 struct SysCfg : public APBdevice {
 
-  const ControlBit IOCompCell;//#wronglyu report as unused as it is write-only
+  const ControlBit IOCompCell;//#wrongly report as unused as it is write-only
   const ControlBit rmii;//presently unused as HAL inits it and we don't want to init twice until we know that is OK
 
   SysCfg():APBdevice(APB2,14)
