@@ -103,7 +103,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    return bandFor(rccBitter + basereg, 0);
+    return rccBitter + bandFor(basereg, 0);
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
