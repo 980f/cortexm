@@ -22,9 +22,9 @@ using namespace CortexM;
 #if DEVICE == 103
 #include "peripheralband.h"
 
-enum BusNumber: uint8_t { //#this enum is used for RCC register addressing
+enum BusNumber: uint8_t { //#this enum is used for RCC register addressing, its numerical value matters very much.
   CPU, AHB1 //even though there is but 1 AHB adding the '1' to its name saves some #ifdef'ing in clock related code with other chips
-  , APB1 = 3, APB2, ADCbase
+  , APB1 = 3, APB2, ADCbase 
 };
 
 constexpr Address RCCBASE(0x4002'1000); //0th offset.
@@ -103,7 +103,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    return rccBitter + bandFor(basereg, 0);
+    return rccBitter + (basereg<<3);//each address is of a byte, 8 bits per byte is <<3
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/

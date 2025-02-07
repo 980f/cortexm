@@ -110,9 +110,8 @@ public:
     item = other.item;
   }
 
-
-  //we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
-  /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
+  /**
+  we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.  */
   operator unsigned() const ISRISH {
     return item;
   }

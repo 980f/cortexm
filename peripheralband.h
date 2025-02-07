@@ -7,8 +7,7 @@
 #include "bitbanding.h" 
 
 constexpr Address bandFor(Address sfraddress, unsigned bitnum){
-  
-  return BandAid (sfraddress,bitnum).asBanded();
+  return BandAid(sfraddress,bitnum).asBanded();
 }
 
 /** only works for bitbanded item! */
