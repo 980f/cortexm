@@ -9,10 +9,9 @@
 #pragma once
 #define BLUEPILL 1
 
-#include <gpio.h>
+#include "gpio.h"
 
 struct Bluepill {
-  //Pin ledPin;
   OutputPin led; //low active.
 
   Bluepill();

@@ -110,14 +110,15 @@ Portcode::output(unsigned 10,2,50,bool function=false, bool open=false){
 
 */
 
-
-//These are being put into ram, so having multiple copies has been retracted.
-
+//maximum set for 10x, they get pruned by the linker if not referenced, and are only 12 bytes of rom each.
 extern const Port PA;
 extern const Port PB;
 extern const Port PC;
 extern const Port PD;
 extern const Port PE;
+extern const Port PF;
+extern const Port PG;
+
 
 //GPIO interrupt configuration options. Some devices may not support some options, but most do so this is defined here.
 enum IrqStyle {

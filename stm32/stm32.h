@@ -31,10 +31,8 @@ constexpr int RCCoffset(BusNumber bus){
   return (bus==AHB1)?-1:(bus==APB1)?1:0;
 }
 
-
 constexpr Address RCCBASE(0x4002'1000); //0th offset.
 constexpr Address FLASHBASE(0x4002'2000);
-constexpr Address GPIOBASE(0x4001'0800); //+0400 for each letter.
 
 const unsigned resetOffset = 0x0C;
 const unsigned clockOffset = 0x18;
@@ -92,7 +90,6 @@ constexpr Address APB_Band(BusNumber bus2, unsigned slot) {
 }
 
 
-
 /** each APB peripheral's reset pin, clock enable, and bus address are computable from 2 simple numbers.
 some AHB devices are very similar, to the point where we use a variant constructor rather than have a separate class.
  */
@@ -104,14 +101,11 @@ struct APBdevice {
   const Address blockAddress;
   /** base bit band address. @see bit() to access a single bit control */
   const Address bandAddress;
-  ///** base used for calculating this device's bits in RCC device. */
-  //const Address rccBitter;
 
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    auto tracer= bandFor(RCCBASE + basereg+(RCCoffset(rbus) << 2), slot);
-    return tracer;
+    return bandFor(RCCBASE + basereg+(RCCoffset(rbus) << 2), slot);
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
@@ -121,20 +115,14 @@ public:
   /** Actual APB devices  @param bus and slot are per st documentation */
   
   /** AHB devices  @param bus and slot are per st documentation */
-  constexpr APBdevice(BusNumber stbus, unsigned slot, unsigned rawAddress) : rbus(stbus) //
-    , slot(slot) //
-    , blockAddress(rawAddress) //
-    , bandAddress(bandFor(rawAddress, slot)) //
-    //, rccBitter(bandFor(RCCBASE + (RCCoffset(rbus) << 2), slot))
+  constexpr APBdevice(BusNumber stbus, unsigned slot, unsigned rawAddress) : rbus(stbus) 
+    , slot(slot) 
+    , blockAddress(rawAddress) 
+    , bandAddress(bandFor(rawAddress, slot)) 
      {}
 
 
   constexpr APBdevice(BusNumber stbus, unsigned slot) : APBdevice(stbus,slot,APB_Block(stbus, slot)){}
-    //, slot(slot) //
-    //, blockAddress() //
-    //, bandAddress(APB_Band(rbus, slot)) //
-    //, rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
-
 
   /** activate and release the module reset */
   void reset() const {
@@ -173,7 +161,6 @@ public:
   /** @returns address of a register, @param offset is value from st's manual (byte address) */
   constexpr Address registerAddress(unsigned offset) const {
     return blockAddress + offset;
-    //   return & reinterpret_cast<u32 *>( blockAddress)[offset>>2]; //compiler sees offset as an array index .
   }
 
   /** @returns bit band address of bit of a register, @param offset is value from st's manual (byte address) */
@@ -198,19 +185,12 @@ template<BusNumber stbus, unsigned slot> struct APBperiph {
     /** base device address @see registerAddress() for multi-bit control */
     , blockAddress = APB_Block(rbus, slot) //
     /** base bit band address. @see bit() to access a single bit control */
-    , bandAddress = APB_Band(rbus, slot) //
-    /** base used for calculating this device's bits in RCC device. */
-    , rccBitat = bandFor(RCCBASE | (rbus << 2), slot)
+    , bandAddress = APB_Band(rbus, slot) 
   };
 
-  //
-  // /** @return bit address given the register address of the apb2 group*/
-  // constexpr static Address rccBit(unsigned basereg) {
-  //   return bandFor(rccBitat /*| bandShift(basereg,0)*/);//todo:00 fix this after lunch (apparently a very, very long lunch!)
-  // }
 
   constexpr static Address rccWord(unsigned basereg) {
-    return RCCBASE | (rbus << 2) + basereg;
+    return RCCBASE + basereg+(RCCoffset(rbus) << 2);
   }
 
   //creates compile time complaints versus its lack creating IDE warnings __unused  //write only hardware field.
