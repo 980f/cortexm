@@ -14,9 +14,6 @@
   * todo:1 abstract base classes across vendors to ensure names don't diverge.
   */
 struct Port /*Manager*/ : public APBdevice {
-  static constexpr unsigned gpiobase(unsigned Ais0) {
-    return GPIOBASE + 0x400 * Ais0;
-  }
 
   struct PinOptions {//using struct as namespace
     static constexpr unsigned input(bool analog = false, bool floating = false) {
@@ -78,9 +75,7 @@ struct Port /*Manager*/ : public APBdevice {
   };
 
   /** @param letter is the uppercase character from the stm32 manual */
-  explicit constexpr Port(char letter): APBdevice(AHB1, unsigned(letter - 'A'), gpiobase(letter - 'A')) {
-    //#nada
-  }
+  explicit constexpr Port(char letter): APBdevice(APB2, 2+unsigned(letter - 'A')) {}//A is slot 2, onwards and upwards from there.
 
 
   /**
@@ -222,7 +217,7 @@ protected:
   const bool active;
 
   bool polarized(bool operand) const {
-    return active != operand;
+    return active == operand;
   }
 
 //

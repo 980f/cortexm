@@ -27,9 +27,8 @@ enum BusNumber: uint8_t { //#this enum is used for RCC register addressing, its 
   , APB1 = 3, APB2, ADCbase 
 };
 
-constexpr unsigned RCCoffset(BusNumber bus){
-  uint8_t lookup[]={0,2,0,1,0,0};
-  return lookup[bus];
+constexpr int RCCoffset(BusNumber bus){
+  return (bus==AHB1)?-1:(bus==APB1)?1:0;
 }
 
 
@@ -105,13 +104,14 @@ struct APBdevice {
   const Address blockAddress;
   /** base bit band address. @see bit() to access a single bit control */
   const Address bandAddress;
-  /** base used for calculating this device's bits in RCC device. */
-  const Address rccBitter;
+  ///** base used for calculating this device's bits in RCC device. */
+  //const Address rccBitter;
 
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    return rccBitter + (basereg<<5);//each address is of a byte, 8 bits per byte is <<3
+    auto tracer= bandFor(RCCBASE + basereg+(RCCoffset(rbus) << 2), slot);
+    return tracer;
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
@@ -125,10 +125,11 @@ public:
     , slot(slot) //
     , blockAddress(rawAddress) //
     , bandAddress(bandFor(rawAddress, slot)) //
-    , rccBitter(bandFor(RCCBASE | (RCCoffset(rbus) << 2), slot)) {}
+    //, rccBitter(bandFor(RCCBASE + (RCCoffset(rbus) << 2), slot))
+     {}
 
 
-  constexpr APBdevice(BusNumber stbus, unsigned slot) : APBdevice(stbus,slot,APB_Block(rbus, slot)){}
+  constexpr APBdevice(BusNumber stbus, unsigned slot) : APBdevice(stbus,slot,APB_Block(stbus, slot)){}
     //, slot(slot) //
     //, blockAddress() //
     //, bandAddress(APB_Band(rbus, slot)) //

@@ -12,7 +12,7 @@
 #include <gpio.h>
 
 struct Bluepill {
-  // Pin ledPin;
+  //Pin ledPin;
   OutputPin led; //low active.
 
   Bluepill();
