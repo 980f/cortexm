@@ -116,13 +116,13 @@ Portcode::output(unsigned 10,2,50,bool function=false, bool open=false){
 */
 
 
-//these take up little space and it gets annoying to have copies in many places.
-// priority must be such that these get created before any application objects
-const Port PA InitStep(InitHardware)('A');
-const Port PB InitStep(InitHardware)('B');
-const Port PC InitStep(InitHardware)('C');
-const Port PD InitStep(InitHardware)('D');
-const Port PE InitStep(InitHardware)('E');
+//These are being put into ram, so having multiple copies has been retracted.
+
+extern const Port PA;
+extern const Port PB;
+extern const Port PC;
+extern const Port PD;
+extern const Port PE;
 
 //GPIO interrupt configuration options. Some devices may not support some options, but most do so this is defined here.
 enum IrqStyle {

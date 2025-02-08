@@ -7,6 +7,14 @@
 #include "peripheralband.h" //deprecated bandFor
 #include "bitbasher.h"
 
+//init is now on demand in pin instantiation, so init order doesn't matter.
+__attribute((used, section(".rodata.constinit" )))
+const Port PA('A');
+constexpr Port PB('B');
+const Port PC('C');
+const Port PD('D');
+const Port PE('E');
+
 
 // todo:3 use device define to add ports up to G.
 

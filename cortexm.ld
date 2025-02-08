@@ -120,7 +120,7 @@ SECTIONS {
   .startupCopy : { /* this initializes an instance of what cstartup.cpp calls 'struct RamInitBlock' */
     LONG(LOADADDR(.data))
     LONG(ADDR(.data))
-    LONG((SIZEOF(.data)+3)>>2)
+    LONG((SIZEOF(.data)+3)>>2)    /* 32 bit word count, using alignment to let us move 4 bytes at a time */
   } >FLASH
   __data_segment__ = LOADADDR(.startupCopy);
 

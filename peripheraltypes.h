@@ -185,10 +185,10 @@ public:
 /** Multiple contiguous bits in a register. Requires register to be R/W.
  * For write-only registers declare a union of int with struct of bitfields that describes the register. Manipulate an instance then assign it to an SFR8/16/32.
  * Note: This creates a class per sf register field, but the compiler should inline all uses making this a compile time burden but a runtime minimization.
- * Note: 'volatile' isn't used here as it is gratuitous when the variable isn't nominally read multiple times in a function.
+ * Note: 'volatile' isn't used because compiler warned it was going to ignore it, and doesn't deal with multiple threads and other realtime stuff anyway.
  */
 class ControlField {
-  volatile unsigned &word;
+  unsigned &word;
 
   /** mask gets pre-positioned */
   const unsigned mask;
@@ -199,7 +199,7 @@ public:
 
 public:
   //this is an immutable object, so copying should be just fine, and is needed for move behavior which is needed by object factories.
-  // constexpr ControlField(const ControlField &other) = delete;
+  //or maybe not :( constexpr ControlField(const ControlField &other) = delete;
 
 
   ControlField() = delete; //fail a compile if no args are given.
@@ -224,7 +224,7 @@ public:
   //add more operators as need arises
 };
 
-/** single bit, ignoring the possibility it is in bitbanded memory.
+/** single bit, ignoring the possibility it is in bitbanded memory. @see ControlBit which will be available on chips that do that.
  *  This is NOT derived from ControlField as we can do some optimizations that the compiler might miss (or developer might have disabled) */
 
 class ControlBool : public BoolishRef {
@@ -319,7 +319,7 @@ public:
 
 /** single bit, ignoring the possibility it is in bitbanded memory.
  *  This is NOT derived from SFRfield as we can do some optimizations that the compiler might miss (or developer might have disabled)*/
-template<unsigned sfraddress, unsigned pos> class SFRbit : public BoolishRef {
+template<unsigned sfraddress, unsigned pos> class SFRbit /*: public BoolishRef*/ {
   enum {
     mask = bitMask(pos)
   };
@@ -328,12 +328,12 @@ public:
   constexpr SFRbit() = default;
 
   // read
-  operator bool() const override {
+  operator bool() const  {
     return (Ref<unsigned>(sfraddress) & mask) != 0;
   }
 
   // write
-  bool operator=(bool value) const override {
+  bool operator=(bool value) const  {
     if (value) {
       Ref<unsigned>(sfraddress) |= mask;
     } else {

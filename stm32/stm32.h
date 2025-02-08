@@ -27,6 +27,12 @@ enum BusNumber: uint8_t { //#this enum is used for RCC register addressing, its 
   , APB1 = 3, APB2, ADCbase 
 };
 
+constexpr unsigned RCCoffset(BusNumber bus){
+  uint8_t lookup[]={0,2,0,1,0,0};
+  return lookup[bus];
+}
+
+
 constexpr Address RCCBASE(0x4002'1000); //0th offset.
 constexpr Address FLASHBASE(0x4002'2000);
 constexpr Address GPIOBASE(0x4001'0800); //+0400 for each letter.
@@ -86,6 +92,8 @@ constexpr Address APB_Band(BusNumber bus2, unsigned slot) {
   return bandFor(APB_Block(bus2, slot), 0);
 }
 
+
+
 /** each APB peripheral's reset pin, clock enable, and bus address are computable from 2 simple numbers.
 some AHB devices are very similar, to the point where we use a variant constructor rather than have a separate class.
  */
@@ -103,7 +111,7 @@ struct APBdevice {
 protected:
   /** @return bit address given the register address of the apb2 group*/
   constexpr Address rccBit(Address basereg) const {
-    return rccBitter + (basereg<<3);//each address is of a byte, 8 bits per byte is <<3
+    return rccBitter + (basereg<<5);//each address is of a byte, 8 bits per byte is <<3
   }
 
   /** this class is cheap enough to allow copies, but why should we?: because derived classes sometimes want to be copied eg Port into pin).*/
@@ -111,18 +119,21 @@ protected:
 
 public:
   /** Actual APB devices  @param bus and slot are per st documentation */
-  constexpr APBdevice(BusNumber stbus, unsigned slot) : rbus(stbus) //
-    , slot(slot) //
-    , blockAddress(APB_Block(rbus, slot)) //
-    , bandAddress(APB_Band(rbus, slot)) //
-    , rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
-
+  
   /** AHB devices  @param bus and slot are per st documentation */
   constexpr APBdevice(BusNumber stbus, unsigned slot, unsigned rawAddress) : rbus(stbus) //
     , slot(slot) //
     , blockAddress(rawAddress) //
     , bandAddress(bandFor(rawAddress, slot)) //
-    , rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
+    , rccBitter(bandFor(RCCBASE | (RCCoffset(rbus) << 2), slot)) {}
+
+
+  constexpr APBdevice(BusNumber stbus, unsigned slot) : APBdevice(stbus,slot,APB_Block(rbus, slot)){}
+    //, slot(slot) //
+    //, blockAddress() //
+    //, bandAddress(APB_Band(rbus, slot)) //
+    //, rccBitter(bandFor(RCCBASE | ((rbus - AHB1) << 2u), slot)) {}
+
 
   /** activate and release the module reset */
   void reset() const {
@@ -206,12 +217,6 @@ template<BusNumber stbus, unsigned slot> struct APBperiph {
   const SFRbandbit<rccWord(clockOffset), slot> clocker;
 #pragma clang diagnostic pop
 
-  /** reset and enable clock */
-  void init() const {
-    resetter = 1;
-    resetter = 0; //manual is ambiguous as to whether reset is a command or a state.
-    clocker = 1;
-  }
 
   /** activate and release the module reset */
   void reset() const {
@@ -222,6 +227,12 @@ template<BusNumber stbus, unsigned slot> struct APBperiph {
   /** control the clock, off reduces chip power */
   void setClockEnable(bool on = true) const {
     clocker = on;
+  }
+
+  /** reset and enable clock */
+  void init() const {
+    reset();
+    clocker = 1;
   }
 
   /** @returns whether clock is on */
