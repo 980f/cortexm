@@ -88,16 +88,153 @@
       0xF3B0'8060</p>
     <p>FPCSR not documented</p>
     <hr>
-    <p><br>
-    </p>
-    <p>How to execute generated code for operator overloads<br>
-      <br>
-      The goal is to execute a snippet of code not constrained by the rules of C++ ABI. <br>
+    <p>How to execute generated code for operator overloads</p>
+    <p> The goal is to execute a snippet of code not constrained by the rules of C++ ABI. <br>
       For a member function the compiler loads r0 with the address of the object, other low registers with function call parameters, then for non-virtual functions or ones that are compile time resolvable to a known overload (such as final class invoked by its concrete class) it branch-with-link to that linker provided address. <br>
       For our MRS example we would like to place the object at an address corresponding to the opcode, and have the operator = function address go to a routine that writes r0 to the actual stack then calls that stack location (bx SP).</p>
     <p>whoa ... have an array of MSR instructions indexed by sysregister address and do *msr= value or value =*msr.<br>
       Create table via linker or otherwise of MSR/MRS bx lr pairs, 8 bytes each entry. </p>
     <p> </p>
+    <hr>
+    <h3>Bitbanding </h3>
+    <table border="1">
+      <tbody>
+        <tr>
+          <td>bit</td>
+          <td>31</td>
+          <td>30</td>
+          <td>29</td>
+          <td>28</td>
+          <td>27</td>
+          <td>26</td>
+          <td>25</td>
+          <td>24</td>
+          <td>23</td>
+          <td>22</td>
+          <td>21</td>
+          <td>20</td>
+          <td>19</td>
+          <td>18</td>
+          <td>17</td>
+          <td>16</td>
+          <td>15</td>
+          <td>14</td>
+          <td>13</td>
+          <td>12</td>
+          <td>11</td>
+          <td>10</td>
+          <td>9</td>
+          <td>8</td>
+          <td>7</td>
+          <td>6</td>
+          <td>5</td>
+          <td>4</td>
+          <td>3</td>
+          <td>2</td>
+          <td>1</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>word</td>
+          <td rowspan="1" colspan="3">space<br>
+          </td>
+          <td rowspan="1" colspan="9">must be zero<br>
+          </td>
+          <td rowspan="1" colspan="18">256M offset in space<br>
+          </td>
+          <td rowspan="1" colspan="2">byte<br>
+          </td>
+        </tr>
+        <tr>
+          <td>banded</td>
+          <td rowspan="1" colspan="3">space<br>
+          </td>
+          <td rowspan="1" colspan="3">all zero<br>
+          </td>
+          <td>1<br>
+          </td>
+          <td rowspan="1" colspan="18">offset<br>
+          </td>
+          <td colspan="2">byte</td>
+          <td rowspan="1" colspan="3">bit</td>
+          <td>0<br>
+          </td>
+          <td>0<br>
+          </td>
+        </tr>
+        <tr>
+          <td>bit</td>
+          <td>31</td>
+          <td>30</td>
+          <td>29</td>
+          <td>28</td>
+          <td>27</td>
+          <td>26</td>
+          <td>25</td>
+          <td>24</td>
+          <td>23</td>
+          <td>22</td>
+          <td>21</td>
+          <td>20</td>
+          <td>19</td>
+          <td>18</td>
+          <td>17</td>
+          <td>16</td>
+          <td>15</td>
+          <td>14</td>
+          <td>13</td>
+          <td>12</td>
+          <td>11</td>
+          <td>10</td>
+          <td>9</td>
+          <td>8</td>
+          <td>7</td>
+          <td>6</td>
+          <td>5</td>
+          <td>4</td>
+          <td>3</td>
+          <td>2</td>
+          <td>1</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td><br>
+          </td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>
     <p><br>
     </p>
   </body>

@@ -4,8 +4,10 @@
 #include "peripheraltypes.h"
 #include "cruntime.h"
 
+unsigned CriticalSection::nesting=0;
+
 constexpr unsigned PriorityShift=4;//todo: this '4' is ST's value, may need to make dependent upon processor defines.
-// volatile unsigned CriticalSection::nesting = 0;
+
 /////////////////////////////////
 
 u8 setInterruptPriorityFor(int number, u8 newvalue) { // one byte each, often only some high bits are implemented

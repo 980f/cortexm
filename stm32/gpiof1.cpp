@@ -59,15 +59,6 @@ const Pin& Pin::FN(Port::PinOptions::Slew slew, bool openDrain) const {
   return output(8, slew, openDrain);
 }
 
-//////////////////////////////////
-
-InputPin::InputPin(const Pin &pin, char UDF, bool lowactive) : LogicalPin(pin, lowactive) {
-  pin.DI(UDF);
-}
-
-InputPin::InputPin(const Pin &pin, bool lowactive) : InputPin(pin, lowactive ? 'U' : 'D', lowactive) {
-  /*empty*/
-}
 
 //////////////////////////////////
 

@@ -29,12 +29,12 @@ HandleFault(15) { //15: system tick
 }
 
 struct SysTicker {
-  volatile unsigned enableCounting: 1; //enable counting
+  unsigned enableCounting: 1; //enable counting
   unsigned enableInterrupt: 1; //enable interrupt
   //note: some implementation do NOT implement this bit! Hopefully it read back as 0 even if you try to set it.
   unsigned fullspeed: 1; //1: main clock, 0: that divided by 8 (St's choice, ignore their naming)
   unsigned  : 16 - 3;
-  volatile unsigned rolledOver: 1; //indicates rollover, clears on read
+  unsigned rolledOver: 1; //indicates rollover, clears on read
   unsigned  : 32 - 17;
 
   unsigned reload; //(only 24 bits are implemented) cycle = this+1.

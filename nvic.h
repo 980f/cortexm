@@ -281,10 +281,15 @@ inline bool IrqEnable;
 /** creating one of these in a function (or blockscope) disables <em> all </em> interrupts until said function (or blockscope) exits.
  * By using this fanciness you can't accidentally leave interrupts disabled.
  * We don't have to use atomic operations on 'nesting' as this object physically stops any threads other than the one that constructs it.
+ * usage: 
+ //non-critical stuff
+ {CriticalSection nameDoesNotMatterButMustBePresent;
+   //code that can't work correctly if an ISR alters any of the data that it operates upon.
+   //which is especially the case when an ISR might call this function.
+ }
  */
 class CriticalSection {
-  /** Note Well the static below, that is essential for this guy to work. */
-   volatile unsigned nesting;//zero init by C startup.
+   static unsigned nesting;
 public:
 
   CriticalSection() {

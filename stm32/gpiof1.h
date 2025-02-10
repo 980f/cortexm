@@ -173,9 +173,6 @@ struct Pin /*Manager*/ {
 /** @returns bitband address for input after configuring as digital input, pull <u>U</u>p, pull <u>D</u>own, or leave <u>F</u>loating*/
   const Pin &DI(char UDF = 'D') const;
 
-///** @returns bitband address for controlling high drive capability [rtfm] */
-//  ControlWord highDriver() const;
-
 /** configure as simple digital output */
   const Pin &DO(Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) const {
     return output(0, slew, openDrain);
@@ -183,12 +180,6 @@ struct Pin /*Manager*/ {
 
 /** configure pin as alt function output*/
   const Pin &FN(Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) const;
-
-//  /** declare your variable volatile, reads the actual pin, writing does nothing */
-//  constexpr ControlWord reader() const;
-//
-//  /** @returns reference for writing to the physical pin, reading this reads back the DESIRED output */
-//  constexpr ControlWord writer() const;
 
 /** for special cases, try to use one of the above which all call this one with well checked argument */
   const Pin &configureAs(unsigned code) const {
@@ -221,12 +212,6 @@ protected:
     return active == operand;
   }
 
-//
-//  explicit constexpr LogicalPin(Address registerAddress, bool active = true) :
-//    bitbanger(registerAddress),
-//    active(active) {
-//    /*empty*/
-//  }
   explicit constexpr LogicalPin(const Pin &pin, bool active = true) :
     pin(pin),
     active(active) {
@@ -239,17 +224,27 @@ public:
   operator bool() const { // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     return polarized(pin);
   }
+
+  /** @returns pass through @param truth after setting pin to that value */
+  bool operator=(bool truth) const { // NOLINT (cppcoreguidelines-c-copy-assignment-signature)
+    pin = polarized(truth);
+    return truth;//don't reread the pin, nor its actual, keep this as a pass through
+  }
+
 };
 
-/**
-hide the volatile and * etc that I sometimes forget.
+/** wraps an input pin with 'active' concept, and actually configures it on construction.
 */
 class InputPin : public LogicalPin {
 
 public:
-  explicit InputPin(const Pin &pin, char UDF = 'D', bool active = true);
+  constexpr InputPin(const Pin &pin, char UDF = 'D', bool active = true) : LogicalPin(pin, active) {
+    pin.DI(UDF);
+  }
+  
+  //pull the opposite way of the 'active' level.
+  constexpr InputPin(const Pin &pin, bool active): InputPin(pin, active ? 'D' : 'U', active) {}
 
-  explicit InputPin(const Pin &pin, bool active);  //pull the opposite way of the 'active' level.
   //maydo: add method to change pullup/pulldown bias while running
 
 };
@@ -260,15 +255,9 @@ Note that these objects can be const while still manipulating the pin.
 */
 class OutputPin : public LogicalPin {
 public:
-  explicit OutputPin(const Pin &pin, bool active = true, Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) :
+  constexpr OutputPin(const Pin &pin, bool active = true, Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) :
     LogicalPin(pin, active) {
     pin.DO(slew, openDrain);
-  }
-
-  /** @returns pass through @param truth after setting pin to that value */
-  bool operator=(bool truth) const { // NOLINT (cppcoreguidelines-c-copy-assignment-signature)
-    pin = polarized(truth);
-    return truth;//don't reread the pin, nor its actual, keep this as a pass through
   }
 
   /** set to given value, @returns whether a change actually occurred.*/
@@ -287,6 +276,8 @@ public:
 
   /** actually invert the present state of the pin */
   void toggle() const;
+
+  using LogicalPin::operator=;
 };
 
 #pragma clang diagnostic pop

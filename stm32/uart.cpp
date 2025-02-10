@@ -78,22 +78,12 @@ void Uart::reconfigure(unsigned baud, unsigned numbits, char parityNEO, bool lon
   setParams(baud, numbits, parityNEO, longStop, shortStop);
 }
 
-void Uart::init(unsigned baud, char parityNEO, unsigned numbits) const {
+void Uart::init(unsigned baud, unsigned numbits, char parityNEO) const {
   reconfigure(baud, numbits, parityNEO);
   irq.enable(); //the reconfigure disables all interrupt sources, so enabling interrupts here won't cause any.
 }
 
-Uart::Uart(unsigned stluno, unsigned alt) : APBdevice(busForUart(stluno), slotForUart(stluno))
-  , zluno(stluno - 1)
-  , b(*reinterpret_cast<volatile UartBand *>(bandAddress))
-  , dcb(*reinterpret_cast<volatile USART_DCB *>(blockAddress))
-  , irq((irqForUart(stluno)))
-  , altpins((alt)) {
-  //not grabbing pins quite yet as we may be using a spare uart internally as a funky timer.
-  //doing nothing here helps us constexpr construct when we know the stluno at compile time.
-}
-
-void Uart::takePins(bool hsout, bool hsin) const {
+void Uart::handshakers(bool hsout, bool hsin) const {
   b.RTSEnable = hsout;
   b.CTSEnable = hsin;
 }
