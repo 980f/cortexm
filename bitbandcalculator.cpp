@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
       break;
     case 0:
       printf("usage:\n one arg is bitband address, two is byte address in hex and bit number:");
-     printf("\n %08x %d -> %08x", unsigned(Extractor(bah)),bah.bitnum, unsigned(bah));
-     printf("\n %08x -> %08x %u", unsigned(hum), unsigned(Extractor(hum)), hum.bitnum);
+      printf("\n %08x %d -> %08x", unsigned(Extractor(bah)),bah.bitnum, unsigned(bah));
+      printf("\n %08x -> %08x %u", unsigned(hum), unsigned(Extractor(hum)), hum.bitnum);
       break;
   }
   printf("\n");

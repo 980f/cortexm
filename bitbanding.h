@@ -29,10 +29,10 @@ namespace BandAid {
       space(extractField(pattern, 31, 29)) {}
 
     constexpr operator uint32_t () const {
-      return Punner<uint32_t,Extractor>(*this).desired;//HAH! This doesn't work on PC architecture
+      return Punner<uint32_t,Extractor>(*this).desired;//HAH! This doesn't work on PC architecture when coded with plain unsigned, have to be bit size specific to be portable when bit punning.
     }
 
-    constexpr Extractor(const Banded &bandAddress);
+    constexpr Extractor(const Banded &bandAddress,bool canonical=true);
   };
 
   struct Banded {
@@ -66,7 +66,12 @@ namespace BandAid {
 
   } ;
 
-  constexpr Extractor::Extractor(const Banded &bandAddress):byteNumber(bandAddress.bitnum/8),offset(bandAddress.offset),alwaysZeroes(0),space(bandAddress.space){}
+  constexpr Extractor::Extractor(const Banded &bandAddress, bool canonical)
+      : byteNumber(canonical ? 0 : bandAddress.bitnum / 8)
+      , offset(bandAddress.offset)
+      , alwaysZeroes(0)
+      , space(bandAddress.space)
+  {}
 
   /** bit band uses the word address as seen by the bus as a byte+bitnumber. To do that the bitnumber has to be placed somewhere in the word address, which is the bitNumber<<2 clause.
   * The word address needs to move out of the way of the bitnumber's shift, and the bitnumber is 5 bits so we get the offset<<7, 7+2+5 term.
