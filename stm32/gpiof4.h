@@ -40,15 +40,15 @@ struct PinOptions {
     //#nada
   }
 
-  static PinOptions Input(Puller UDFO = Float) {
+  static constexpr PinOptions Input(Puller UDFO = Float) {
     return PinOptions(input, UDFO, slow);
   }
 
-  static PinOptions Output(Slew slew = slow, Puller UDFO = Float) {
+  static constexpr PinOptions Output(Slew slew = slow, Puller UDFO = Float) {
     return PinOptions(PinOptions::output, UDFO, slew);
   }
 
-  static PinOptions Function(unsigned altcode, Slew slew = slow, Puller UDFO = Float) {
+  static constexpr PinOptions Function(unsigned altcode, Slew slew = slow, Puller UDFO = Float) {
     return PinOptions(PinOptions::function, UDFO, slew, altcode);
   }
 
@@ -105,7 +105,7 @@ struct Port /*Manager*/ : public APBdevice {
 
 };
 
-// priority must be such that these get created before any application objects, +5 make it be after clocks.
+//using this macro as we have gyrated over how to specify ports:
 #define DefinePort(letter) const Port P##letter InitStep(InitHardware + 5)(*#letter)
 //the above macro is why people hate C. The '*' picks out the first letter of the string made by # letter, since the preprocessor insisted on honoring single ticks while parsing the #defined text.
 
@@ -119,17 +119,7 @@ DefinePort(G);
 DefinePort(H);
 DefinePort(I);
 DefinePort(J);
-////these take up little space and it gets annoying to have copies in many places.
-//extern const Port PA;
-//extern const Port PB;
-//extern const Port PC;
-//extern const Port PD;
-//extern const Port PE;
-//extern const Port PF;
-//extern const Port PG;
-//extern const Port PH;
-//extern const Port PI;
-//const Port PJ{'J'};
+
 
 //GPIO interrupt configuration options. Some devices may not support some options, but most do so this is defined here.
 enum IrqStyle {
@@ -219,8 +209,8 @@ public:
     return active == operand;
   }
   //INLINETHIS
-  explicit constexpr LogicalPin(Pin &&pin, bool active = true) :
-    pin(std::move(pin)), active(active) {
+  explicit constexpr LogicalPin(const Pin &pin, bool active = true) :
+    pin(pin), active(active) {
     //#nada
   }
 
@@ -245,12 +235,12 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  constexpr explicit InputPin(Pin &&pin, PinOptions::Puller UDF = PinOptions::Down, bool active = true) : LogicalPin(std::move(pin), active) {
+  constexpr explicit InputPin(const Pin &pin, PinOptions::Puller UDF = PinOptions::Down, bool active = true) : LogicalPin(pin, active) {
     pin.DI(UDF);
   }
 
   /** pull the opposite way of the 'active' level. */
-  constexpr explicit InputPin(Pin &&pin, bool active) : InputPin(std::move(pin), active ? PinOptions::Down : PinOptions::Up, active) {
+  constexpr explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? PinOptions::Down : PinOptions::Up, active) {
     //#nada
   }
 
@@ -263,8 +253,8 @@ Note that these objects can be const while still manipulating the pin.
 */
 class OutputPin : public LogicalPin {
 public:
-  constexpr explicit OutputPin(Pin &&pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
-    LogicalPin(std::move(pin), active) {
+  constexpr explicit OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
+    LogicalPin(pin, active) {
     pin.DO(slew, openDrain ? PinOptions::OpenDrain : PinOptions::Float);
   }
 
@@ -284,6 +274,8 @@ public:
 
   /** actually invert the present state of the pin */
   void toggle() const;
+
+  using LogicalPin::operator=;
 };
 
 #pragma clang diagnostic pop

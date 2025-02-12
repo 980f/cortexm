@@ -7,18 +7,17 @@
 */
 
 #pragma once
-#define BLACKPILL
+#define BLACKPILL 1
 
-#include <gpio.h>
+#include "gpio.h"
 
-class Blackpill {
-  OutputPin led; //low active.
-  InputPin key;//will learn level
+struct Blackpill {
+  
+  const OutputPin led; //low active.
+  const InputPin key;//will learn level
 
-  Blackpill();
-  //?B6,B7 are pulled up for use with I2C
-  //?PB10,11 are pulled up
-  /** toggle it so that we see activity without having to externally track its state */
-  void toggleLed();
+  //A0 is a floating input, switch actively takes it to ground.
+  //PC13 drives low side of greenled
+  constexpr  Blackpill() :led({PC,13}),key({PA,0}){}
+
 };
-

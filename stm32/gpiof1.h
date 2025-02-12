@@ -68,7 +68,7 @@ struct Port /*Manager*/ : public APBdevice {
     void operator^=(unsigned value) const;
 
     /** @returns the value set by the last operator =, ie the requested output- not what the physical pins are reporting. */
-    operator u16() const; // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
+    operator uint16_t() const; // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     /** read back the actual pins */
     u16 actual() const;
     //more operators only at need
@@ -110,14 +110,18 @@ Portcode::output(unsigned 10,2,50,bool function=false, bool open=false){
 
 */
 
+//using this macro as we have gyrated over how to specify ports:
+#define DefinePort(letter) extern const Port P##letter;//(*#letter)
+//the above macro is why people hate C. The '*' picks out the first letter of the string made by # letter, since the preprocessor insisted on honoring single ticks while parsing the #defined text.
+
 //maximum set for 10x, they get pruned by the linker if not referenced, and are only 12 bytes of rom each.
-extern const Port PA;
-extern const Port PB;
-extern const Port PC;
-extern const Port PD;
-extern const Port PE;
-extern const Port PF;
-extern const Port PG;
+DefinePort(A);
+DefinePort(B);
+DefinePort(C);
+DefinePort(D);
+DefinePort(E);
+DefinePort(F);
+DefinePort(G);
 
 
 //GPIO interrupt configuration options. Some devices may not support some options, but most do so this is defined here.
@@ -204,7 +208,7 @@ struct Pin /*Manager*/ {
  //not templated as we want to be able to pass Pin's around. not a hierarchy as we don't want the runtime cost of virtual table lookup. */
 class LogicalPin {
 protected:
-  const Pin &pin;
+  const Pin pin;
   /** the level that is deemed active  */
   const bool active;
 

@@ -7,13 +7,17 @@
 #include "peripheralband.h" 
 #include "bitbasher.h"
 
-const Port PA('A');
-const Port PB('B');
-const Port PC('C');
-const Port PD('D');
-const Port PE('E');
-const Port PF('F');
-const Port PG('G');
+
+//using this macro as we have gyrated over how to specify ports:
+#define DeclarePort(letter) const Port P##letter(*#letter)
+
+DeclarePort(A);
+DeclarePort(B);
+DeclarePort(C);
+DeclarePort(D);
+DeclarePort(E);
+DeclarePort(F);
+DeclarePort(G);
 
 constexpr Port::Field::Field(const Port &port, unsigned lsb, unsigned msb) :
   odr(port.registerAddress(0x0C)),

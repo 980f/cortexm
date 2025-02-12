@@ -12,14 +12,11 @@
 #include "gpio.h"
 
 struct Bluepill {
-  const Pin physicalOne;
+  
   const OutputPin led; //low active.
 
-  constexpr Bluepill() :physicalOne({PC,13}),led(physicalOne){}
-
+  constexpr Bluepill() : led({PC,13}){}
   //?B6,B7 are pulled up for use with I2C
   //?PB10,11 are pulled up
-  /** toggle it so that we see activity without having to externally track its state */
-  void toggleLed() const;
 };
 

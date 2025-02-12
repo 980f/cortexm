@@ -47,12 +47,18 @@ enum BusNumber: uint8_t {//#this enum is used for RCC register addressing
   ,APB1 = 5, APB2
 };
 
+constexpr int RCCoffset(BusNumber bus){
+  return (bus-AHB1);
+}
+
 const Address RCCBASE(0x4002'3800);//0th offset.
 constexpr Address FLASHBASE(0x4002'3C00);
 constexpr Address GPIOBASE(0x4002'0000);
 
 const unsigned resetOffset = 0x10;
 const unsigned clockOffset = 0x30;
+const unsigned lpClockOffset = 0x50;//clock enables for when in low power mode
+
 
 #elif DEVICE == 452
 #include "peripheralband.h"
@@ -135,6 +141,8 @@ public:
   void setClockEnable(bool on = true) const {
     ControlWord(rccBit(clockOffset)) = on;
   }
+
+  //todo: if supports LP clock system (finish) add in low power clock enable, to either here or an added arg to setClockEnable.
 
   /** @returns whether clock is on */
   bool isEnabled() const {
