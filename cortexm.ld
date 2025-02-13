@@ -17,12 +17,13 @@ such as stack init and reset vector where the code using them is, and the others
 Some people (CMSIS- looking at you) conditionally include some special calls around the c startup
 (useful for things like powering up parts of the chip that need to be on before c-structs for accessing them are constructed),
 I have implemented that via weak references to a routine that devolves into a "bx lr". Compare that to CMSIS having #define symbols managing that,
-one extra instruction and the time for a useless call and in return we gain not having to manage a  bunch of #define symbols.
+one extra instruction and the time for a useless call and in return we gain not having to manage a bunch of #define symbols.
 
 Some people have multiple initialization call tables, I pack them into one segment and null terminate it
-which eliminates the need for a slew of shared symbols and counting. I may have unintentionally altered the
-priority, the point of the multiple lists was to allow for some control over order in which initialization
-routines execute, which is done via the order of input declarations. Number them via attributes and sort!
+which eliminates the need for a slew of shared symbols and counting.
+I may have unintentionally altered the priority, the point of the multiple lists was to allow for some control over order in which initialization routines execute, which is done via the order of input declarations.
+Number them via attributes and sort!
+
 
 ---
 The following dance is done for some sections:
@@ -34,24 +35,23 @@ Reserve somenumber=0 for the first entry to the table, and 999999 or zzzzz or th
 A simple unsigned allocated at each of those magic values gives you (with minor syntax) the address of the first and last entries in the table.
 A good example would be a set of logical timers that are run off of a common hardware timer. Each module needing such a timer includes the header with
 the table definition (and a macro to make the section declaration easy) and then declares a module level entity with the related attribute.
-The numbers following the tablename allow for ordering of the table, although most of the time a common value should be used and only give a few entities 
-a custom value to put them earlier or later in the table.
+The numbers following the tablename allow for ordering of the table, although most of the time a common value should be used and only give a few entities a custom value to put them earlier or later in the table.
 ---
-No special provision has been made for a ram vector table. The compiler can align a user built array of function pointers
-and user code can assign to the vector table system control register to enable it.
+No special provision has been made for a ram vector table. The compiler can align a user built array of function pointers and user code can assign to the vector table system control register to enable it.
 
 I initially left off destructor and other 'atexit' functionality, my only 'atexit' is to generate a hard reset. I've added that mostly back in but it is untested.
-The only use I can conceive of is making the actual system safe if the code detects that operation is hopeless. Using destructors to manage all the shutdown steps does seem like it can be useful
- if there are solitons declared outside of the scope of main().
+The only use I can conceive of is making the actual system safe if the code detects that operation is hopeless.
+Using destructors to manage all the shutdown steps does seem like it can be useful if there are solitons declared outside of the scope of main().
 
 I have left off a no-init data section, that is a dangerous technology with many different possible implementations.
-The stm32 non-volatile data has holes in it beyond the ability of the linker to readily compensate for. Not zeroing some ram
-that will programmatically be loaded from a non-volatile device is a minor performance burden for keeping this script generic.
+The stm32 non-volatile data has holes in it beyond the ability of the linker to readily compensate for.
+Not zeroing some ram that will programmatically be loaded from a non-volatile device is a minor performance burden for keeping this script generic.
 
 I have made it convenient to swap around the order of the sections without having to rework explicit references to the others.
 
 The cmake makefiles mess with working directory, so I had to add '-L parent-directory-to-my-ld-files' to the linker command string for it to find included ld files such as this one.
 
+Andy/980f.
 */
 
 SECTIONS {
@@ -79,9 +79,9 @@ SECTIONS {
     KEEP (*(.ctors))
     LONG(0)  /*mark end of table, instead of having code for decrementing a count */
   } >FLASH
-  __init_table__ = LOADADDR(.init);
+  __init_table__ = LOADADDR(.init);  /* name here is C standard, code must have extern "C" before reference to it. */
 
-/* exit table, although a good mcu program never exits */
+/* exit table, although a good mcu program never exits ;) */
   .exit : {
     *(SORT(.dtors.*))       /* priority tagged ones ? */
     *(.dtors)               /* highest priority ones? */
@@ -89,7 +89,7 @@ SECTIONS {
     *(SORT(.fini_array.*))  /* particular exit stuff, 980f thinks this should precede the plane fini_array but who knows where the order is specified? */
     LONG(0)                 /* mark end of table, instead of having code for decrementing a count */
   } >FLASH
- __exit_table__ = LOADADDR(.exit);
+ __exit_table__ = LOADADDR(.exit); /* see __init_table__ comment */
 
 /* sometimes you need to stub out a function using the linker. The following chunk of linker magic creates a callable function extern "C" do_nothing() */
   .dummy : {
@@ -126,12 +126,13 @@ SECTIONS {
 
 /* zero initialized data */
   .bss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
+    . = ALIGN(4); /* alignment padding for startup clear. COA, was always already aligned but perhaps because coincidence in what goes into .data segment */
+    /* static zero init */
     *(SORT(.bss.*))
     *(.bss)
-
+    /* thread_local static storage */
     *(SORT(.tbss.*))
     *(.tbss)  /* tbss added for F407+ st's hal use, just for errno! Once we understand it we might be able to get rid of it, 'til then we lose a big chunk of code without a linker error if we omit it */
-
     /* .gnu.linkonce.b.*)   / * C++ doesn't use these, if C does remove the leading comment marker */
     /* *(COMMON)    / * C++ doesn't use these, if C does remove the leading comment marker */
   } >SRAM
@@ -156,9 +157,9 @@ SECTIONS {
   in C code declare an object for each as extern,
   have a section name for each and an attribute in front of data declaration
   and then the linker can provide addresses for access.
+
   That also entails laying out a struct to match the hardware and given the number of 16 bit wide peripherals that can be quite a pain.
-  Without automated code generation that is all quite painful and error prone, and the code isn't any faster or smaller than using constexpr
-  address calculation code (when the compiler is allowed to inline it).
+  Without automated code generation that is all quite painful and error prone, and the code isn't any faster or smaller than using constexpr address calculation code (when the compiler is allowed to inline it).
   Another reason to dislike that is that it hardcodes names for things, like the 'traditional' vector managment code does.
 
   Nonetheless, if one wanted to do all that segment magic one could have the file that includes this one
@@ -166,4 +167,3 @@ SECTIONS {
 */
 
 }
-

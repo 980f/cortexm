@@ -159,8 +159,8 @@ struct Uart: public APBdevice {
 
   constexpr Uart(unsigned stluno): APBdevice(busForUart(stluno), slotForUart(stluno))
   , zluno(stluno - 1)
-  , b(*reinterpret_cast<Band *>(bandAddress))
   , dcb(*reinterpret_cast<DCB *>(blockAddress))
+  , b(*reinterpret_cast<Band *>(bandAddress))
   , irq((irqForUart(stluno))){
   //not touching hardware as doing nothing here lets us constexpr construct when we know the stluno at compile time.
 }

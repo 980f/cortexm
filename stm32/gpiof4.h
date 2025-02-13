@@ -10,50 +10,6 @@
 
 #include "utility.h"
 
-struct PinOptions {
-
-  enum Dir {
-    input = 0
-    , output
-    , function
-    , analog  //#value is for control register
-  };
-  Dir dir;
-
-  enum Slew {
-    slow = 0
-    , medium
-    , fast
-    , fastest //#value is for control register
-  };
-  Slew slew;
-
-  enum Puller {
-    Float
-    , Down
-    , Up
-    , OpenDrain  //# ordered for ease of setting up/down registers
-  };
-  Puller UDFO;
-
-  constexpr explicit PinOptions(Dir dir, Puller UDFO = Float, Slew slew = slow, unsigned altcode = 0) : dir(dir), slew(slew), UDFO(UDFO), altcode(altcode) {
-    //#nada
-  }
-
-  static constexpr PinOptions Input(Puller UDFO = Float) {
-    return PinOptions(input, UDFO, slow);
-  }
-
-  static constexpr PinOptions Output(Slew slew = slow, Puller UDFO = Float) {
-    return PinOptions(PinOptions::output, UDFO, slew);
-  }
-
-  static constexpr PinOptions Function(unsigned altcode, Slew slew = slow, Puller UDFO = Float) {
-    return PinOptions(PinOptions::function, UDFO, slew, altcode);
-  }
-
-  unsigned altcode;//could be 4 bits if we wished.
-};
 
 /** the 16 bits as a group.
   * Note well that even when the group is not enabled the port can be read from (as long as it exists).
@@ -67,8 +23,72 @@ struct Port /*Manager*/ : public APBdevice {
   }
 
   /** @param letter is the uppercase character from the stm32 manual */
-  explicit constexpr Port(char letter) : APBdevice(AHB1, unsigned(letter - 'A'), gpiobase(letter - 'A')) {
-  }
+  explicit constexpr Port(char letter) : APBdevice(AHB1, unsigned(letter - 'A'), gpiobase(letter - 'A')) {}
+
+/* The goal for this class is to have an array of these in ROM which can be iterated over to init all pins efficiently.
+Each enum is sized for ROM efficiency.
+Each enum is carefully ordered to go directly into a bitfield without translation. */
+  struct PinOptions {
+
+    enum Dir:uint8_t  {
+      input = 0
+      , output
+      , function
+      , analog 
+    };
+    Dir dir;
+
+    enum Slew:uint8_t  {
+      slow = 0
+      , medium
+      , fast
+      , fastest //#value is for control register
+    };
+    Slew slew;
+
+    enum Puller:uint8_t  {
+      Float
+      , Down
+      , Up
+      , OpenDrain  //# ordered for ease of setting up/down registers
+    };
+    Puller UDFO;
+
+
+    enum Altfunc:uint8_t {
+      SYS_AF=0,
+      Timer1r2,
+      Timer345,
+      Timer9orAbove,
+      I2C,
+      SSP2r3,
+      SSP345,
+      Uart1r2rSSP3,
+      Uart6,
+      I2Ctoo,
+      USB_FS,
+      AF11,
+      SDIO,
+      AF13,AF14,
+      EventOut  //end of table.
+    };
+    Altfunc altcode;//could be 4 bits if we wished.
+
+    constexpr PinOptions(Dir dir, Puller UDFO = Float, Slew slew = slow, Altfunc altcode = SYS_AF) : dir(dir), slew(slew), UDFO(UDFO), altcode(altcode) {}
+
+    static constexpr PinOptions Input(Puller UDFO = Float) {
+      return PinOptions(input, UDFO, slow);
+    }
+
+    static constexpr PinOptions Output(Slew slew = slow, Puller UDFO = Float) {
+      return PinOptions(PinOptions::output, UDFO, slew);
+    }
+
+    static constexpr PinOptions Function(Altfunc altcode, Slew slew = slow, Puller UDFO = Float) {
+      return PinOptions(PinOptions::function, UDFO, slew, altcode);
+    }
+
+  }__attribute__((packed));
 
   /** configure the given pin. */
   void configure(unsigned bitnum, const PinOptions &c) const;
@@ -86,7 +106,7 @@ struct Port /*Manager*/ : public APBdevice {
     constexpr Field(const Port &port, unsigned lsb, unsigned msb);
 
     /** insert @param value into field, shifting and masking herein, i.e always lsb align the value you supply here */
-    void operator=(unsigned value) const; // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
+    unsigned operator=(unsigned value) const; // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
     /** toggle the bits in the field that correspond to ones in the @param value */
     void operator^=(unsigned value) const;
 
@@ -98,7 +118,6 @@ struct Port /*Manager*/ : public APBdevice {
     u16 actual() const;
     //more operators only at need
   };// Port::Field
-
 
   /** @param pincode is the same as for pin class */
   void configure(const Field&field ,const PinOptions &portcode) const;
@@ -155,13 +174,13 @@ struct Pin /*Manager*/ {
   const Pin &AI() const;
 
 /** @returns bitband address for input after configuring as digital input, default pulldown as that is what test equipment induces ;) */
-  const Pin &DI(PinOptions::Puller UDFO = PinOptions::Down) const;
+  const Pin &DI(Port::PinOptions::Puller UDFO = Port::PinOptions::Down) const;
 
 /** configure as simple digital output */
-  const Pin &DO(PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Down) const;
+  const Pin &DO(Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, Port::PinOptions::Puller UDFO = Port::PinOptions::Down) const;
 
 /** configure pin as alt function output*/
-  const Pin &FN(unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Float) const;
+  const Pin &FN(unsigned nibble, Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, Port::PinOptions::Puller UDFO = Port::PinOptions::Float) const;
 
 /** raw access convenience. @see InputPin for business logic version of a pin */
   //INLINETHIS
@@ -188,9 +207,9 @@ struct FunctionPin {
   }
 
   //cannot be constexpr as it hits the configuration registers and that takes real code.
-  FunctionPin(const Port &port, unsigned bitnum, unsigned nibble, PinOptions::Slew slew = PinOptions::Slew::slow, PinOptions::Puller UDFO = PinOptions::Float) :
+  FunctionPin(const Port &port, unsigned bitnum, Port::PinOptions::Altfunc nibble, Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, Port::PinOptions::Puller UDFO = Port::PinOptions::Float) :
     reader(port.registerAddress(0x10), bitnum) {
-    port.configure(bitnum, PinOptions(PinOptions::function, UDFO, slew, nibble));
+    port.configure(bitnum, Port::PinOptions(Port::PinOptions::function, UDFO, slew, nibble));
   }
 };
 
@@ -235,12 +254,12 @@ A pin configured and handy to use for logical input, IE the polarity of "1" is s
 class InputPin : public LogicalPin {
 
 public:
-  constexpr explicit InputPin(const Pin &pin, PinOptions::Puller UDF = PinOptions::Down, bool active = true) : LogicalPin(pin, active) {
+  constexpr explicit InputPin(const Pin &pin, Port::PinOptions::Puller UDF = Port::PinOptions::Down, bool active = true) : LogicalPin(pin, active) {
     pin.DI(UDF);
   }
 
   /** pull the opposite way of the 'active' level. */
-  constexpr explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? PinOptions::Down : PinOptions::Up, active) {
+  constexpr explicit InputPin(const Pin &pin, bool active) : InputPin(pin, active ? Port::PinOptions::Down : Port::PinOptions::Up, active) {
     //#nada
   }
 
@@ -253,9 +272,9 @@ Note that these objects can be const while still manipulating the pin.
 */
 class OutputPin : public LogicalPin {
 public:
-  constexpr explicit OutputPin(const Pin &pin, bool active = true, PinOptions::Slew slew = PinOptions::Slew::slow, bool openDrain = false) :
+  constexpr explicit OutputPin(const Pin &pin, bool active = true, Port::PinOptions::Slew slew = Port::PinOptions::Slew::slow, bool openDrain = false) :
     LogicalPin(pin, active) {
-    pin.DO(slew, openDrain ? PinOptions::OpenDrain : PinOptions::Float);
+    pin.DO(slew, openDrain ? Port::PinOptions::OpenDrain : Port::PinOptions::Float);
   }
 
   /** set to given value, @returns whether a change actually occurred.*/

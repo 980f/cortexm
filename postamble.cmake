@@ -1,20 +1,24 @@
 # build standard outputs
 # demand a custom linker script, standard ones are often not particularly standard:
 set(LINKER_SCRIPT "${PROJECT_NAME}.ld")
+#[[
+The $project_name.ld file is expected to be a line to include the processor+vendor specific ld file and then the generic one:
+INCLUDE cortexm/stm32/f411ce.ld
+INCLUDE cortexm/cortexm.ld
+]]
 
 #todo: try to eliminate -specs=nosys.specs, we are suppressing routines that are referenced therein but will never execute.
 set(CMAKE_EXE_LINKER_FLAGS "-L ${PROJECT_SOURCE_DIR} -T ${LINKER_SCRIPT} -nostartfiles  -specs=nano.specs -specs=nosys.specs -Wl,--gc-sections,--print-memory-usage,-Map,${PROJECT_NAME}.map " CACHE INTERNAL "exe link flags")
 
 set(SOURCES
-  "dro-${CortexmVendor}.cpp"
+  ${PROJECT_SPECIFIC_SOURCES}
   ${CORTEXUSAGES}
   ${${CortexmVendor}_VENDOR_USAGES}
   ${EZUSAGES}
+
 )
 
-
 add_executable(${PROJECT_NAME}.elf ${SOURCES})
-
 
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)

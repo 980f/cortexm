@@ -1,6 +1,8 @@
 #[[processor specific but project independent parts of a CMake cortexM build.
-include this file in the processor specific cmake file and include that in your project specific cmakelist.txt
-see also postable.cmake, this guy sets that guy up but you have to do some defining in between this file and that one.
+Include this file in your project specific CMakelists.txt after SETting the processor options fields: gcccpu, CortexmVendor, VendorPartname.
+Those files each include one of the cortexm/cortexm%d.cmake files
+
+See also postamble.cmake, which you must include at the end of your project specific CMakelists.txt . 'postamble' is the generic stuff that has to follow the project specific file lists.
 also sometimes you need to run just this file to get the compiler settings cached.
 ]]
 
@@ -12,7 +14,7 @@ SET(CMAKE_SYSTEM_NAME Generic)
 SET(TARGET arm-arm-none-eabi)
 
 #we use a cross compiler, your OS *might* have a usable one, but I downloaded one from developer.arm.com:
-SET(BINROOT /r/bin/gcc-arm-none-eabi/bin/)
+SET(BINROOT /r/bin/embeetle/beetle_tools/linux/gnu_arm_toolchain_13.3.1_20240614_64b/bin/)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
@@ -31,6 +33,13 @@ SET(OBJCOPY ${BINROOT}arm-none-eabi-objcopy)
 SET(OBJDUMP ${BINROOT}arm-none-eabi-objdump)
 SET(SIZE ${BINROOT}arm-none-eabi-size)
 
+#the part related stuff. Must precede compiler stuff to get gcccpu declared
+include(cortexm/${CortexmVendor}/${VendorPartname}.cmake)
+#todo:  include("cortexm/cortex-${core_type_set_in_each_instance_of_above_file}.cmake")
+include_directories("cortexm")
+include_directories("cortexm/${CortexmVendor}")
+include_directories("ezcpp")
+
 #had to add this to get cortexm3.s to be processed:
 ENABLE_LANGUAGE(ASM)
 #wildly guessing on trying to get correct asm language:
@@ -41,7 +50,7 @@ SET(gcc_arch "-mcpu=${gcccpu} -mfloat-abi=soft ")
 
 SET(CMAKE_ASM_FLAGS " ${gcc_arch} ")
 
-#stuff common to C and C++. the -sections allows the linker to finely prune the output.
+#stuff common to C and C++. the -sections allows the linker to finely prune the output. Note: -ffreestanding prevents use of __built_in_*
 SET(ccli_common " ${gcc_arch}  -fdata-sections -ffunction-sections -Wall -ffreestanding")
 
 #3rd party code such as STM's HAL does extensive type punning of integers to addresses:
@@ -49,14 +58,21 @@ SET(CMAKE_C_FLAGS "${ccli_common} -std=c11 -Wno-int-to-pointer-cast -Wno-pointer
 
 # -Wno-unknown-pragmas added to hide spew from clang pragmas that hide clang spew. phew!
 SET(CMAKE_CXX_FLAGS "${ccli_common}  -Wno-unknown-pragmas -fno-rtti -fno-exceptions -fno-threadsafe-statics -MD " CACHE INTERNAL "cxx compiler flags")
+#Dropped "-fomit-frame-pointer" as that is the default anyway!
+
+#todo: see if we can drop these, they are in the GCC file tree.
+include_directories(${SUPPORT_FILES})
+#needed for soft floating point:
+link_directories(${SUPPORT_FILES})
+
 
 # every project needs cstartup, and we wish to optimize it independent of whether the rest of the project gets optimized
 #the below does not work
-set(CORTEXUSAGES  ${CORTEXUSAGES}
+set(CORTEXUSAGES ${CORTEXUSAGES}
   "cortexm/cstartup.cpp"
 )
 
-set_source_files_properties(cortexm/cstartup.cpp PROPERTIES COMPILE_OPTIONS "-g0;-O2;-fomit-frame-pointer")
+set_source_files_properties(cortexm/cstartup.cpp PROPERTIES COMPILE_OPTIONS "-Oz")
 
 # build the vector table file, set LAST_IRQ in your processor definition cmake file. You may have to manually delete this file when building for a different chip.
 ADD_CUSTOM_COMMAND(
@@ -81,4 +97,3 @@ ADD_CUSTOM_COMMAND(
 #  LIST(APPEND linkfile  "};")
 #  MESSAGE($(linkfile))
 #ENDFUNCTION()
-

@@ -1,3 +1,4 @@
+//see SerialPort, it is easier to use, less idiosyncratic. Also hunt around for a DMA driven version.
 #include "uartuser.h"
 
 void UartUser::uisr() {

@@ -1,5 +1,7 @@
 #pragma once
 
+/** This was an earlier version of SerialPort. SerialPort uses derivation rather than function pointer hacking which just plain is easier to debug and maintain.*/
+
 #include "charscanner.h"
 #include "hook.h"
 #include "nvic.h"
