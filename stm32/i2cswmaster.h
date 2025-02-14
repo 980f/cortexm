@@ -1,70 +1,60 @@
+#pragma once
 /**
   * Software Implemented I2C Master
   * Drive the I2C bus as a single master, 400kHz slaves that never stretch the clock.
+  * (recovered from cpp file somehow named h)
   */
-#include "i2cswmaster.h"
-#include "minimath.h" //for nanoSpin
-
-/**1MBaud EEPROM is the only thing we care to have work
-  * start to first clock 260ns;
-  * clock low: 500ns
-  * clock high: 260ns
-  * data setup (before clock rise) 50ns
-  * clock edges: 120ns
-  * stop to start: 500ns
-  * read access:450ns
-  * atmel adds: clock low to new data: 550ns , clock high 400ns!
-  * st clock 300/400
-  *
-  * st setup: 5ns, slew ~5 as well.
-  *
-  */
-
-
-#define nanoTicks(nanoseconds)  nanoSpin(nanoseconds / 13)
-
-I2C::I2C(int luno, bool alt1){
+#include "gpio.h"
+class I2C {
+unsigned pinbase;
+OutputPin sda;
+InputPin sdaRead;
+InputPin sclRead;
+ControlBool sdaOff;
+OutputPin scl;
+ControlBool sclOff;
+I2C(int luno, bool alt1){
   pinbase = 2 + 4 * luno + (alt1 ? 2 : 0);
 }
 
-void I2C::configurePins(const Port&sdaPort, int sdaPinNumber, const Port&sclPort, int sclPinNumber){
+void configurePins(const Port&sdaPort, int sdaPinNumber, const Port&sclPort, int sclPinNumber){
   Pin sdapin(sdaPort, sdaPinNumber);
   Pin sclpin(sclPort, sclPinNumber);
-  sda = sdapin.DO(50, false); //will toggle pin function from normal to OD via sdaOff control
-  *sda = 1;
+  sda = sdapin.DO(Port::PinOptions::Slew::fastest); //will toggle pin function from normal to OD via sdaOff control
+  sda = 1;
   sdaOff = sdapin.highDriver();
-  scl = sclpin.DO(50, false); //don't support slave clock stretching at high speed
-  *scl = 1;
+  scl = sclpin.DO(Port::PinOptions::Slew::fastest); //don't support slave clock stretching at high speed
+  scl = 1;
   sdaRead = sdapin.reader();
   sclRead = sclpin.reader();
 } /* configurePins */
 
-void I2C::configurePins(bool ){
+void configurePins(bool ){
   configurePins(PB, pinbase + 1, PB, pinbase);
 }
 
 /** clock and data should already be definitely high before calling this. */
-void I2C::SendStart( void ){
-  *scl = 1; //just in case...
-  *sda = 1;
-  *sdaOff = 0;
-  *sda = 0; //1->0 while clock high == start
+void SendStart( ){
+  scl = 1; //just in case...
+  sda = 1;
+  sdaOff = 0;
+  sda = 0; //1->0 while clock high == start
   nanoTicks(500);
-  *scl = 0;
+  scl = 0;
   nanoTicks(300); //st is sluggish, use 300 instead of 260
 }
 //deferred these defines to where we won't be tempted to corrupt them for special uses, like starts.
-#define FloatSDA          *scl = 0; *sda = 1; *sdaOff = 1
-#define DriveSDA(whatto)  * scl = 0; *sda = whatto; *sdaOff = 0
+#define FloatSDA          scl = 0; sda = 1; sdaOff = 1
+#define DriveSDA(whatto)  scl = 0; sda = whatto; sdaOff = 0
 
 /** SendStop - sends an I2C stop, releasing the bus.
   * by leaving this a subroutine call we get the required deadtime between stop and start.
   */
-void I2C::SendStop( void ){
+void SendStop( ){
   DriveSDA(0);
-  *scl = 1;
+  scl = 1;
   nanoTicks(500); //generous stop
-  *sda = 1; //data 0->1 while clock high == stop.
+  sda = 1; //data 0->1 while clock high == stop.
   //single master: *sdaOff=1;
   nanoTicks(500); //guaranteed silence between transactions
 }
@@ -73,48 +63,48 @@ void I2C::SendStop( void ){
   * wiggleBits - sends one byte of data to an I2C slave device.
   * clock is left high, ack bit is still on the wire upon return.
   * @return the ack bit from the byte transfer.*/
-bool I2C::wiggleBits( u8 A ){
-  register unsigned bitPicker = 1 << 7;
+bool wiggleBits( uint8_t A ){
+  unsigned bitPicker = 1 << 7;
 
   do {
     DriveSDA((A & bitPicker) ? 1 : 0);
     bitPicker >>= 1;
     nanoTicks(500); //clock low
-    *scl = 1;
+    scl = 1;
     nanoTicks(400); //atmel is sluggish
   } while(bitPicker);
   FloatSDA;  // Release data line for acknowledge.
   nanoTicks(500); //500 was coming out as 370!
-  *scl = 1;
+  scl = 1;
   nanoTicks(500); //gross delay to see if ack is just late.
-  return *sdaRead; //Set status for no acknowledge.
+  return sdaRead; //Set status for no acknowledge.
 } /* wiggleBits */
 
 /**
   * on entrance sda is being driven
   * on exit sda is being driven to the ack value*/
-u8 I2C::readBits(bool nackem){
+u8 readBits(bool nackem){
   int BitCnt = 8;
-  u8 A = 0; //assignment for debug
+  uint8_t A = 0; //assignment for debug
 
   FloatSDA;
   do {
-    *scl = 0;
+    scl = 0;
     nanoTicks(450); //read access time
-    *scl = 1;
+    scl = 1;
     A <<= 1;
-    A |= *sdaRead;
+    A |= sdaRead;
     nanoTicks(400); //atmel is sluggish
   } while(--BitCnt > 0);
   DriveSDA(nackem);
   nanoTicks(400); //atmel is slow, should be 260
-  *scl = 1;
+  scl = 1;
   return A;
 } /* readBits */
 
 
 
-bool I2C::notify(bool happy){
+bool notify(bool happy){
   SendStop();
   if(inprogress) {
     inprogress->onTransferComplete(happy);
@@ -123,7 +113,7 @@ bool I2C::notify(bool happy){
   return happy;
 }
 
-bool I2C::transact(Transactor&transact){
+bool transact(Transactor&transact){
   inprogress = &transact;
   bool justProbing = !inprogress->moreToWrite();
   justProbing &= !inprogress->moreToRead();
