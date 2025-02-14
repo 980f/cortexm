@@ -11,3 +11,7 @@ dro.hzs
 bander
 bitbandcalc
 gcc-blinky-defines.list
+bitbandero/bitbandero.pro*
+bitbandero/build/
+bitbandero/cmake-build-debug/
+crossbuild/
