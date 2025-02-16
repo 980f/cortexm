@@ -9,7 +9,7 @@
 
 
 //using this macro as we have gyrated over how to specify ports:
-#define DeclarePort(letter) const Port P##letter(*#letter)
+#define DeclarePort(letter) extern const Port P##letter(*#letter)
 
 DeclarePort(A);
 DeclarePort(B);

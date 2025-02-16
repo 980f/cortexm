@@ -1,3 +1,6 @@
+
+#if !defined(EMBEETLE)
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "hicpp-signed-bitwise"
 

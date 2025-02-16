@@ -1,5 +1,8 @@
 #include "spi.h"
 #include "minimath.h"
+
+using Port::PinControl;
+
 /** blocking send*/
 void Spi::send8(int lsbyte, bool blockTilDone){
   while(!band->canSend) {}
@@ -38,13 +41,13 @@ Spi:: Spi(unsigned zluno): apb(zluno ? 1: 2, zluno ? (zluno + 13): 12), irq((zlu
 /** clock and other pins get configured here for function and speed*/
 void Spi::connect(Pin *sck, Pin *mosi, Pin *miso, Pin *ss){
   if(sck) {
-    sck->FN(10);
+    sck->FN(Slew::Medium);
   }
   if(mosi) {
-    mosi->FN(10);
+    mosi->FN(Slew::Medium);
   }
   if(ss) {
-    ss->FN(10);
+    ss->FN(Slew::Medium);
   }
   if(miso) {
     miso->DI('D');

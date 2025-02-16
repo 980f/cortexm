@@ -66,7 +66,6 @@ public:
     sender(forsender),
     irq((stNumber == 12) ? 59 : (stNumber + (secondaryController ? 48 : 10))){ //channels 4&5 share an interrupt.
     /* all is in initlist */
-    { //channels 4&5 share an interrupt.
     //#done
   }
 
