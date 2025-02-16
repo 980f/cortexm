@@ -2,9 +2,7 @@
 // (C) Copyright 2020 Andrew Heilveil (github/980f) created on 11/20/20.
 //
 
-
 #include "pinconfigurator.h"
-
 
 /* we could inline a bunch of code from Port here, but we are first going to leverage existing, tested code */
 void PinConfigurator::configure() const {
@@ -13,6 +11,7 @@ void PinConfigurator::configure() const {
 }
 
 void PinConfigurator::doTable(PinConfigurator *table, unsigned count) {
+  //terse but inefficient way of doing this:
   while (count--) {
     table[count].configure();
   }
