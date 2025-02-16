@@ -60,19 +60,19 @@ const Pin &Pin::AI() const {
   return *this;
 }
 
-const Pin &Pin::DI(PinOptions::Puller UDF) const {  // default Down as that is what meters will do.
-  port.configure(bitnum, PinOptions(PinOptions::input, UDF, PinOptions::Slew::slow));
+const Pin &Pin::DI(Port::PinOptions::Puller UDF) const {  // default Down as that is what meters will do.
+  port.configure(bitnum, Port::PinOptions(Port::PinOptions::input, UDF, Port::PinOptions::Slew::slow));
   return *this;
 }
 
 /** configure pin as alt function output*/
-const Pin &Pin::FN(unsigned nibble, PinOptions::Slew slew, PinOptions::Puller UDF) const {
-  port.configure(bitnum, PinOptions(PinOptions::function, UDF, slew, nibble));
+const Pin &Pin::FN(Port::PinOptions::Altfunc nibble, Port::PinOptions::Slew slew, Port::PinOptions::Puller UDF) const {
+  port.configure(bitnum, Port::PinOptions(Port::PinOptions::function, UDF, slew, nibble));
   return *this;
 }
 
-const Pin &Pin::DO(PinOptions::Slew slew, PinOptions::Puller UDFO) const {
-  port.configure(bitnum, PinOptions(PinOptions::output, UDFO, slew));
+const Pin &Pin::DO(Port::PinOptions::Slew slew, Port::PinOptions::Puller UDFO) const {
+  port.configure(bitnum, Port::PinOptions(Port::PinOptions::output, UDFO, slew));
   return *this;
 }
 
@@ -82,7 +82,7 @@ void OutputPin::toggle() const {
   pin = 1 - pin;  //we can ignore polarity stuff :)
 }
 
-void Port::configure(const Port::Field &field, const PinOptions &portcode) const {
+void Port::configure(const Port::Field &field, const Port::PinOptions &portcode) const {
   // and actually set the pins to their types
   for (unsigned abit = field.lsb; field.mask & (1u << abit); ++abit) {
     configure(abit, portcode);

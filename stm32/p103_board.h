@@ -1,7 +1,6 @@
 #pragma once
 
-#ifndef P103_BOARD_H
-#define P103_BOARD_H
+#define BOARD P103
 
 #include "gpio.h"
 
@@ -12,19 +11,16 @@ usart1 is on ext connector
 
 */
 struct P103_board {
-  Pin ledPin;
-  OutputPin led; //low active.
-  Pin buttonPin;
-  InputPin button; //also can be the wake_up special function
+  const OutputPin led; //low active.
+  const InputPin button; //also can be the wake_up special function
   //B6,B7 are pulled up for use with I2C
   //PB10,11 are pulled up
   //PA4 spi1 ss
   //PB15 sdcard miso
-  P103_board();
-  /** toggle it so that we see activity without having to externally track its state */
-  void toggleLed();
+  constexpr P103_board(): led({PC,12}),
+  button({PA,0}){
+    /* effectively empty*/
+  }
 };
 
 const unsigned EXTERNAL_HERTZ=8000000;
-
-#endif // P103_BOARD_H
