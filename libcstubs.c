@@ -17,14 +17,10 @@ void do_nothing(){}
 
 //trace for heap users:
 //libc2.c:(.text.libc.free+0xa0): undefined reference to `__heap_start__'
-char __heap_start__[200];
-char * const __heap_end__= &__heap_start__[200];
+char __heap_start__[8];
+char * const __heap_end__= &__heap_start__[sizeof(__heap_start__)];
 
-//-nostartupfiles seems to have gotten rid of the need for these stubs.
-////destructor failure stuff, but ours won't ever actually fail
-//extern "C" int __aeabi_atexit(void *object, void (*destructor)(void *), void *dso_handle){
-//  return int(&destructor)+int(object)+int(dso_handle);//stupid code to get rid of gratuitous warnings.
-//}
+
 /** sometimes pure virtual functions that aren't overloaded get called anyway,
   * such as from extended classes prophylactically calling the overloaded parent,
     or constructors calling their pure virtual members */

@@ -101,7 +101,7 @@ some AHB devices are very similar, to the point where we use a variant construct
  */
 struct APBdevice {
   const BusNumber rbus; //internal index
-  const u8 slot; //max 32 items (value is 0..31)
+  const uint8_t slot; //max 32 items (value is 0..31)
 
   /** base device address @see registerAddress() for multi-bit control */
   const Address blockAddress;

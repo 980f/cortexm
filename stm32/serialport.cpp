@@ -24,7 +24,7 @@ void SerialPort::uisr() {
   //byprocessing reads before writes the reception routine can generate a char that will immediately get sent. 
   if (b.transmitAvailableIE && sr.transmitBufferEmpty) { //#then must write to DR or clear transmitAvailableIE
     auto c=nextChar();
-    if (c!=~0) {
+    if (c!=~0u) {
       b.enableTransmitter = 1;//when did this get lost, and can we set it and forget it earlier than this?
       dcb.DR = c;
     } else {

@@ -16,72 +16,75 @@
  */
 struct Port /*Manager*/ : public APBdevice {
 
-    struct PinOptions {
-//   In input mode (MODE[1:0]=00):
-// 00: Analog mode
-// 01: Floating input (reset state)
-// 10: Input with pull-up / pull-down
-// 11: Reserved
-// In output mode (MODE[1:0] > 00):
-// 00: General purpose output push-pull
-// 01: General purpose output Open-drain
-// 10: Alternate function output Push-pull
-// 11: Alternate function output Open-drain
-// Bits 29:28, 25:24, MODEy[1:0]: Port x mode bits (y= 0 .. 7)
-// 21:20, 17:16, 13:12,
-// These bits are written by software to configure the corresponding I/O port.
-// 9:8, 5:4, 1:0
-// Refer to Table 20: Port bit configuration table.
-// 00: Input mode (reset state)
-// 01: Output mode, max speed 10 MHz.
-// 10: Output mode, max speed 2 MHz.
-// 11: Output mode, max speed 50 MHz.
+  struct PinOptions {
+    bool isInput;//else output
 
-        enum Dir:uint8_t {
-            input = 0
-            , output
-            , function
-            , analog
-        };
-        Dir dir;
-
-        enum Slew :uint8_t {
-            medium = 1, slow = 2, fast = 3
-        };
-        Slew slew;
-
-        enum Puller:uint8_t {
-            Float
-            , Down
-            , Up
-            , OpenDrain //# ordered for ease of setting up/down registers
-        };
-        Puller UDFO;
-
-        uint8_t altFunctionBits;
-
-        constexpr PinOptions(Dir dir,Slew slew,Puller puller,uint8_t alter):dir(dir),slew(slew),UDFO(puller),altFunctionBits(alter) {}
-
-        // static constexpr unsigned input(bool analog = false, bool floating = false) {
-        //     return analog ? 0 : (floating ? 4 : 8);//only 3 combos are legal
-        // }
-
-        // static constexpr unsigned output(Slew slew = slow, bool function = false, bool open = false) {
-        //     return slew + (function ? 8 : 0) + (open ? 4 : 0);
-        // }
-
-//    unsigned code;
-//    explicit PinOptions(unsigned code) : code(code) {}
-
-        //default copy etc are fine.
-        // static PinOptions Input(bool analog = false, bool floating = false) {
-        //     return PinOptions(input(analog, floating));
-        // }
-
-        // static PinOptions Output(Slew slew = slow, bool function = false, bool open = false) {
-        //     return PinOptions(output(slew, function, open));
-        // }
+    enum Puller:uint8_t  {
+      Float
+      , Down
+      , Up
+      , NotPulled
     };
+    Puller UDFO;
+
+    bool isFunction;//else gpio
+
+    /* which bit of afio to set, the ones that need two bits have a group rule that can supply the second. */
+    enum AfCode:uint8_t { //names of afio offset 0x4 , use ~ for make it zero else make it 1
+      Spi1_af=0,
+      I2C1_af,
+      Usart1_af,
+      Usart2_af,
+      Usart3_Partial_af,
+      Usart3_all_af,     //if this is set force Partial
+      T1_Neg_af,
+      T1_Pos_af,  //if this is set then also set T1_Neg_af
+      T2_12_af,
+      T2_34_af,
+      T3_af,    //if this one is set then also set T3_h_af
+      T3_h_af,
+      T4_af,
+      Can1_PD_af, //if this is set also set PB
+      Can1_PB_af,
+      PDo1_af,
+      T5C4_af=16,
+      Can2_af=22,
+      SWJ_NoReset=24, //only PB4 should set this
+      SWJ_NoJtag=25, //PB3,A15 need this, which also gives you PB4
+      SWJ_None=26,   //PA13,PA14 need this, which also gives you PB4,PB3,A15
+      Spi3_af=28,
+      T2Tr1_af=29,
+      Not_AF=64  //obviously not 0..31 nor ~0..~31
+    } altFunctionCode;
+
+    bool openDrain;
+
+    enum Slew :uint8_t {
+      Irrelevant=0, medium = 1, slow = 2, fastest = 3  //not using MHz names as the rates do differ across parts
+    };
+    Slew slew;
+
+    constexpr PinOptions(const bool isInput, const Puller udfo, const bool isFunction, const AfCode altFunctionCode, const bool openDrain, const Slew slew) : isInput{isInput},
+      UDFO{udfo},
+      isFunction{isFunction},
+      altFunctionCode{altFunctionCode},
+      openDrain{openDrain},
+      slew{slew} {}
+
+    static constexpr PinOptions Input(Puller UDFO = Float,AfCode altFun=Not_AF) {
+      return PinOptions(true, UDFO, altFun!=Not_AF,altFun,false,slow);
+    }
+
+    static constexpr PinOptions Output(Slew slew = slow, bool floater=false,AfCode altFun=Not_AF) {
+      return PinOptions(false,floater?Up:Float,altFun!=Not_AF,altFun,floater,slew);
+    }
+
+    static constexpr PinOptions Function(AfCode altcode, Slew slew = slow, Puller UDFO = NotPulled) {
+      return PinOptions(false,UDFO,true, altcode,UDFO!=NotPulled, slew);
+    }
+
+
+    }__attribute__((packed));
 
 
     static bool isOutput(unsigned pincode);
@@ -97,11 +100,11 @@ struct Port /*Manager*/ : public APBdevice {
         constexpr Field(const Port &port, unsigned lsb, unsigned msb);
 
         /** @param pincode is the same as for pin class */
-        void configure(unsigned pincode){
-            // and actually set the pins to their types
-            for(unsigned abit = lsb; mask&(1u<<abit); ++abit) {
-                port.configure(abit, pincode);
-            }
+        void configure(PinOptions pincode){
+          // and actually set the pins to their types
+          for(unsigned abit = lsb; mask&(1u<<abit); ++abit) {
+            port.configure(abit, pincode);
+          }
         }
         /** insert @param value into field, shifting and masking herein, i.e always lsb align the value you supply here */
         void operator=(unsigned value) const; // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
@@ -116,20 +119,55 @@ struct Port /*Manager*/ : public APBdevice {
     };
 
     /** @param letter is the uppercase character from the stm32 manual */
-    explicit constexpr Port(char letter) : APBdevice(APB2, 2+unsigned(letter - 'A')) {
-    }                                                                           //A is slot 2, onwards and upwards from there.
-
+    explicit constexpr Port(char letter) : APBdevice(APB2, 2+unsigned(letter - 'A')) {}//A is slot 2, onwards and upwards from there.
 
     /**
      * configure the given pin.
        todo:M enumerize the pin codes (but @see InputPin and OutputPin classes which construct codes for you.)
      */
-    void configure(unsigned bitnum, unsigned code) const {
-        if (!isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
-            init(); // must have the whole port running before we can modify a config of any pin.
+    void configure(unsigned bitnum, const PinOptions opts) const {
+      if (!isEnabled()) { // deferred init, so we don't have to sequence init routines, and so we can statically create objects without wasting power if they aren't needed.
+        init(); // must have the whole port running before we can modify a config of any pin.
+      }
+      const ControlField modebits(registerAddress(bitnum & 8 ? 4 : 0), (bitnum & 7) << 2, 2);// &7:modulo 8, number of conf blocks in a 32 bit word.;<<2 for 4 bits each block
+      const ControlField confbits(registerAddress(bitnum & 8 ? 4 : 0), 2+((bitnum & 7) << 2), 2);//2 bit above previous field
+      switch(opts.dir){
+      case PinOptions::input:
+        modebits=0;
+        switch(opts.UDFO){
+         case PinOptions::Float:
+          confbits=1;         
+          break;
+        case PinOptions::Down:
+          confbits=2;
+          //todo: set output to 0
+          break;
+        case PinOptions::Up:
+          confbits=2;
+          //todo: set output to 0
+          break;
+        case PinOptions::OpenDrain:
+        break;
         }
-        const ControlField confword(registerAddress(bitnum & 8 ? 4 : 0), (bitnum & 7) << 2, 4);// &7:modulo 8, number of conf blocks in a 32 bit word.; 4 bits each block
-        confword = code;
+
+      break;
+      case PinOptions::output:
+        if(opts.UDFO==PinOptions::OpenDrain){
+          confbits=1;
+        }
+        modebits=opts.slew;
+      break;
+      case PinOptions::function:
+        confbits= opts.UDFO==PinOptions::OpenDrain?3:2;                
+        modebits=opts.slew;
+        //and altcode requires a port and bitnum aware lookup function
+      break;
+      case PinOptions::analog:
+        modebits=0;
+        confbits=0;
+      break;
+      }
+
     }
 
 //  /** @returns accessor object for "output data register" */

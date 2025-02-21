@@ -30,7 +30,7 @@ extern "C" { // to keep names simple for "alias" processor
     unsigned num = SFRfield<SCB(0x04),0,9>();
 
     if(num >= 4) {
-      ControlItem<uint8_t >(SCB(0x18+num-4)) = 0xFF; // lower its priority as much as possible in case stifling it fails to stick
+      ControlItem<uint8_t>(SCB(0x18+num-4)) = 0xFF; // lower its priority as much as possible in case stifling it fails to stick
     }
     switch(num) {
     default://added to stifle compiler warning.

@@ -46,7 +46,8 @@ ENABLE_LANGUAGE(ASM)
 SET(CMAKE_ASM_COMPILER_TARGET ${gcccpu})
 
 #cli stuff common to assembler and compiler:
-SET(gcc_arch "-mcpu=${gcccpu} -mfloat-abi=soft ")
+SET(gcc_arch "-mcpu=${gcccpu} -mfloat-abi=${FP_API} ")  #‘soft’, ‘softfp’ and ‘hard’.
+
 
 SET(CMAKE_ASM_FLAGS " ${gcc_arch} ")
 

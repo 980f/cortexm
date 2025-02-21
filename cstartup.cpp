@@ -43,7 +43,7 @@ void vectors2ram() {
  */
 extern "C" //to make it easy to pass this to linker sanity checker.
 [[noreturn]] //we don't need no stinking stack frame (no params, no locals) gnu::naked generated a warning, so we dropped it even though it causes a few useless instructions to be emitted.
-void cstartup() ISRISH;
+void cstartup() ;
 [[naked]]  //time to try this again
 void cstartup() {
   // Nonzero initialized static variables

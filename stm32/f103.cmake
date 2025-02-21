@@ -1,7 +1,8 @@
 #processor specific but project independent parts of a CMake cortexM build.
 set(LAST_IRQ 58)
-
+message("included stm32/f103.cmake")
 include("cortexm/cortex-m3.cmake")
+
 #the next are for some project generator module which I think I abandoned.
 set(CHIP STM32F103)
 set(CPU_FAMILY STM32F10x)

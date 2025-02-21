@@ -23,7 +23,7 @@ protected:
   virtual unsigned nextChar(){return ~0;}
 
 public:
-  SerialPort(int uartluno): Uart(uartluno){}
+  constexpr SerialPort(int uartluno): Uart(uartluno){}
   int byteErrors=0;
   int ffErrors=0;
   /** baud etc, @param paceInput enables RTS/CTS hardware */

@@ -4,31 +4,18 @@
 
 #include "pinconfigurator.h"
 
-/* we could inline a bunch of code from Port here, but we are first going to leverage existing, tested code */
-void PinConfigurator::configure() const {
-  const Port port= Port(letter);
-  port.configure(bitnum,this->opts);
-}
+//arguments must be valid, but the related object will never be touched in any way.
+MakeObjectTable(PinDeclaration,0,0,true,true, PinDeclaration::Puller::NotPulled, false, PinDeclaration::Not_AF, false
+  , PinDeclaration:: Slew:: slow);
 
-void PinConfigurator::doTable(PinConfigurator *table, unsigned count) {
+void PinConfigurator::doTable(const PinDeclaration *table, unsigned count) {
   //terse but inefficient way of doing this:
   while (count--) {
     table[count].configure();
   }
 }
 
-#if TABLE_OF_POINTERS
-//declare the table
-MakeObjectTable(PinConfigurator);
 
-PinInitializer::PinInitializer() {
-  ForObjects(PinConfigurator){
-    (*it).configure();
-  }
+void PinConfigurator::doGlobal() {
+  doTable(ObjectTableStart(PinDeclaration),ObjectTableSize(PinDeclaration));
 }
-
-//we only need to do this once, it handles the pins from all files.
-InitStep(InitHardware)
-const PinInitializer makem;
-
-#endif

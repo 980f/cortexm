@@ -9,15 +9,18 @@
 #pragma once
 #define BLACKPILL 1
 
-#include "gpio.h"
+#include "pinconfigurator.h"
+
+OUTPUT_PIN(C,13,false,PinDeclaration::slow,false);
+INPUT_PIN(A,0,true,PinDeclaration::Up);
 
 struct Blackpill {
   
-  const OutputPin led; //low active.
-  const InputPin key;//will learn level
+  const Pin led; //low active.
+  const Pin key;//will learn level
 
   //A0 is a floating input, switch actively takes it to ground.
   //PC13 drives low side of greenled
-  constexpr  Blackpill() :led({PC,13}),key({PA,0}){}
+  constexpr  Blackpill() :led(PC13),key(PA0){}
 
 };

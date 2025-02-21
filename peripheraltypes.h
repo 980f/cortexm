@@ -1,13 +1,14 @@
 #pragma once
 
 
-#pragma clang diagnostic push
-//we ignore the following warnings as this file exists to make hardware registers appear to be simple variables
-#pragma ide diagnostic ignored "google-explicit-constructor"
-#pragma ide diagnostic ignored "misc-unconventional-assign-operator"
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+// #pragma clang diagnostic push
+// //we ignore the following warnings as this file exists to make hardware registers appear to be simple variables
+// #pragma ide diagnostic ignored "google-explicit-constructor"
+// #pragma ide diagnostic ignored "misc-unconventional-assign-operator"
+// #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 
-#include "eztypes.h"
+#include <cstdint>
+
 #include "bitbasher.h"
 #include "boolish.h"
 
@@ -34,13 +35,37 @@ I am working on replacing *'s with &'s, its a statistical thing herein as to whi
 
 //stuff that should probably not be in stm32 folder:
 namespace CortexM {
- /** marker for an address, will eventually feed into a *reinterpret_cast<unsigned *>() */
+ /** simple marker for a computed address */
   using Address = unsigned; //address space of this device.
 
+  constexpr unsigned spaceOf(Address computed) {
+    return computed >> (32-3);
+  }
 /* an attempt to suppress warnings about integer to pointer casts, while still leaving that warning on to catch unintentional ones */
-  union AddressCaster {
+  template <typename Scalar=unsigned> union Addressable {
     unsigned number;
-    void *pointer;
+    Scalar *pointer;
+
+    // ReSharper disable once CppNonExplicitConvertingConstructor
+    constexpr Addressable(Address computed) : number(computed) {}
+
+    operator Scalar () const {
+      return *pointer;
+    }
+
+    Scalar operator= (Scalar value) const {
+      *pointer = value;
+      return value;//return given value, which may not be the same as the actual when pointing to hardware.
+    }
+
+    Scalar operator|= (Scalar value) const {
+      return *pointer |= value;
+    }
+
+    Scalar operator&= (Scalar value) const {
+      return *pointer &= value;
+    }
+
     /** cortexM processors use the 3 msbs as a memory type indicator */
     constexpr unsigned space() const {
       return number >> 29;
@@ -49,22 +74,23 @@ namespace CortexM {
 
   /* this function exists to hide some verbose casting */
   template<typename Scalar> constexpr Scalar &Ref(Address address) {
-    AddressCaster pun{address};
-    return *static_cast<Scalar *>(pun.pointer);
+    Addressable<Scalar> pun{address};
+    return *pun.pointer;
   }
 
-  constexpr bool isRam(AddressCaster address) {
+  constexpr bool isRam(unsigned address) {
     //don't use bitband pieces, this concept is independent of that.
-    return address.space() == (2 >> 1); //we exclude CCM at 0x1000 as it is not accessible to DMA and no-one else should care about "is ram"
+    return spaceOf(address) == (2 >> 1); //we exclude CCM at 0x1000 as it is not accessible to DMA and no-one else should care about "is ram"
   }
 
   /** this is a slight misnomer, it is the space that is mapped to the bootstrap selection of program memory. */
-  constexpr bool isRom(AddressCaster address) {
-    return address.space() == 0;
+  constexpr bool isRom(unsigned address) {
+    return spaceOf(address) == 0;
   }
 
-  constexpr bool isPeripheral(AddressCaster address) {
-    return address.space() == (4 >> 1) || address.space() == (0xE >> 1); //the second is cortex core peripherals
+  constexpr bool isPeripheral(unsigned address) {
+    unsigned space = spaceOf(address);
+    return space == (4 >> 1) || space == (0xE >> 1); //the second is cortex core peripherals
   }
  
 };
@@ -74,14 +100,10 @@ using namespace CortexM;
 /** A 32 bit item at a known address.
  * when you don't know the address at compile time use one of these, else use an SFRxxx.
  * This class essentially wraps the Ref<> template with operator overloads */
-class ControlWord {
-protected:
-  volatile unsigned &item;
-
+struct ControlWord {
+  Addressable<> item;
 public:
-  explicit constexpr ControlWord(Address dynaddr) : item(Ref<unsigned>(dynaddr)) {
-    //#done
-  }
+  explicit constexpr ControlWord(Address dynaddr) : item(*Addressable(dynaddr).pointer) { }
 
   /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
   constexpr ControlWord(const ControlWord &other) = default;
@@ -92,56 +114,56 @@ public:
   //    //#done
   //  }
 
-  void operator=(unsigned value) const ISRISH {
+  void operator=(unsigned value) const  {
     item = value;
   }
 
 
-  void operator|=(unsigned value) const ISRISH {
+  void operator|=(unsigned value) const  {
     item |= value;
   }
 
-  void operator&=(unsigned value) const ISRISH {
+  void operator&=(unsigned value) const  {
     item &= value;
   }
 
   /** mostly exists to appease compiler complaint about ambiguity of assignment. */
-  void operator=(const ControlWord &other) const ISRISH {
+  void operator=(const ControlWord &other) const  {
     item = other.item;
   }
 
   /**
   we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.  */
-  operator unsigned() const ISRISH {
+  operator unsigned() const  {
     return item;
   }
 };
 
-template<class Mustbe32> struct ControlStruct {
-protected:
-  volatile unsigned &item;
-
-public:
-  explicit constexpr ControlStruct(Address dynaddr) : item(Ref<unsigned>(dynaddr)) {
-    //#done
-  }
-
-  /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
-  constexpr ControlStruct(const ControlStruct &other) = default;
-
-  void operator=(const Mustbe32 &value) const ISRISH {
-    item = *reinterpret_cast<const unsigned *>(&value);
-  }
-
-  void operator=(Mustbe32 &&value) const ISRISH {
-    item = *reinterpret_cast<const unsigned *>(&value);
-  }
-
-  constexpr Mustbe32 operator()() const ISRISH {
-    unsigned read = item;
-    return *reinterpret_cast<const Mustbe32 *>(&read);
-  }
-};
+// template<class Mustbe32> struct ControlStruct {
+// protected:
+//   volatile unsigned &item;
+//
+// public:
+//   explicit constexpr ControlStruct(Address dynaddr) : item(Ref<unsigned>(dynaddr)) {
+//     //#done
+//   }
+//
+//   /** we often wish to return one of these, so we ensure the compiler knows it can do a bit copy or even a 'make in place'*/
+//   constexpr ControlStruct(const ControlStruct &other) = default;
+//
+//   void operator=(const Mustbe32 &value) const ISRISH {
+//     item = *reinterpret_cast<const unsigned *>(&value);
+//   }
+//
+//   void operator=(Mustbe32 &&value) const ISRISH {
+//     item = *reinterpret_cast<const unsigned *>(&value);
+//   }
+//
+//   constexpr Mustbe32 operator()() const ISRISH {
+//     unsigned read = item;
+//     return *reinterpret_cast<const Mustbe32 *>(&read);
+//   }
+// };
 
 /** when you don't know the address at compile time use one of these, else use an SFRxxx.
  * This is for fields which are byte aligned and some multiple of 8 bits */
@@ -158,26 +180,26 @@ public:
   constexpr ControlItem(const ControlItem &other) = default;
 
   //using void return as we don't want to trust what the compiler might do with the 'volatile'
-  void operator=(IntType value) const ISRISH {
+  void operator=(IntType value) const  {
     item = value;
   }
 
-  void operator|=(IntType value) const ISRISH {
+  void operator|=(IntType value) const  {
     item |= value;
   }
 
-  void operator&=(IntType value) const ISRISH {
+  void operator&=(IntType value) const  {
     item &= value;
   }
 
   /** mostly exists to appease compiler complaint about ambiguity of assignment. */
-  void operator=(const ControlItem &other) const ISRISH {
+  void operator=(const ControlItem &other) const  {
     item = other.item;
   }
 
   //we do want implicit conversions here, the goal of the class is to make accessing a control word look syntactically like accessing a normal variable.
   /** it is unproven if volatility is propagated through this wrapper. Check it for your compiler and flags. */
-  operator IntType() const ISRISH {
+  operator IntType() const  {
     return item;
   }
 };
@@ -195,12 +217,11 @@ class ControlField {
   const unsigned pos;
 
 public:
-  constexpr ControlField(Address sfraddress, unsigned pos, unsigned width) : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, width)), pos(pos) {}
+  constexpr ControlField(Address sfraddress, unsigned pos, unsigned width) : word(*Addressable<>(sfraddress).pointer), mask(bitMask(pos, width)), pos(pos) {}
 
 public:
   //this is an immutable object, so copying should be just fine, and is needed for move behavior which is needed by object factories.
   //or maybe not :( constexpr ControlField(const ControlField &other) = delete;
-
 
   ControlField() = delete; //fail a compile if no args are given.
 
@@ -228,13 +249,13 @@ public:
  *  This is NOT derived from ControlField as we can do some optimizations that the compiler might miss (or developer might have disabled) */
 
 class ControlBool : public BoolishRef {
-  volatile unsigned &word;
+  ControlWord word;
   /** mask gets pre-positioned */
   const unsigned mask;
   const unsigned pos;
 
 public:
-  constexpr ControlBool(Address sfraddress, unsigned pos) : word(Ref<unsigned>(sfraddress)), mask(bitMask(pos, 1)), pos(pos) {}
+  constexpr ControlBool(Address sfraddress, unsigned pos) : word(sfraddress), mask(bitMask(pos, 1)), pos(pos) {}
 
 public:
   constexpr ControlBool(const ControlField &other) = delete;
@@ -245,6 +266,7 @@ public:
   operator bool() const override {
     return word & mask;
   }
+
 
   /** assign, which for hardware registers might not result in a value equal to the @param value given, @returns the ACTUAL value */
   bool operator=(bool value) const override {
@@ -278,6 +300,7 @@ template<unsigned sfraddress> using SFR8 = SFRint<uint8_t, sfraddress>;
 template<unsigned sfraddress> using SFR16 = SFRint<uint16_t, sfraddress>;
 template<unsigned sfraddress> using SFR32 = SFRint<uint32_t, sfraddress>;
 //legacy
+//still used? Yes in SCB declaration in core_cm3.h
 using SFR = volatile unsigned;
 
 
@@ -354,4 +377,4 @@ constexpr Address SCB(unsigned offset) {
   return 0xE000'ED00u + offset;
 }
 
-#pragma clang diagnostic pop
+// #pragma clang diagnostic pop

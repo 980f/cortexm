@@ -13,8 +13,7 @@ constexpr Address bandFor(Address sfraddress, unsigned bitnum){
 /** only works for bitbanded item! */
 struct ControlBit : ControlWord, BoolishRef {
 
-  constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {
-  }
+  constexpr ControlBit(Address sfraddress, unsigned bitnum) : ControlWord(bandFor(sfraddress, bitnum)) {}
 
   // read
   operator bool() const override {
@@ -55,4 +54,3 @@ struct SFRbandbit : BoolishRef {
     return value;
   }
 };
-
