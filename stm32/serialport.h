@@ -16,7 +16,7 @@ protected:
    /** overriders: this is called from an ISR. Negative values are error events, 0 or positive are a received datum., incoming glitches produce 0x1FF, which is noted as an error rather than a character, which means that 9 bit operation is not really possible on these chips, where the uart seems to glitch even in quiet systems. */
   virtual void onReception(int charOrError){};
   
-  /** overiders; @return ~0 for nothing more to send, else return the next char to be sent. 
+  /** overriders: @return ~0 for nothing more to send, else return the next char to be sent. 
    * this gets called from an ISR when the uart xmitter is writable.
    * It will get called when you call beTransmitting(true);
    */
@@ -50,8 +50,6 @@ public:
     irq.setPriority(level);
   }
 
-
   /** uart data interrupt should be routed here. */
   void uisr();
-
 };

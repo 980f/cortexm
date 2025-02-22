@@ -205,8 +205,8 @@ struct Uart: public APBdevice {
 
 public:
   /*
-F103: U1 = 1:14, others on 2:luno+15
-F407: U1 = 2:4  U2..5 = 1:lu+15   U6=2:5
+F103: U1 = 2:14, others on 1:luno+15
+F407: U1 = 2:4   U2..5 = 1:luno+15   U6=2:5
 */
 #if DEVICE == 103 || DEVICE == 452
   static constexpr BusNumber busForUart(unsigned stluno){
