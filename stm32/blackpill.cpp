@@ -2,8 +2,11 @@
 // Created by andyh on 11/7/24.
 //
 
+//this double created the PinDeclarations as it is also included in the application main 
 #include "blackpill.h"
 
+OUTPUT_PIN(C,13,false,PinDeclaration::slow,false);
+INPUT_PIN(A,0,true,PinDeclaration::Up);
 
 #include "clocks.h"
 

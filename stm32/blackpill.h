@@ -11,8 +11,11 @@
 
 #include "pinconfigurator.h"
 
-OUTPUT_PIN(C,13,false,PinDeclaration::slow,false);
-INPUT_PIN(A,0,true,PinDeclaration::Up);
+//OUTPUT_PIN(C,13,false,PinDeclaration::slow,false);
+//INPUT_PIN(A,0,true,PinDeclaration::Up);
+
+extern const PinDeclaration PC13;
+extern const PinDeclaration PA0;
 
 struct Blackpill {
   
