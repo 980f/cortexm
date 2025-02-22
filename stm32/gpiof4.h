@@ -11,26 +11,30 @@
 /* The goal for this class is to have an array of these in ROM which can be iterated over to init all pins efficiently.
 Each enum is sized for ROM efficiency.
 Most enums are carefully ordered to go directly into a bitfield without translation. */
+
+
+    /** port A is 0 slot in the RCC. We use this function so that the layer that changes a letter into an index can drift as we evolve this library */
+  constexpr unsigned portNumber(unsigned portIndex) {
+    return portIndex >= 'A' ? portIndex - 'A' : portIndex;
+  }
+
   struct PinDeclaration {
     PinDeclaration(const PinDeclaration &other) = default;
 
     PinDeclaration(PinDeclaration &&other) noexcept = default;
 
-    const unsigned portIndex;
-    const unsigned bitnum;
+    //bool isInput;//else output
+    //bool activeHigh;//is relevant to pullup/down on some devices, pull the opposite of this level.
 
-    bool isInput;//else output
-    bool activeHigh;//is relevant to pullup/down on some devices, pull the opposite of this level.
-
-    enum Puller:uint8_t  {
+    enum Puller  {
       Float
       , Down
       , Up
       , NotPulled
     };
-    Puller UDF;
+    //Puller UDF;
 
-    bool isFunction;//else gpio
+    //bool isFunction;//else gpio
 
     enum AfCode:uint8_t {
       SYS_AF=0,
@@ -50,10 +54,7 @@ Most enums are carefully ordered to go directly into a bitfield without translat
       EventOut,  //end of table.
       Not_AF
     };
-    AfCode altFunctionCode;//could be 4 bits if we wished.
-
-    /** isInput? analog input: open drain output*/
-    bool openDrain;
+    // AfCode altFunctionCode;//could be 4 bits if we wished.
 
     enum Slew:uint8_t  {
       slow = 0
@@ -61,11 +62,23 @@ Most enums are carefully ordered to go directly into a bitfield without translat
       , fast
       , fastest //#value is for control register
     };
-    Slew slew;
+    // Slew slew;
 
-    constexpr unsigned portNumber(unsigned portIndex) {
-      return portIndex >= 'A' ? portIndex - 'A' : portIndex;
-    }
+    struct {
+      const unsigned portIndex:4;//no chip of interest has 16 ports, that would be 256 IO/pins and you are in a different processor class.
+      const unsigned bitnum:4; //16 bit ports in this beast.
+
+      const bool isInput:1;
+      const bool activeHigh:1;//is relevant to pullup/down on some devices, pull the opposite of this level. rp2040 puts this on the pad, not the gpio!
+      const bool isFunction:1;//else gp io
+      /** isInput? analog input: open drain output*/
+      const bool openDrain:1;
+
+      const Puller UDF:2;//todo: replace with boolean 'pulled' and force pull to opposite of activeHigh.
+      const Slew slew:2;
+
+      const AfCode altFunctionCode:4;
+    };
 
    constexpr PinDeclaration(unsigned portIndex, unsigned bitnum,const bool isInput,bool activeHigh, const Puller udfo, const bool isFunction, const AfCode altFunctionCode, const bool openDrain, const Slew slew) :
       portIndex{portNumber(portIndex)},bitnum{bitnum},
@@ -105,7 +118,7 @@ struct Port /*Manager*/ : APBdevice {
   }
 
   /** @param letter is the uppercase character from the stm32 manual or already converted to 0..10 or so index. */
-  explicit constexpr Port(char letter) : APBdevice(AHB1, unsigned(letter - 'A'), gpiobase(letter>='A'?letter - 'A':letter)) {}
+  explicit constexpr Port(unsigned letter) : APBdevice(AHB1, portNumber(letter), gpiobase(portNumber(letter))) {}
 
 
   /** configure the given pin. */

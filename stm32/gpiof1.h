@@ -1,5 +1,5 @@
 #pragma once
-
+#error "this needs to be rewritten to match gpiof4"
 #include <cstdint>
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "hicpp-signed-bitwise"
@@ -84,8 +84,7 @@ struct Port /*Manager*/ : public APBdevice {
     }
 
 
-    }__attribute__((packed));
-
+    };
 
     static bool isOutput(unsigned pincode);
 

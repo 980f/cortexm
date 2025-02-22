@@ -2,6 +2,7 @@
 // (C) Copyright 2020 Andrew Heilveil (github/980f) created on 11/20/20.
 //
 
+#include "eztypes.h"
 #include "pinconfigurator.h"
 
 //arguments must be valid, but the related object will never be touched in any way.
@@ -15,7 +16,9 @@ void PinConfigurator::doTable(const PinDeclaration *table, unsigned count) {
   }
 }
 
-
+#if PIN_CONFIGURATOR >=1
+InitDo(InitHardware)
+#endif
 void PinConfigurator::doGlobal() {
-  doTable(ObjectTableStart(PinDeclaration),ObjectTableSize(PinDeclaration));
+  PinConfigurator::doTable(ObjectTableStart(PinDeclaration),ObjectTableSize(PinDeclaration));
 }

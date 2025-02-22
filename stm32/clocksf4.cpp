@@ -26,12 +26,12 @@
 constexpr unsigned MAX_HERTZ = 168000000;
 
 struct OscControl {
-  ControlBit on;
-  ControlBit ready;
+  const ControlBit on;
+  const ControlBit ready;
 
   OscControl(unsigned bitnum) : on(RCCBASE, bitnum), ready(RCCBASE, bitnum + 1) {}
 
-  bool operator=(bool beOn) {
+  bool operator=(bool beOn) const {
     on = beOn;
     while (!ready) {
       //use an interrupt to deal with clock failure!
@@ -40,20 +40,20 @@ struct OscControl {
   }
 };
 
-OscControl HSI(0);
-OscControl HSE(16);
-OscControl PLL(24);
+const OscControl HSI(0);
+const OscControl HSE(16);
+const OscControl PLL(24);
 
 #define PLLCFGR RCCBASE+4
-ControlField PLLM(PLLCFGR, 0, 6);
-ControlField PLLN(PLLCFGR, 6, 9);
-ControlField PLLP(PLLCFGR, 16, 2);
-ControlBit PLLsource(PLLCFGR, 22);
-ControlField PLLQ(PLLCFGR, 24, 4);
+const ControlField PLLM(PLLCFGR, 0, 6);
+const ControlField PLLN(PLLCFGR, 6, 9);
+const ControlField PLLP(PLLCFGR, 16, 2);
+const ControlBit PLLsource(PLLCFGR, 22);
+const ControlField PLLQ(PLLCFGR, 24, 4);
 
 #define RCCCC RCCBASE+8
-ControlField selector(RCCCC, 0, 2);
-ControlField selected(RCCCC, 2, 2);
+const ControlField selector(RCCCC, 0, 2);
+const ControlField selected(RCCCC, 2, 2);
 
 void waitForClockSwitchToComplete() {
   while (selected != selected) {
@@ -70,9 +70,9 @@ void switchClockTo(unsigned code) {
   }
 }
 
-ControlField ahbPrescale(RCCCC, 4, 4);
-ControlField apb1Prescale(RCCCC, 10, 3);
-ControlField apb2Prescale(RCCCC, 13, 3);
+const ControlField ahbPrescale(RCCCC, 4, 4);
+const ControlField apb1Prescale(RCCCC, 10, 3);
+const ControlField apb2Prescale(RCCCC, 13, 3);
 //more as needed
 
 
@@ -169,7 +169,7 @@ Hertz clockRate(BusNumber rbus) {//
   case AHB2:
   case AHB3: //3 AHB's share the same clock
     return ahbRate(ahbPrescale, rate);
-  case APB1://4 is a spacer for programming convenience, nomninally 'apb0'
+  case APB1:
     return apbRate(apb1Prescale, rate);
   case APB2:
     return apbRate(apb2Prescale, rate);

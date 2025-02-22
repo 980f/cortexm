@@ -120,7 +120,7 @@ protected:
 public:
   /** Actual APB devices  @param bus and slot are per st documentation */
   
-  /** AHB devices  @param bus and slot are per st documentation */
+  /** AHB devices are almost the same as APB devices,  @param bus and slot are per st documentation, but you must provide the base address explicitly */
   constexpr APBdevice(BusNumber stbus, unsigned slot, unsigned rawAddress) : rbus(stbus) 
     , slot(slot) 
     , blockAddress(rawAddress) 
