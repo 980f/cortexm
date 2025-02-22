@@ -99,19 +99,26 @@ SECTIONS {
 
 /* fully const'ed data, note that some things declared const end up in .data despite valiant attempts to compile time compute values. */
   .rodata :{
-    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata.
-        Eventually the 'used' attribute was applied to the C++ declarations, but we shall keep the KEEP in case something reverts.
-        We can't just KEEP all rodata's because the libraries are chock full of such sections and we want them to go away if not used */
-    KEEP( *(SORT(.table.*)))
+    . = ALIGN(4) ;
     *(SORT(.rodata.*))
     *(.rodata)
     /* shouldn't be getting these on a cortexM, want to know if we do:  .gnu.linkonce.r.* */
   } >FLASH
 
+.tables :{
+    /** our table segments were not referenced explicitly and therefore were discarded when placed into rodata.
+        Eventually the 'used' attribute was applied to the C++ declarations, but we shall keep the KEEP in case something reverts.
+        We can't just KEEP all rodata's because the libraries are chock full of such sections and we want them to go away if not used */
+    . = ALIGN(4) ;
+    KEEP( *(SORT(.table.*)))
+  } >FLASH
+
+
 /* data with non-zero initializers */
   .data :{
-    . = ALIGN(4); /* alignment padding for startupCopy disappeared spontaneously, causing an elf file load error- shifting bytes to boundary.
+    /* alignment padding for startupCopy disappeared spontaneously, causing an elf file load error- shifting bytes to boundary.
                        apparently we have been lucky for years that the segments naturally aligned. */
+    . = ALIGN(4) ;
     *(SORT(.data.*))
     *(.data)
     /* *(.gnu.linkonce.d.*) / *these should not get produced. If they do expose this and fix its syntax errors, and documented what generated them */
@@ -126,7 +133,7 @@ SECTIONS {
 
 /* zero initialized data */
   .bss (NOLOAD) : {/* NOLOAD is gratuitous, but is a reminder that all that is occurring is data allocation.*/
-    . = ALIGN(4); /* alignment padding for startup clear. COA, was always already aligned but perhaps because coincidence in what goes into .data segment */
+    . = ALIGN(4) ; /* alignment padding for startup clear. COA, was always already aligned but perhaps because coincidence in what goes into .data segment */
     /* static zero init */
     *(SORT(.bss.*))
     *(.bss)
