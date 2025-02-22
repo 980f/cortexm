@@ -9,7 +9,7 @@
   * arguments, collect the data, then format it on the PC running the IDE.
   *
   * If you enable their debug stuff then if the jtag debugger is not installed your program will
-  * freeze hard.
+  * freeze hard if you forget to check debug_enabled():
   */
 
 #if ALH_SIM == 0
@@ -18,4 +18,7 @@
 #else
 #define printf(...)
 #endif
+
+#else
+#include_next <debugio.h>
 #endif // DEBUGIO_H
